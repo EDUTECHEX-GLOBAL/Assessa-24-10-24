@@ -3,7 +3,7 @@ name: Deploy
 on:
   push:
     branches:
-      - main-default
+      - main3
 
 jobs:
   deploy:
@@ -26,5 +26,5 @@ jobs:
 
       - name: Deploy to server
         run: |
-          # SSH into the server and run the deploy.sh script from the server itself
-          ssh ubuntu@www.skillnaav.com 'bash /home/ubuntu/skillnaav-fullstack/deploy.sh'
+          # SSH into the server and run the deploy.sh script from the server
+          ssh -o StrictHostKeyChecking=no ubuntu@www.skillnaav.com 'bash /home/ubuntu/skillnaav-fullstack/deploy.sh'
