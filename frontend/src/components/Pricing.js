@@ -24,22 +24,22 @@ function Pricing() {
 
   const colorClasses = {
     teal: {
-      bg: "bg-teal-100",
-      text: "text-teal-700",
-      subtext: "text-teal-900",
-      hoverBg: "hover:bg-teal-200",
-    },
-    purple: {
       bg: "bg-purple-100",
       text: "text-purple-700",
       subtext: "text-purple-900",
       hoverBg: "hover:bg-purple-200",
     },
+    purple: {
+      bg: "bg-blue-100",
+      text: "text-blue-700",
+      subtext: "text-blue-900",
+      hoverBg: "hover:bg-blue-200",
+    },
     orange: {
-      bg: "bg-orange-100",
-      text: "text-orange-700",
-      subtext: "text-orange-900",
-      hoverBg: "hover:bg-orange-200",
+      bg: "bg-pink-100",
+      text: "text-pink-700",
+      subtext: "text-pink-900",
+      hoverBg: "hover:bg-pink-200",
     },
   };
 

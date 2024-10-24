@@ -4,7 +4,7 @@ const connectDB = async () => {
   try {
     const mongoURL =
       process.env.MONGO_URI ||
-      "mongodb+srv://adi:1ACiRJq7FsQgFOtV@cluster0.bt8ym8l.mongodb.net/skillnaav-land";
+      "mongodb+srv://anu:8Ng3y8FdQND3Jyxw@cluster0.b582c.mongodb.net/Assessa";
     await mongoose.connect(mongoURL);
     console.log("MongoDB connection successful");
   } catch (error) {

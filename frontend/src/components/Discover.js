@@ -1,9 +1,10 @@
 import React from "react";
 import { motion } from "framer-motion";
 import { Carousel } from "antd";
-import Gradient from "../assets/Gradient.svg";
-import HeroImage from "../assets/app_mockup.png";
-import BlueArrow from "../assets/blue-button.svg";
+// import Gradient from "../assets/Gradient.svg";
+import GradientBackground from "../assets/gradient edit3.jpg";
+// import HeroImage from "../assets/app_mockup.png";
+import RedArrow from "../assets/blue-button.svg";
 import Google from "../assets/Google.svg";
 import Slack from "../assets/Slack.svg";
 import Trustpilot from "../assets/Trustpilot.svg";
@@ -74,7 +75,8 @@ const Discover = () => {
     >
       <div className="px-6 sm:px-10 lg:px-20 xl:px-32 text-center">
         <motion.h1
-          className="text-3xl sm:text-4xl font-medium text-gray-900 lg:text-5xl xl:text-6xl lg:leading-snug"
+          className="text-3xl sm:text-4xl font-medium lg:text-5xl xl:text-6xl lg:leading-snug"
+          style={{ color: '#000000' }}  // Hex color that can be adjusted
           initial={{ y: -50, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ duration: 0.8 }}
@@ -96,15 +98,15 @@ const Discover = () => {
           transition={{ duration: 0.8, delay: 0.4 }}
         >
           <button
-            className="bg-blue-600 text-white w-full sm:w-auto px-4 sm:px-8 py-2 sm:py-4 rounded-md hover:bg-blue-700 transition duration-200 cursor-pointer"
+            className= "bg-gradient-to-r from-[#fb5c5c] to-[#fa3e3e]  text-white w-full sm:w-auto px-4 sm:px-8 py-2 sm:py-4 rounded-full hover:from-[#ed3333] hover:to-[#ed3333]  transition duration-200 cursor-pointer"
             onClick={handleButtonClick}
           >
             {tryforfreebtn}
           </button>
-          <button className="text-blue-600 font-medium flex items-center justify-center gap-2 w-full sm:w-auto px-4 sm:px-8 py-2 sm:py-4 rounded-md border border-blue-600 hover:bg-blue-100 transition duration-200">
+          <button className="text-blue-600 font-medium flex items-center justify-center gap-2 w-full sm:w-auto px-3 sm:px-6 py-1.5 sm:py-3 rounded-full border border-blue-600 hover:bg-blue-100 transition duration-200">
             <a href="#pricing">{viewpricebtn}</a>
             <span>
-              <img src={BlueArrow} alt="Learn More" />
+              <img src={RedArrow} alt="Learn More" />
             </span>
           </button>
         </motion.div>
@@ -116,14 +118,15 @@ const Discover = () => {
         transition={{ duration: 1, delay: 0.6 }}
       >
         <div className="w-full relative">
-          <img
-            src={Gradient}
-            alt="Gradient"
-            className="w-full object-cover min-h-[400px] sm:min-h-[500px] lg:min-h-[600px] xl:min-h-[700px]"
-          />
+        <img
+  src={GradientBackground}
+  alt="Gradient Background"
+  className="w-full object-cover min-h-[400px] sm:min-h-[500px] lg:min-h-[600px] xl:min-h-[700px]"
+/>
+
           <div className="absolute top-0 left-0 w-full h-full flex items-center justify-center">
             <img
-              src={imgUrl || HeroImage}
+              // src={imgUrl || HeroImage}
               alt="Hero"
               className="max-h-[200px] sm:max-h-[300px] lg:max-h-[400px] xl:max-h-[500px] object-contain"
             />

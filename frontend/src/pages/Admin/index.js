@@ -11,7 +11,7 @@ import {
   FaSpinner,
   FaBars,
 } from "react-icons/fa";
-import SkillnaavLogo from "../../assets/skillnaav_logo-250w.png";
+import AssessaLogo from "../../assets/assessaai_logo2.png";
 
 // Lazy-loaded components
 const AdminDiscover = lazy(() => import("./AdminDiscover"));
@@ -32,7 +32,7 @@ const Loader = () => (
 const Admin = () => {
   const { skillnaavData } = useSelector((state) => state.root);
   const [selectedTab, setSelectedTab] = useState("Discover");
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const navItems = useMemo(
     () => [
@@ -64,11 +64,11 @@ const Admin = () => {
         <div className="container mx-auto flex justify-between items-center py-4 px-6">
           <div className="flex items-center">
             <img
-              src={SkillnaavLogo}
-              alt="Skillnaav Logo"
-              className="w-32 h-auto md:w-40 md:h-auto mr-3"
+              src={AssessaLogo}
+              alt="Assessa Logo"
+              className="w-28 h-auto md:w-20 md:h-auto mr-6"
             />
-            <span className="text-gray-800 text-lg md:text-xl font-semibold">
+            <span className="text-gray-800 text-base md:text-xl font-semibold">
               Admin Panel
             </span>
           </div>
@@ -77,7 +77,7 @@ const Admin = () => {
               localStorage.removeItem("token");
               window.location.href = "/admin-login";
             }}
-            className="text-gray-800 text-lg md:text-xl font-semibold cursor-pointer hover:underline"
+            className="text-red-700 text-base md:text-xl font-semibold cursor-pointer hover:underline"
           >
             Logout
           </span>
@@ -88,11 +88,11 @@ const Admin = () => {
       <div className="flex flex-1">
         {/* Sidebar */}
         <aside
-          className={`bg-gray-800 text-gray-200 ${
-            sidebarOpen ? "w-64" : "w-16"
-          } transition-all duration-300 py-6 shadow-md`}
+          className={`bg-gray-800 text-gray-200 fixed inset-y-0 left-0 z-50 transform ${
+            sidebarOpen ? "translate-x-0" : "-translate-x-full"
+          } transition-transform duration-300 ease-in-out md:relative md:translate-x-0 md:w-64 w-60 py-6 shadow-lg`}
         >
-          <div className="flex justify-end px-4 mb-6">
+          <div className="flex justify-end px-4 mb-6 md:hidden">
             <FaBars
               className="cursor-pointer text-white"
               onClick={() => setSidebarOpen(!sidebarOpen)}
@@ -105,12 +105,13 @@ const Admin = () => {
                 className={`flex items-center px-4 py-3 cursor-pointer hover:bg-gray-700 transition ${
                   selectedTab === item.label ? "bg-gray-900" : ""
                 }`}
-                onClick={() => handleTabSelect(item.label)}
+                onClick={() => {
+                  handleTabSelect(item.label);
+                  setSidebarOpen(false); // Close sidebar after selection on mobile
+                }}
               >
                 <span className="mr-2 text-lg">{item.icon}</span>
-                {sidebarOpen && (
-                  <span className="ml-2 text-md font-medium">{item.label}</span>
-                )}
+                <span className="ml-2 text-md font-medium">{item.label}</span>
               </li>
             ))}
           </ul>
@@ -118,6 +119,12 @@ const Admin = () => {
 
         {/* Main Content Area */}
         <main className="flex-1 p-6 bg-white overflow-y-auto shadow-inner">
+          <div className="md:hidden flex justify-end px-4 mb-6">
+            <FaBars
+              className="cursor-pointer text-gray-800"
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+            />
+          </div>
           <Suspense fallback={<Loader />}>
             {navItems.map((item) =>
               item.label === selectedTab ? (

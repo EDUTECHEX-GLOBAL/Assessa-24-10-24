@@ -10,7 +10,7 @@ const NextArrow = (props) => {
   const { onClick } = props;
   return (
     <div
-      className="absolute top-1/2 right-4 transform -translate-y-1/2 z-10 cursor-pointer bg-green-300 text-white p-2 rounded-full shadow-lg hover:bg-green-400 transition duration-300"
+      className="absolute top-1/2 right-4 transform -translate-y-1/2 z-10 cursor-pointer bg-blue-300 text-white p-2 rounded-full shadow-lg hover:bg-blue-400 transition duration-300"
       onClick={onClick}
     >
       <svg
@@ -35,7 +35,7 @@ const PrevArrow = (props) => {
   const { onClick } = props;
   return (
     <div
-      className="absolute top-1/2 left-4 transform -translate-y-1/2 z-10 cursor-pointer bg-green-300 text-white p-2 rounded-full shadow-lg hover:bg-green-400 transition duration-300"
+      className="absolute top-1/2 left-4 transform -translate-y-1/2 z-10 cursor-pointer bg-purple-300 text-white p-2 rounded-full shadow-lg hover:bg-purple-400 transition duration-300"
       onClick={onClick}
     >
       <svg
@@ -103,7 +103,7 @@ const Team = ({className}) => {
     skillnaavData.team.length === 0
   ) {
     return (
-      <div className="bg-gradient-to-r from-teal-500 to-green-500 py-12 px-4 rounded-lg">
+      <div className="bg-gradient-to-r from-purple-500 to-blue-500 py-12 px-4 rounded-lg">
         <p className="text-white text-center">No team members found.</p>
       </div>
     );
@@ -115,7 +115,7 @@ const Team = ({className}) => {
   return (
     <div
       id="team"
-      className="bg-gradient-to-r from-teal-500 to-green-500 py-12 rounded-lg px-4 mt-16 md:mt-8"
+      className="bg-gradient-to-r from-purple-500 to-blue-500 py-12 rounded-lg px-4 mt-16 md:mt-8"
     >
       <div className="text-center text-white mb-8">
         <h1 className="text-4xl font-bold mb-4">{teamheading}</h1>
@@ -132,7 +132,7 @@ const Team = ({className}) => {
                   className="w-full h-full object-cover"
                 />
               </div>
-              <h2 className="text-xl font-bold text-gray-900 mb-2">
+              <h2 className="text-xl font-bold text-violet-900 mb-2">
                 {member.teammemberName}
               </h2>
               <p className="text-gray-600 mb-2">{member.teammemberDesgn}</p>
@@ -141,7 +141,7 @@ const Team = ({className}) => {
               </p>
               <button
                 onClick={() => openModal(member)}
-                className="bg-green-600 text-white px-4 py-2 rounded-lg font-semibold transition duration-300 hover:bg-green-700 mt-auto"
+                className="bg-violet-600 text-white px-4 py-2 rounded-lg font-semibold transition duration-300 hover:bg-violet-700 mt-auto"
               >
                 Read More
               </button>

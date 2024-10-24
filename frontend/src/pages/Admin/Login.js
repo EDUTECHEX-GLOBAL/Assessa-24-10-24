@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useDispatch } from "react-redux";
-import SkillnaavLogo from "../../assets/skillnaav_logo-250w.png";
+import AssessaLogo from "../../assets/assessaai_logo2.png";
 import axios from "axios";
 import { message } from "antd";
 import { ShowLoading, HideLoading } from "../../redux/rootSlice";
@@ -42,10 +42,10 @@ function Login() {
   return (
     <div className="flex justify-center items-center h-screen bg-gray-200">
       <div className="w-96 p-8 bg-white rounded-lg shadow-md">
-        <div className="flex justify-center mb-6">
-          <img src={SkillnaavLogo} alt="logo" className="w-36 h-auto" />
+        <div className="flex justify-center mb-8">
+          <img src={AssessaLogo} alt="logo" className="w-36 h-25" />
         </div>
-        <h1 className="text-3xl text-center text-gray-800 mb-6 font-semibold">
+        <h1 className="text-2xl text-center text-red-700 mb-8 font-semibold">
           Admin Login
         </h1>
         <form onSubmit={handleSubmit}>
@@ -94,7 +94,7 @@ function Login() {
           </div>
           <button
             type="submit"
-            className="w-full bg-blue-500 text-white py-3 rounded-lg font-semibold hover:bg-blue-600 focus:outline-none focus:bg-blue-600"
+            className="w-full bg-red-500 text-white py-3 rounded-lg font-semibold hover:bg-red-600 focus:outline-none focus:bg-red-600"
           >
             Login
           </button>

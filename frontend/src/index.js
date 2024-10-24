@@ -10,15 +10,14 @@ import { Provider } from "react-redux";
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
-  apiKey: "AIzaSyBC8-dTj7LeZdDEJ55skgrSK-KqaJu8VIE",
-  authDomain: "skillnaav-doc.firebaseapp.com",
-  projectId: "skillnaav-doc",
-  storageBucket: "skillnaav-doc.appspot.com",
-  messagingSenderId: "805153616143",
-  appId: "1:805153616143:web:94acbd7436dbd620b44e7a",
-  measurementId: "G-78JJ8PRQSR",
-};
-
+  apiKey: "AIzaSyDYS6AbgDR-xM-_nBgVvmfhV99neOjTiV0",
+  authDomain: "assessa-d31c6.firebaseapp.com",
+  projectId: "assessa-d31c6",
+  storageBucket: "assessa-d31c6.appspot.com",
+  messagingSenderId: "24759926573",
+  appId: "1:24759926573:web:46757416fdfdd6250d1da4",
+  measurementId: "G-B1MNYNG46D"
+}
 // Initialize Firebase
 firebase.initializeApp(firebaseConfig);
 

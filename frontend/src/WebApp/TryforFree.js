@@ -1,6 +1,6 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import skillnaavlogo from "../assets/skillnaav_logo-250w.png";
+import Assessalogo from "../assets/assessaai_logo2.png";
 const TryforFree = () => {
   const navigate = useNavigate();
 
@@ -24,7 +24,7 @@ const TryforFree = () => {
       }}
     >
       <img
-        src={skillnaavlogo}
+        src={Assessalogo}
         style={{ width: "210px", height: "auto" }}
         alt="SkillNaav Logo"
       />

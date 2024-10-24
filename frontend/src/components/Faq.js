@@ -37,7 +37,7 @@ const Faq = () => {
             <div key={index}>
               <Accordion.Item
                 value={`item-${index + 1}`}
-                className="bg-[#E3F1FF] p-[16px] rounded-[8px]"
+                className="bg-[#fdf7a1] p-[16px] rounded-[8px]"
               >
                 <Accordion.Header>
                   <Accordion.Trigger className="flex w-full items-center justify-between">

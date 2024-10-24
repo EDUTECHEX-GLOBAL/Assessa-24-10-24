@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import SkillNaavLogo from "../assets/skillnaav_logo-250w.png";
+import AssessaLogo from "../assets/assessaai_logo2.png";
 import FacebookIcon from "../assets/facebook-custom.png";
 import TwitterIcon from "../assets/X_custom.png";
 import FeedIcon from "../assets/youtube.png";
@@ -21,9 +21,9 @@ export default function Footer() {
           <div className="flex items-start justify-center md:justify-start md:col-span-1">
             <a href="#">
               <img
-                src={SkillNaavLogo}
-                alt="SkillNaav Logo"
-                width={150}
+                src={AssessaLogo}
+                alt="Assessa Logo"
+                width={100}
                 height={50}
               />
             </a>
@@ -35,10 +35,10 @@ export default function Footer() {
             <p className="mt-2">
               Email:{" "}
               <a
-                href="mailto:info@skillnaav.com"
+                href="mailto:info@assessa.com"
                 className="text-blue-500 hover:underline"
               >
-                info@skillnaav.com
+                info@assessa.com
               </a>
             </p>
           </div>
@@ -49,7 +49,7 @@ export default function Footer() {
             <ul className="space-y-2">
               <li>
                 <a href="#" className="hover:text-gray-600">
-                  About SkillNaav
+                  About Assessa
                 </a>
               </li>
               <li>
@@ -130,7 +130,7 @@ export default function Footer() {
 
         {/* Copyright Text */}
         <div className="mt-8 text-center text-sm text-gray-800">
-          <p>&copy; 2024 SkillNaav. All Rights Reserved</p>
+          <p>&copy; 2024 Assessa. All Rights Reserved</p>
           <p>
             <a href="#" className="hover:text-gray-600">
               Privacy Policy

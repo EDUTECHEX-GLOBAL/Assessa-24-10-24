@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import SkillNaavLogo from "../assets/skillnaav_logo-250w.png";
+import SkillNaavLogo from "../assets/assessaai_logo2.png";
 import Menu from "../assets/Menu.svg";
 import Close from "../assets/close.png";
 
@@ -25,7 +25,7 @@ const Navbar = () => {
         <div className="flex items-center gap-x-5">
           <a href="/" aria-label="Home">
             <img
-              className="w-[150px]"
+              className="w-[100px]"
               src={SkillNaavLogo}
               alt="SkillNaav Logo"
             />
@@ -35,7 +35,7 @@ const Navbar = () => {
               <a
                 key={index}
                 href={item.href}
-                className="text-[#36485C] font-medium hover:text-[#451E5D] transition duration-300"
+                className="text-[#36485C] font-medium hover:text-[#4b5fde] transition duration-300"
               >
                 {item.name}
               </a>
@@ -46,7 +46,7 @@ const Navbar = () => {
         <div className="flex items-center gap-x-5">
           <a
             href="#contacts"
-            className="hidden lg:block font-medium text-white bg-[#451E5D] hover:bg-[#2c3b4e] px-4 py-2 rounded-md transition duration-300"
+            className="hidden lg:block font-medium text-white bg-[#1a191a] hover:bg-[#2c3b4e] px-6 py-3 rounded-full transition duration-300"
           >
             Request Call Back
           </a>
