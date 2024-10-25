@@ -99,7 +99,7 @@ const Discover = () => {
         >
           <button
             className= "bg-gradient-to-r from-[#fb5c5c] to-[#fa3e3e]  text-white w-full sm:w-auto px-4 sm:px-8 py-2 sm:py-4 rounded-full hover:from-[#ed3333] hover:to-[#ed3333]  transition duration-200 cursor-pointer"
-            onClick={handleButtonClick}
+            // onClick={handleButtonClick}
           >
             {tryforfreebtn}
           </button>

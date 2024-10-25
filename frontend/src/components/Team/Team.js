@@ -115,7 +115,7 @@ const Team = ({className}) => {
   return (
     <div
       id="team"
-      className="bg-gradient-to-r from-purple-500 to-blue-500 py-12 rounded-lg px-4 mt-16 md:mt-8"
+      className="bg-gradient-to-r from-purple-500 to-blue-400 py-12 rounded-lg px-4 mt-16 md:mt-8"
     >
       <div className="text-center text-white mb-8">
         <h1 className="text-4xl font-bold mb-4">{teamheading}</h1>
