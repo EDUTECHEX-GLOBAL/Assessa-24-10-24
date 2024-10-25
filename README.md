@@ -1,1 +1,1 @@
-# skillnaav-fullstack
+# Assessa - fullstack
