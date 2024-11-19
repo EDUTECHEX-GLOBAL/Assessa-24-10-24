@@ -1,9 +1,9 @@
 import React from "react";
 import { motion } from "framer-motion";
 import { Carousel } from "antd";
-// import Gradient from "../assets/Gradient.svg";
+import Gradient from "../assets/Gradient.svg";
 import GradientBackground from "../assets/gradient edit3.jpg";
-// import HeroImage from "../assets/app_mockup.png";
+import HeroImage from "../assets/assessa_banner1.png";
 import RedArrow from "../assets/blue-button.svg";
 import Google from "../assets/Google.svg";
 import Slack from "../assets/Slack.svg";
@@ -76,7 +76,7 @@ const Discover = () => {
       <div className="px-6 sm:px-10 lg:px-20 xl:px-32 text-center">
         <motion.h1
           className="text-3xl sm:text-4xl font-medium lg:text-5xl xl:text-6xl lg:leading-snug"
-          style={{ color: '#000000' }}  // Hex color that can be adjusted
+          style={{ color: "#000000" }} // Hex color that can be adjusted
           initial={{ y: -50, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ duration: 0.8 }}
@@ -98,8 +98,7 @@ const Discover = () => {
           transition={{ duration: 0.8, delay: 0.4 }}
         >
           <button
-            className= "bg-gradient-to-r from-[#fb5c5c] to-[#fa3e3e]  text-white w-full sm:w-auto px-4 sm:px-8 py-2 sm:py-4 rounded-full hover:from-[#ed3333] hover:to-[#ed3333]  transition duration-200 cursor-pointer"
-            // onClick={handleButtonClick}
+            className="bg-gradient-to-r from-[#fb5c5c] to-[#fa3e3e]  text-white w-full sm:w-auto px-4 sm:px-8 py-2 sm:py-4 rounded-full hover:from-[#ed3333] hover:to-[#ed3333]  transition duration-200 cursor-pointer"
           >
             {tryforfreebtn}
           </button>
@@ -118,20 +117,21 @@ const Discover = () => {
         transition={{ duration: 1, delay: 0.6 }}
       >
         <div className="w-full relative">
-        <img
-  src={GradientBackground}
-  alt="Gradient Background"
-  className="w-full object-cover min-h-[400px] sm:min-h-[500px] lg:min-h-[600px] xl:min-h-[700px]"
-/>
-
+          <img
+            src={GradientBackground}
+            alt="Gradient Background"
+            className="w-full object-cover min-h-[400px] sm:min-h-[500px] lg:min-h-[600px] xl:min-h-[700px]"
+          />
           <div className="absolute top-0 left-0 w-full h-full flex items-center justify-center">
             <img
-              // src={imgUrl || HeroImage}
+              src={imgUrl || HeroImage}
               alt="Hero"
-              className="max-h-[200px] sm:max-h-[300px] lg:max-h-[400px] xl:max-h-[500px] object-contain"
+              className="max-h-[250px] sm:max-h-[300px] lg:max-h-[400px] xl:max-h-[700px] object-contain sm:ml-4 lg:ml-16"
             />
           </div>
         </div>
+        {/* Commented Out Section */}
+        {/*
         <div className="absolute bottom-0 w-full flex flex-col items-center mt-6 lg:mt-10 xl:mt-12">
           <div className="w-full px-4 sm:px-0 lg:px-20 xl:px-32">
             <div className="text-white text-center">
@@ -142,6 +142,7 @@ const Discover = () => {
             {renderCompanyImages()}
           </div>
         </div>
+        */}
       </motion.div>
     </motion.div>
   );
