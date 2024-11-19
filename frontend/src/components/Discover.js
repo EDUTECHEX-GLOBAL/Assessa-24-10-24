@@ -122,12 +122,24 @@ const Discover = () => {
             alt="Gradient Background"
             className="w-full object-cover min-h-[400px] sm:min-h-[500px] lg:min-h-[600px] xl:min-h-[700px]"
           />
-          <div className="absolute top-0 left-0 w-full h-full flex items-center justify-center">
+          {/* Hero Image and Button */}
+          <div className="absolute top-0 left-0 w-full h-full flex flex-col items-center justify-center">
+            {/* Hero Image */}
             <img
-              src={imgUrl || HeroImage}
+              src={HeroImage}
               alt="Hero"
-              className="max-h-[250px] sm:max-h-[300px] lg:max-h-[400px] xl:max-h-[700px] object-contain sm:ml-4 lg:ml-16"
+              className="max-h-[300px] sm:max-h-[350px] lg:max-h-[400px] xl:max-h-[600px] object-contain mt-"
             />
+
+            {/* Button Positioned Directly Under Hero Image */}
+            <motion.button
+              className="bg-gradient-to-r from-[#fb5c5c] to-[#fa3e3e] text-white px-8 py-3 rounded-full text-lg sm:text-xl hover:from-[#ed3333] hover:to-[#ed3333] transition duration-200"
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ duration: 0.8, delay: 0.2 }}
+            >
+              Generate LM Powered assignment
+            </motion.button>
           </div>
         </div>
         {/* Commented Out Section */}
