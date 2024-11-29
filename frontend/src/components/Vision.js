@@ -33,10 +33,10 @@ const Vision = () => {
             <h2 className="text-3xl lg:text-4xl font-bold mb-4 lg:mb-9 text-center text-gray-800">
               {visionhead[0].visionheading}
             </h2>
-            <p className="text-sm md:text-base lg:text-lg font-medium mb-6 max-w-3xl mx-auto text-justify">
+            <p className="text-sm md:text-base lg:text-lg font-medium mb-6 max-w-3xl mx-auto">
               {visionhead[0].visionsub}
             </p>
-            <ul className="list-disc text-base lg:text-lg max-w-2xl mx-auto pl-5 text-justify">
+            <ul className="list-disc text-base lg:text-lg max-w-2xl mx-auto pl-5">
               {visionpoint.map((point, index) => (
                 <li key={index} className="mb-3 font-normal">
                   {point.visionpoint}
