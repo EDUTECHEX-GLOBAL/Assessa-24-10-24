@@ -12,6 +12,9 @@ import Cnn from "../assets/CNN.svg";
 import Clutch from "../assets/Clutch.svg";
 import { useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
+import "./Discover.css";
+
+
 
 const Discover = () => {
   const { skillnaavData } = useSelector((state) => state.root);
@@ -128,12 +131,12 @@ const Discover = () => {
             <img
               src={HeroImage}
               alt="Hero"
-              className="max-h-[300px] sm:max-h-[350px] lg:max-h-[400px] xl:max-h-[600px] object-contain mt-"
+              className="hero-image max-h-[300px] sm:max-h-[350px] lg:max-h-[400px] xl:max-h-[600px] object-contain mt-0 ml-[20px]"
             />
 
             {/* Button Positioned Directly Under Hero Image */}
             <motion.button
-              className="bg-gradient-to-r from-[#fb5c5c] to-[#fa3e3e] text-white px-8 py-3 rounded-full text-lg sm:text-xl hover:from-[#ed3333] hover:to-[#ed3333] transition duration-200"
+              className="hero-button"
               initial={{ y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ duration: 0.8, delay: 0.2 }}
