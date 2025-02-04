@@ -108,7 +108,10 @@ export default function Contact() {
           />
           <button
             type="submit"
-            className="py-4 px-8 bg-white rounded-full text-red-600 text-lg font-bold hover:bg-yellow-200 focus:outline-none focus:ring-2 focus:ring-red-500"
+            className="py-4 px-8 bg-white rounded-full text-red-600 text-lg font-bold hover:bg-yellow
+            
+            
+            -200 focus:outline-none focus:ring-2 focus:ring-red-500"
           >
             Submit
           </button>

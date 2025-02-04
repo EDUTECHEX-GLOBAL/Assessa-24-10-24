@@ -7,7 +7,7 @@ import Home from "./pages/Home";
 import axios from "axios";
 import { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { HideLoading, SetSkillNaavData } from "./redux/rootSlice";
+import { HideLoading, SetassessaData } from "./redux/rootSlice";
 import Admin from "./pages/Admin";
 import Login from "./pages/Admin/Login";
 import UserCreateAccount from "./WebApp/Flows/UserFlow/SignUpLogin/UserCreateAccount";
@@ -29,15 +29,17 @@ import AdminProfileForm from "./WebApp/Flows/AdminFlow/SignUpLogin/AdminProfileB
 import AdminProfilePicture from "./WebApp/Flows/AdminFlow/SignUpLogin/AdminProfileBuilding/AdminProfilePicture";
 import AdminMainPage from "./WebApp/Flows/AdminFlow/MainPage/AdminMainPage";
 import TryforFree from "./WebApp/TryforFree";
+import StudyAssistant from "./components/StudyAssistant/Studyassistant";
+import StudyRecommendation from "./components/StudyRecommendation/StudyRecommendation";
 
 function App() {
-  const { skillnaavData, reloadData } = useSelector((state) => state.root);
+  const { assessaData, reloadData } = useSelector((state) => state.root);
   const dispatch = useDispatch();
 
-  const getSkillNaavData = async () => {
+  const getassessaData = async () => {
     try {
       const response = await axios.get("/api/skillnaav/get-skillnaav-data");
-      dispatch(SetSkillNaavData(response.data));
+      dispatch(SetassessaData(response.data));
       dispatch(HideLoading());
     } catch (error) {
       console.error("Error fetching SkillNaav data:", error);
@@ -46,10 +48,10 @@ function App() {
   };
 
   useEffect(() => {
-    if (!skillnaavData || reloadData) {
-      getSkillNaavData();
+    if (!assessaData || reloadData) {
+      getassessaData();
     }
-  }, [skillnaavData, reloadData]);
+  }, [assessaData, reloadData]);
 
   return (
     <BrowserRouter>
@@ -96,6 +98,9 @@ function App() {
 
         {/* Try for free */}
         <Route path="/choose-role" element={<TryforFree />} />
+
+        <Route path="/study-assistant" element={<StudyAssistant />} />
+        <Route path="/study-recommendation" element={<StudyRecommendation />} />
       </Routes>
     </BrowserRouter>
   );

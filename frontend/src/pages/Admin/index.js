@@ -30,7 +30,7 @@ const Loader = () => (
 );
 
 const Admin = () => {
-  const { skillnaavData } = useSelector((state) => state.root);
+  const { assessaData } = useSelector((state) => state.root);
   const [selectedTab, setSelectedTab] = useState("Discover");
   const [sidebarOpen, setSidebarOpen] = useState(false);
 

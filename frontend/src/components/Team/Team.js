@@ -59,7 +59,7 @@ const PrevArrow = (props) => {
 const Team = ({className}) => {
   const [modalIsOpen, setModalIsOpen] = useState(false);
   const [selectedMember, setSelectedMember] = useState(null);
-  const { skillnaavData } = useSelector((state) => state.root);
+  const { assessaData } = useSelector((state) => state.root);
 
   const openModal = (member) => {
     setSelectedMember(member);
@@ -101,9 +101,9 @@ const Team = ({className}) => {
   };
 
   if (
-    !skillnaavData ||
-    !skillnaavData.team ||
-    skillnaavData.team.length === 0
+    !assessaData ||
+    !assessaData.team ||
+    assessaData.team.length === 0
   ) {
     return (
       <div className="bg-gradient-to-r from-purple-500 to-blue-500 py-12 px-4 rounded-lg">
@@ -112,8 +112,8 @@ const Team = ({className}) => {
     );
   }
 
-  const { teamheading, teamsubheading } = skillnaavData.team[0];
-  const teammembers = skillnaavData.teammember;
+  const { teamheading, teamsubheading } = assessaData.team[0];
+  const teammembers = assessaData.teammember;
 
   return (
     <div

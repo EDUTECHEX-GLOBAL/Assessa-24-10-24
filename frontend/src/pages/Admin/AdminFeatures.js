@@ -7,7 +7,7 @@ import "firebase/compat/storage";
 const { TextArea } = Input;
 
 function AdminFeatures() {
-  const [skillnaavData, setSkillnaavData] = useState(null);
+  const [assessaData, setassessaData] = useState(null);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [selectedFeature, setSelectedFeature] = useState(null);
@@ -18,14 +18,14 @@ function AdminFeatures() {
   const [uploadingImage, setUploadingImage] = useState(false); // State to manage image upload loading
 
   useEffect(() => {
-    fetchSkillnaavData();
+    fetchassessaData();
   }, []);
 
-  const fetchSkillnaavData = useCallback(async () => {
+  const fetchassessaData = useCallback(async () => {
     try {
       setLoading(true);
       const response = await axios.get("/api/skillnaav/get-skillnaav-data");
-      setSkillnaavData(response.data);
+      setassessaData(response.data);
     } catch (error) {
       message.error("Failed to fetch data. Please try again later.");
     } finally {
@@ -64,7 +64,7 @@ function AdminFeatures() {
       if (response.data.success) {
         message.success(response.data.message);
         setShowEditModal(false);
-        fetchSkillnaavData();
+        fetchassessaData();
         form.resetFields();
         setImageUrl("");
         setPreviewImageUrl(""); // Clear preview image after successful update
@@ -89,7 +89,7 @@ function AdminFeatures() {
       if (response.data.success) {
         message.success(response.data.message);
         setShowAddModal(false);
-        fetchSkillnaavData();
+        fetchassessaData();
         form.resetFields();
         setImageUrl("");
         setPreviewImageUrl(""); // Clear preview image after successful addition
@@ -113,7 +113,7 @@ function AdminFeatures() {
       );
       if (response.data.success) {
         message.success(response.data.message);
-        fetchSkillnaavData();
+        fetchassessaData();
       } else {
         message.error(response.data.message || "Failed to delete feature.");
       }
@@ -143,11 +143,11 @@ function AdminFeatures() {
     setShowAddModal(true);
   };
 
-  if (loading || !skillnaavData || !skillnaavData.features) {
+  if (loading || !assessaData || !assessaData.features) {
     return <Skeleton active avatar />;
   }
 
-  const { features } = skillnaavData;
+  const { features } = assessaData;
 
   return (
     <div>

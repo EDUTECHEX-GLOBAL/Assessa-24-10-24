@@ -7,7 +7,7 @@ import "firebase/compat/storage";
 const { TextArea } = Input;
 
 const AdminTeam = () => {
-  const [skillnaavData, setSkillnaavData] = useState([]);
+  const [assessaData, setassessaData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isEditTeamModalVisible, setIsEditTeamModalVisible] = useState(false);
   const [isAddTeamModalVisible, setIsAddTeamModalVisible] = useState(false);
@@ -18,14 +18,14 @@ const AdminTeam = () => {
   const [previewUrl, setPreviewUrl] = useState("");
 
   useEffect(() => {
-    fetchSkillnaavData();
+    fetchassessaData();
   }, []);
 
-  const fetchSkillnaavData = useCallback(async () => {
+  const fetchassessaData = useCallback(async () => {
     try {
       setLoading(true);
       const response = await axios.get("/api/skillnaav/get-skillnaav-data");
-      setSkillnaavData(response.data.teammember);
+      setassessaData(response.data.teammember);
       setLoading(false);
     } catch (error) {
       console.error("Error fetching SkillNaav data:", error);
@@ -66,7 +66,7 @@ const AdminTeam = () => {
         teamData
       );
       message.success(response.data.message);
-      fetchSkillnaavData();
+      fetchassessaData();
       setIsAddTeamModalVisible(false);
       form.resetFields();
       setImgUrl(null);
@@ -85,7 +85,7 @@ const AdminTeam = () => {
         teamData
       );
       message.success(response.data.message);
-      fetchSkillnaavData();
+      fetchassessaData();
       setIsEditTeamModalVisible(false);
       form.resetFields();
       setImgUrl(null);
@@ -100,7 +100,7 @@ const AdminTeam = () => {
     try {
       await axios.delete(`/api/skillnaav/delete-teammember/${id}`);
       message.success("Team member deleted successfully");
-      fetchSkillnaavData();
+      fetchassessaData();
     } catch (error) {
       console.error("Error deleting team member:", error);
       message.error("Failed to delete team member");
@@ -131,10 +131,10 @@ const AdminTeam = () => {
       </Button>
       {loading ? (
         <Skeleton active />
-      ) : skillnaavData.length > 0 ? (
+      ) : assessaData.length > 0 ? (
         <List
           itemLayout="horizontal"
-          dataSource={skillnaavData}
+          dataSource={assessaData}
           renderItem={(item) => (
             <List.Item
               actions={[

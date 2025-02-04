@@ -3,13 +3,13 @@ import Check from "../assets/check.svg";
 import { useSelector } from "react-redux";
 
 function Pricing() {
-  const { skillnaavData } = useSelector((state) => state.root);
+  const { assessaData } = useSelector((state) => state.root);
 
-  if (!skillnaavData) {
-    return <div>Loading...</div>; // Add loading state if skillnaavData is null
+  if (!assessaData) {
+    return <div>Loading...</div>; // Add loading state if assessaData is null
   }
 
-  const { pricing, pricingcard } = skillnaavData;
+  const { pricing, pricingcard } = assessaData;
 
   if (
     !pricing ||

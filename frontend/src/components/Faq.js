@@ -4,14 +4,14 @@ import Plus from "../assets/Plus.svg";
 import { useSelector } from "react-redux";
 
 const Faq = () => {
-  const { skillnaavData } = useSelector((state) => state.root);
+  const { assessaData } = useSelector((state) => state.root);
 
-  if (!skillnaavData || !skillnaavData.faq || skillnaavData.faq.length === 0) {
+  if (!assessaData || !assessaData.faq || assessaData.faq.length === 0) {
     return null;
   }
 
-  const { faqheading, faqsubheading } = skillnaavData.faq[0];
-  const { faqcard } = skillnaavData;
+  const { faqheading, faqsubheading } = assessaData.faq[0];
+  const { faqcard } = assessaData;
 
   return (
     <div

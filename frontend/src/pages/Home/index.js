@@ -13,9 +13,9 @@ const Contact = lazy(() => import("../../components/Contact"));
 const Footer = lazy(() => import("../../components/Footer"));
 
 function Home() {
-  const { skillnaavData } = useSelector((state) => state.root);
+  const { assessaData } = useSelector((state) => state.root);
 
-  const memoizedData = useMemo(() => skillnaavData, [skillnaavData]);
+  const memoizedData = useMemo(() => assessaData, [assessaData]);
 
   const cachedComponents = useMemo(
     () => ({

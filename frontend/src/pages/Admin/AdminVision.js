@@ -8,7 +8,7 @@ import "firebase/compat/storage";
 const { TextArea } = Input;
 
 const AdminVision = () => {
-  const [skillnaavData, setSkillnaavData] = useState(null);
+  const [assessaData, setassessaData] = useState(null);
   const [modalData, setModalData] = useState({
     isVisible: false,
     type: "",
@@ -20,7 +20,7 @@ const AdminVision = () => {
   const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
-    fetchSkillnaavData();
+    fetchassessaData();
   }, []);
 
   const handleFileUpload = (event) => {
@@ -59,10 +59,10 @@ const AdminVision = () => {
     }
   };
 
-  const fetchSkillnaavData = useCallback(async () => {
+  const fetchassessaData = useCallback(async () => {
     try {
       const response = await axios.get("/api/skillnaav/get-skillnaav-data");
-      setSkillnaavData(response.data);
+      setassessaData(response.data);
       if (response.data.visionhead && response.data.visionhead.length > 0) {
         setImgUrl(response.data.visionhead[0].visionImg || "");
         setPreviewUrl(response.data.visionhead[0].visionImg || "");
@@ -102,7 +102,7 @@ const AdminVision = () => {
         if (response.data.success) {
           message.success(response.data.message);
           setModalData({ isVisible: false, type: "", data: null });
-          fetchSkillnaavData();
+          fetchassessaData();
           form.resetFields();
           setPreviewUrl("");
         } else {
@@ -112,7 +112,7 @@ const AdminVision = () => {
         message.error(`Error ${modalData.type} vision data: ${error.message}`);
       }
     },
-    [modalData, form, fetchSkillnaavData, imgUrl]
+    [modalData, form, fetchassessaData, imgUrl]
   );
 
   const handleDelete = useCallback(
@@ -123,7 +123,7 @@ const AdminVision = () => {
         );
         if (response.data.success) {
           message.success(response.data.message);
-          fetchSkillnaavData();
+          fetchassessaData();
         } else {
           message.error(response.data.message);
         }
@@ -131,7 +131,7 @@ const AdminVision = () => {
         message.error(`Error deleting vision point: ${error.message}`);
       }
     },
-    [fetchSkillnaavData]
+    [fetchassessaData]
   );
 
   const openModal = useCallback(
@@ -146,7 +146,7 @@ const AdminVision = () => {
     [form]
   );
 
-  if (!skillnaavData) {
+  if (!assessaData) {
     return (
       <div className="flex justify-center items-center h-full">
         <Skeleton active avatar />
@@ -154,7 +154,7 @@ const AdminVision = () => {
     );
   }
 
-  const { visionhead, visionpoint } = skillnaavData;
+  const { visionhead, visionpoint } = assessaData;
 
   return (
     <div className="container mx-auto py-8">

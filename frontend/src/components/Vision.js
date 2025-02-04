@@ -2,17 +2,17 @@ import React from "react";
 import { useSelector } from "react-redux";
 
 const Vision = () => {
-  const { skillnaavData } = useSelector((state) => state.root);
+  const { assessaData } = useSelector((state) => state.root);
 
   if (
-    !skillnaavData ||
-    !skillnaavData.visionhead ||
-    !skillnaavData.visionpoint
+    !assessaData ||
+    !assessaData.visionhead ||
+    !assessaData.visionpoint
   ) {
     return null;
   }
 
-  const { visionhead, visionpoint } = skillnaavData;
+  const { visionhead, visionpoint } = assessaData;
 
   return (
     <section

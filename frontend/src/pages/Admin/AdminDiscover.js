@@ -20,25 +20,25 @@ const AdminDiscover = () => {
   const [compImageUrls, setCompImageUrls] = useState([]);
   const [uploading, setUploading] = useState(false);
   const dispatch = useDispatch();
-  const { skillnaavData, loading } = useSelector((state) => state.root);
+  const { assessaData, loading } = useSelector((state) => state.root);
 
   useEffect(() => {
     if (
-      skillnaavData &&
-      skillnaavData.discover &&
-      skillnaavData.discover.length > 0
+      assessaData &&
+      assessaData.discover &&
+      assessaData.discover.length > 0
     ) {
-      const discover = skillnaavData.discover[0];
+      const discover = assessaData.discover[0];
       setDiscoverImgUrl(discover.imgUrl || "");
       setCompImageUrls(discover.compImageUrls || []);
     }
-  }, [skillnaavData]);
+  }, [assessaData]);
 
   const onFinish = async (values) => {
     try {
       dispatch(ShowLoading());
       const response = await axios.put(
-        `/api/skillnaav/update-discover/${skillnaavData.discover[0]._id}`,
+        `/api/skillnaav/update-discover/${assessaData.discover[0]._id}`,
         {
           ...values,
           imgUrl: discoverImgUrl,
@@ -138,15 +138,15 @@ const AdminDiscover = () => {
   };
 
   if (
-    !skillnaavData ||
-    !skillnaavData.discover ||
-    skillnaavData.discover.length === 0
+    !assessaData ||
+    !assessaData.discover ||
+    assessaData.discover.length === 0
   ) {
     return <Spin spinning={true} indicator={antIcon} />;
   }
 
-  const discover = skillnaavData.discover[0];
-  const discovercompimg = skillnaavData.discovercompimg || [];
+  const discover = assessaData.discover[0];
+  const discovercompimg = assessaData.discovercompimg || [];
 
   return (
     <div className="p-8 bg-gray-100 rounded-lg shadow-md max-w-3xl mx-auto my-12 font-roboto">
