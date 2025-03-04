@@ -3,7 +3,7 @@ name: Deploy to Server
 on:
   push:
     branches:
-      - pran-25-10  # Adjust the branch as necessary
+      - login-portals  # Adjust the branch as necessary
 
 jobs:
   deploy:
@@ -25,5 +25,5 @@ jobs:
         run: |
           ssh -o StrictHostKeyChecking=no ubuntu@www.assessaai.com << 'EOF'
             cd /home/ubuntu/Assessa-24-10-24  # Navigate to the correct directory where deploy.sh is located
-            ./deploy.sh pran-25-10  # Execute the deploy script with the branch name as the argument
+            ./deploy.sh login-portals  # Execute the deploy script with the branch name as the argument
           EOF
