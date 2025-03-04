@@ -13,13 +13,25 @@ const app = express(); // Initialize express app
 connectDB(); // Establish MongoDB connection
 
 // Enable CORS for frontend-backend communication
+const allowedOrigins = ["http://localhost:3000", "https://www.assessaai.com"];
+
 app.use(
   cors({
-    origin: "http://localhost:3000", // Ensure frontend can communicate with backend
-    methods: ["GET", "POST", "PUT", "DELETE"],
+    origin: function (origin, callback) {
+      if (!origin || allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"], // Ensure OPTIONS is handled for preflight requests
     credentials: true,
+    allowedHeaders: ["Content-Type", "Authorization"], // Allow specific headers
   })
 );
+
+// Handle Preflight (OPTIONS) Requests
+app.options("*", cors());
 
 // Middleware
 app.use(express.json()); // For parsing application/json
