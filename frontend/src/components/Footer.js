@@ -1,9 +1,7 @@
 import React, { useState } from "react";
 import AssessaLogo from "../assets/assessaai_logo2.png";
-import FacebookIcon from "../assets/facebook-custom.png";
-import TwitterIcon from "../assets/X_custom.png";
-import FeedIcon from "../assets/youtube.png";
-import LinkedinIcon from "../assets/linkedin_custom.png";
+import TwitterXLogo from "../assets/twitter.png"; // Import your Twitter X image
+import { FaFacebookF, FaYoutube, FaLinkedinIn } from "react-icons/fa";
 
 export default function Footer() {
   const [isSubscribed, setIsSubscribed] = useState(false);
@@ -20,12 +18,7 @@ export default function Footer() {
           {/* Footer Logo */}
           <div className="flex items-start justify-center md:justify-start md:col-span-1">
             <a href="#">
-              <img
-                src={AssessaLogo}
-                alt="Assessa Logo"
-                width={100}
-                height={50}
-              />
+              <img src={AssessaLogo} alt="Assessa Logo" width={100} height={50} />
             </a>
           </div>
 
@@ -34,10 +27,7 @@ export default function Footer() {
             <h5 className="font-semibold mb-4">Contact Details</h5>
             <p className="mt-2">
               Email:{" "}
-              <a
-                href="mailto:info@assessa.com"
-                className="text-blue-500 hover:underline"
-              >
+              <a href="mailto:info@assessa.com" className="text-blue-500 hover:underline">
                 info@assessa.com
               </a>
             </p>
@@ -47,29 +37,17 @@ export default function Footer() {
           <div className="md:col-span-1">
             <h5 className="font-semibold mb-4">Useful Links</h5>
             <ul className="space-y-2">
-              <li>
-                <a href="#" className="hover:text-gray-600">
-                  About Assessa
-                </a>
-              </li>
-              <li>
-                <a href="#" className="hover:text-gray-600">
-                  Visa Information
-                </a>
-              </li>
-              <li>
-                <a href="#" className="hover:text-gray-600">
-                  Immigration FAQ
-                </a>
-              </li>
-              <li>
-                <a href="#" className="hover:text-gray-600">
-                  Contact Us
-                </a>
-              </li>
+              {["About Assessa", "Visa Information", "Immigration FAQ", "Contact Us"].map((link, index) => (
+                <li key={index}>
+                  <a href="#" className="hover:text-gray-600">
+                    {link}
+                  </a>
+                </li>
+              ))}
             </ul>
           </div>
 
+          {/* Newsletter Subscription */}
           <div className="md:col-span-1">
             <h5 className="font-semibold mb-4">Stay Informed</h5>
             <p className="text-sm text-gray-800 mb-4">
@@ -93,38 +71,18 @@ export default function Footer() {
         </div>
 
         {/* Social Media Links */}
-        <div className="flex justify-center mt-8 space-x-4">
-          <a
-            href="https://facebook.com"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-gray-600 hover:text-gray-800 transition duration-300"
-          >
-            <img src={FacebookIcon} alt="Facebook" width={24} height={24} />
+        <div className="flex justify-center mt-8 space-x-6">
+          <a href="https://facebook.com" target="_blank" rel="noopener noreferrer" className="text-gray-600 hover:text-blue-600 transition">
+            <FaFacebookF size={24} />
           </a>
-          <a
-            href="https://twitter.com"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-gray-600 hover:text-gray-800 transition duration-300"
-          >
-            <img src={TwitterIcon} alt="Twitter" width={24} height={24} />
+          <a href="https://twitter.com" target="_blank" rel="noopener noreferrer">
+            <img src={TwitterXLogo} alt="Twitter X" className="w-5 h-5 hover:opacity-80 transition" />
           </a>
-          <a
-            href="https://rss.com"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-gray-600 hover:text-gray-800 transition duration-300"
-          >
-            <img src={FeedIcon} alt="Feed" width={24} height={24} />
+          <a href="https://youtube.com" target="_blank" rel="noopener noreferrer" className="text-gray-600 hover:text-red-600 transition">
+            <FaYoutube size={24} />
           </a>
-          <a
-            href="https://linkedin.com"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-gray-600 hover:text-gray-800 transition duration-300"
-          >
-            <img src={LinkedinIcon} alt="Linkedin" width={24} height={24} />
+          <a href="https://linkedin.com" target="_blank" rel="noopener noreferrer" className="text-gray-600 hover:text-blue-800 transition">
+            <FaLinkedinIn size={24} />
           </a>
         </div>
 
@@ -132,13 +90,9 @@ export default function Footer() {
         <div className="mt-8 text-center text-sm text-gray-800">
           <p>&copy; 2024 Assessa. All Rights Reserved</p>
           <p>
-            <a href="#" className="hover:text-gray-600">
-              Privacy Policy
-            </a>
+            <a href="#" className="hover:text-gray-600">Privacy Policy</a>
             <span className="mx-1">|</span>
-            <a href="#" className="hover:text-gray-600">
-              Terms and Conditions
-            </a>
+            <a href="#" className="hover:text-gray-600">Terms and Conditions</a>
           </p>
         </div>
       </div>

@@ -31,6 +31,11 @@ import AdminMainPage from "./WebApp/Flows/AdminFlow/MainPage/AdminMainPage";
 import TryforFree from "./WebApp/TryforFree";
 import StudyAssistant from "./components/StudyAssistant/Studyassistant";
 import StudyRecommendation from "./components/StudyRecommendation/StudyRecommendation";
+import Customcursor from "./components/Customcursor/Customcursor";
+import StudentLogin from "./components/StudentLogin/StudentLogin.jsx";
+import TeacherLogin from "./components/TeacherLogin/TeacherLogin.jsx";
+import AdminPanelLogin from "./components/AdminPanelLogin/AdminPanelLogin.jsx";
+
 
 function App() {
   const { assessaData, reloadData } = useSelector((state) => state.root);
@@ -55,6 +60,7 @@ function App() {
 
   return (
     <BrowserRouter>
+    <Customcursor />  {/* Add this inside BrowserRouter to make it global */}
       <Routes>
         {/* Skillnaav Website Routes */}
         <Route path="/" element={<Home />} />
@@ -101,6 +107,9 @@ function App() {
 
         <Route path="/study-assistant" element={<StudyAssistant />} />
         <Route path="/study-recommendation" element={<StudyRecommendation />} />
+        <Route path="/student-login" element={<StudentLogin />}  />
+        <Route path="/teacher-login" element={< TeacherLogin />} />
+        <Route path="/adminpanel-login" element={< AdminPanelLogin />} />
       </Routes>
     </BrowserRouter>
   );
