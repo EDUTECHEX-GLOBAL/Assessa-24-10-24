@@ -13,7 +13,7 @@ const app = express(); // Initialize express app
 connectDB(); // Establish MongoDB connection
 
 // Enable CORS for frontend-backend communication
-const allowedOrigins = ["http://localhost:3000", "https://www.assessaai.com"];
+const allowedOrigins = ["http://localhost:3000", "https://www.assessaai.com","https://assessaai.com"];
 
 app.use(
   cors({
@@ -43,6 +43,9 @@ const adminRoutes = require("./routes/adminRoutes");
 const forgotPasswordRoutes = require("./routes/student_forgotpassword_routes"); // Import forgot password routes
 const teacherForgotPasswordRoutes = require("./routes/teacher_forgotpassword_routes");
 const internRoutes = require("./routes/webapp-routes/internshipPostRoutes");
+const progressRoutes = require("./routes/progressRoutes");
+const activityRoutes = require("./routes/activityRoutes");
+const taskRoutes = require("./routes/taskRoutes");
 const skillnaavRoute = require("./routes/skillnaavRoute");
 const applicationRoutes = require("./routes/webapp-routes/applicationRoutes");
 
@@ -52,6 +55,9 @@ app.use("/api/teachers", teacherRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/forgot-password", forgotPasswordRoutes);
 app.use("/api/teacher/forgot-password", teacherForgotPasswordRoutes);
+app.use("/api/progress", progressRoutes);
+app.use("/api/activity", activityRoutes);
+app.use("/api/tasks", taskRoutes);
 app.use("/api/interns", internRoutes); // Partner to Admin Intern Posts
 app.use("/api/applications", applicationRoutes); // Application routes
 app.use("/api/skillnaav", skillnaavRoute); // Skillnaav routes

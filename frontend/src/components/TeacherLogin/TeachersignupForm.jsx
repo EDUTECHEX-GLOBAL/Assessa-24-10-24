@@ -1,11 +1,13 @@
 import React, { useState } from "react";
-import { FaEnvelope, FaLock, FaUser } from "react-icons/fa";
+import { FaEnvelope, FaLock, FaUser, FaEye, FaEyeSlash } from "react-icons/fa";
 import { Formik, Form, Field, ErrorMessage } from "formik";
 import * as Yup from "yup";
 import axios from "axios";
 
 const TeacherSignupForm = ({ onSwitch }) => {
   const [errorMessage, setErrorMessage] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   // Yup Validation Schema
   const validationSchema = Yup.object({
@@ -73,8 +75,11 @@ const TeacherSignupForm = ({ onSwitch }) => {
               <label className="block text-gray-700 text-sm font-bold mb-2">Password</label>
               <div className="relative">
                 <FaLock className="absolute left-3 top-1/2 transform -translate-x-1/2 ml-2 text-gray-500" />
-                <Field type="password" name="password" placeholder="Create a password"
+                <Field type={showPassword ? "text" : "password"} name="password" placeholder="Create a password"
                   className="w-full p-3 pl-10 border border-purple-600 rounded-lg focus:outline-none focus:border-purple-600 focus:ring-2 focus:ring-purple-400" />
+                <button type="button" className="absolute right-3 top-1/2 transform -translate-x-1/2 text-gray-500" onClick={() => setShowPassword(!showPassword)}>
+                  {showPassword ? <FaEyeSlash /> : <FaEye />}
+                </button>
               </div>
               <ErrorMessage name="password" component="div" className="text-red-500 text-sm" />
             </div>
@@ -84,8 +89,11 @@ const TeacherSignupForm = ({ onSwitch }) => {
               <label className="block text-gray-700 text-sm font-bold mb-2">Confirm Password</label>
               <div className="relative">
                 <FaLock className="absolute left-3 top-1/2 transform -translate-x-1/2 ml-2 text-gray-500" />
-                <Field type="password" name="confirmPassword" placeholder="Confirm your password"
+                <Field type={showConfirmPassword ? "text" : "password"} name="confirmPassword" placeholder="Confirm your password"
                  className="w-full p-3 pl-10 border border-purple-600 rounded-lg focus:outline-none focus:border-purple-600 focus:ring-2 focus:ring-purple-400" />
+                <button type="button" className="absolute right-3 top-1/2 transform -translate-x-1/2 text-gray-500" onClick={() => setShowConfirmPassword(!showConfirmPassword)}>
+                  {showConfirmPassword ? <FaEyeSlash /> : <FaEye />}
+                </button>
               </div>
               <ErrorMessage name="confirmPassword" component="div" className="text-red-500 text-sm" />
             </div>

@@ -1,13 +1,22 @@
 import React, { useState } from "react";
-import { FaEnvelope, FaLock, FaUser } from "react-icons/fa";
+import { FaEnvelope, FaLock, FaUser, FaEye, FaEyeSlash } from "react-icons/fa";
 import { Formik, Form, Field, ErrorMessage } from "formik";
 import * as Yup from "yup";
 import axios from "axios";
 
 const SignupForm = ({ onSwitch }) => {
   const [errorMessage, setErrorMessage] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  // Yup Validation Schema
+  const togglePasswordVisibility = () => {
+    setShowPassword(!showPassword);
+  };
+
+  const toggleConfirmPasswordVisibility = () => {
+    setShowConfirmPassword(!showConfirmPassword);
+  };
+
   const validationSchema = Yup.object({
     name: Yup.string().required("Required"),
     email: Yup.string().email("Invalid email address").required("Required"),
@@ -24,7 +33,7 @@ const SignupForm = ({ onSwitch }) => {
       const { data } = await axios.post("http://localhost:5000/api/users/register", values);
       console.log("Signup Successful:", data);
       alert("Signup successful! Please log in.");
-      onSwitch(); // Redirect to Login Form
+      onSwitch();
     } catch (error) {
       setErrorMessage(error.response?.data?.message || "Signup failed. Try again.");
     }
@@ -34,9 +43,8 @@ const SignupForm = ({ onSwitch }) => {
   return (
     <>
       <h2 className="text-3xl font-bold text-gray-800 mb-8">
-      Smarter Path Begins –{" "}
-        <span className="text-purple-600"> Sign Up!</span>
-    </h2>
+        Smarter Path Begins – <span className="text-purple-600"> Sign Up!</span>
+      </h2>
       {errorMessage && <p className="text-red-500">{errorMessage}</p>}
       
       <Formik
@@ -46,7 +54,6 @@ const SignupForm = ({ onSwitch }) => {
       >
         {({ isSubmitting }) => (
           <Form className="w-full max-w-md">
-            {/* Name Field */}
             <div className="mb-4">
               <label className="block text-gray-700 text-sm font-bold mb-2">Full Name</label>
               <div className="relative">
@@ -57,7 +64,6 @@ const SignupForm = ({ onSwitch }) => {
               <ErrorMessage name="name" component="div" className="text-red-500 text-sm" />
             </div>
 
-            {/* Email Field */}
             <div className="mb-4">
               <label className="block text-gray-700 text-sm font-bold mb-2">Email</label>
               <div className="relative">
@@ -68,39 +74,41 @@ const SignupForm = ({ onSwitch }) => {
               <ErrorMessage name="email" component="div" className="text-red-500 text-sm" />
             </div>
 
-            {/* Password Field */}
             <div className="mb-4">
               <label className="block text-gray-700 text-sm font-bold mb-2">Password</label>
               <div className="relative">
                 <FaLock className="absolute left-3 top-1/2 transform -translate-x-1/2 ml-2 text-gray-500" />
-                <Field type="password" name="password" placeholder="Create a password"
-                  className="w-full p-3 pl-10 border border-purple-600 rounded-lg focus:outline-none focus:border-purple-600 focus:ring-2 focus:ring-purple-400" />
+                <Field type={showPassword ? "text" : "password"} name="password" placeholder="Create a password"
+                  className="w-full p-3 pl-10 pr-10 border border-purple-600 rounded-lg focus:outline-none focus:border-purple-600 focus:ring-2 focus:ring-purple-400" />
+                <span className="absolute right-3 top-1/2 transform -translate-x-1/2 cursor-pointer text-gray-500" onClick={togglePasswordVisibility}>
+                  {showPassword ? <FaEyeSlash /> : <FaEye />}
+                </span>
               </div>
               <ErrorMessage name="password" component="div" className="text-red-500 text-sm" />
             </div>
 
-            {/* Confirm Password Field */}
             <div className="mb-4">
               <label className="block text-gray-700 text-sm font-bold mb-2">Confirm Password</label>
               <div className="relative">
                 <FaLock className="absolute left-3 top-1/2 transform -translate-x-1/2 ml-2 text-gray-500" />
-                <Field type="password" name="confirmPassword" placeholder="Confirm your password"
-                  className="w-full p-3 pl-10 border border-purple-600 rounded-lg focus:outline-none focus:border-purple-600 focus:ring-2 focus:ring-purple-400" />
+                <Field type={showConfirmPassword ? "text" : "password"} name="confirmPassword" placeholder="Confirm your password"
+                  className="w-full p-3 pl-10 pr-10 border border-purple-600 rounded-lg focus:outline-none focus:border-purple-600 focus:ring-2 focus:ring-purple-400" />
+                <span className="absolute right-3 top-1/2 transform -translate-x-1/2 cursor-pointer text-gray-500" onClick={toggleConfirmPasswordVisibility}>
+                  {showConfirmPassword ? <FaEyeSlash /> : <FaEye />}
+                </span>
               </div>
               <ErrorMessage name="confirmPassword" component="div" className="text-red-500 text-sm" />
             </div>
 
-            {/* Signup Button */}
             <button type="submit" disabled={isSubmitting}
               className="w-full bg-purple-500 text-white p-3 rounded-lg font-bold hover:bg-purple-600 transition">
               {isSubmitting ? "Signing Up..." : "Sign Up"}
             </button>
 
-            {/* Switch to Login */}
             <p className="text-sm text-gray-600 mt-4 text-center">
               Already have an account? 
               <button className="text-teal-500 font-bold hover:underline" onClick={onSwitch}>
-                 Login
+                Login
               </button>
             </p>
           </Form>

@@ -3,6 +3,7 @@ import AssessaLogo from "../assets/assessaai_logo2.png";
 import Menu from "../assets/Menu.svg";
 import Close from "../assets/close.png";
 import { FiUser, FiBookOpen, FiBriefcase, FiSettings } from "react-icons/fi";
+import MobileNavbar from "./MobileNavbar"; // Import MobileNavbar component
 
 const navLinks = [
   { name: "Discover", href: "#discover" },
@@ -16,46 +17,26 @@ const navLinks = [
 const Navbar = () => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [loginDropdownOpen, setLoginDropdownOpen] = useState(false);
-  const dropdownRef = useRef(null); // Ref for the entire dropdown container
+  const dropdownRef = useRef(null);
 
   const toggleMenu = () => {
     setMenuOpen(!menuOpen);
-    setLoginDropdownOpen(false); // Close login dropdown when opening mobile menu
+    setLoginDropdownOpen(false);
   };
 
   const toggleLoginDropdown = () => {
     setLoginDropdownOpen(!loginDropdownOpen);
   };
 
-  // Handle clicks outside of login dropdown
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setLoginDropdownOpen(false);
       }
     };
-
     document.addEventListener("mousedown", handleClickOutside);
-
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
-
-  const closeMenuAndNavigate = (url) => {
-    setMenuOpen(false); // Close the mobile menu
-    window.location.href = url; // Navigate to the specified URL
-  };
-
-  const closeMenuAndScroll = (href) => {
-    setMenuOpen(false); // Close the mobile menu
-    // Delay the scroll slightly to allow the menu to close fully
-    setTimeout(() => {
-      const element = document.querySelector(href);
-      if (element) {
-        element.scrollIntoView({ behavior: 'smooth' });
-      }
-    }, 100); // Adjust delay as needed
-  };
-
 
   return (
     <nav className="fixed top-0 left-0 w-full bg-white z-50 shadow-sm">
@@ -163,87 +144,10 @@ const Navbar = () => {
             />
           </div>
         </div>
-
-        {/* Mobile Menu (Includes Login Dropdown & Request Call Back) */}
-        <div
-          className={`${
-            menuOpen ? "translate-x-0" : "-translate-x-full"
-          } fixed top-0 left-0 w-full h-screen bg-white flex flex-col items-center justify-center gap-5 z-50 transition-transform duration-300 ease-in-out`}
-        >
-          <div className="flex justify-end w-full p-4">
-            <img
-              src={Close}
-              alt="Close Menu"
-              onClick={toggleMenu}
-              width={30}
-              height={30}
-              className="cursor-pointer transition-transform duration-300 transform hover:scale-110"
-            />
-          </div>
-          {navLinks.map((item, index) => (
-            <a
-              key={index}
-              href={item.href}
-              onClick={toggleMenu}
-              className="text-[#36485C] font-medium text-2xl transition duration-300 transform hover:scale-105"
-            >
-              {item.name}
-            </a>
-          ))}
-
-          {/* Mobile Login Dropdown */}
-          <button
-            onClick={toggleLoginDropdown}
-            className="font-medium text-[#4b5fde] border border-[#4b5fde] px-6 py-3 rounded-md transition duration-300 hover:bg-[#4b5fde] hover:text-white text-2xl"
-          >
-            Login
-          </button>
-          {/* Mobile Login Dropdown (Same as Desktop) */}
-          {loginDropdownOpen && (
-            <div className="w-72 bg-white shadow-xl rounded-xl p-4 border border-gray-200 transition-all duration-300 z-50">
-              <h3 className="text-gray-600 text-sm font-semibold mb-2">
-                Continue as:
-              </h3>
-
-              <div className="flex flex-col space-y-3">
-                <a
-                  href="/student-login"
-                  onClick={() => closeMenuAndNavigate("/student-login")}
-                  className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 transition"
-                >
-                  <FiBookOpen className="text-lg text-blue-500" />
-                  <span className="font-medium text-gray-700">Student</span>
-                </a>
-                <a
-                  href="/teacher-login"
-                  onClick={() => closeMenuAndNavigate("/teacher-login")}
-                  className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 transition"
-                >
-                  <FiBriefcase className="text-lg text-green-500" />
-                  <span className="font-medium text-gray-700">Teacher</span>
-                </a>
-                <a
-                  href="/adminpanel-login"
-                  onClick={() => closeMenuAndNavigate("/adminpanel-login")}
-                  className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 transition"
-                >
-                  <FiSettings className="text-lg text-red-500" />
-                  <span className="font-medium text-gray-700">Admin-Panel</span>
-                </a>
-              </div>
-            </div>
-          )}
-
-          {/* Mobile Request Call Back Button */}
-          <a
-            href="#contacts"
-            onClick={() => closeMenuAndScroll("#contacts")}
-            className="text-white bg-[#1a191a] px-6 py-3 rounded-md transition duration-300 hover:bg-[#2c3b4e] text-2xl"
-          >
-            Request Call Back
-          </a>
-        </div>
       </div>
+
+      {/* Mobile Navbar */}
+      <MobileNavbar menuOpen={menuOpen} setMenuOpen={setMenuOpen} />
     </nav>
   );
 };

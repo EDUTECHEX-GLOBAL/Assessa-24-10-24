@@ -35,6 +35,8 @@ import Customcursor from "./components/Customcursor/Customcursor";
 import StudentLogin from "./components/StudentLogin/StudentLogin.jsx";
 import TeacherLogin from "./components/TeacherLogin/TeacherLogin.jsx";
 import AdminPanelLogin from "./components/AdminPanelLogin/AdminPanelLogin.jsx";
+import StudentDashboard from "./components/StudentLogin/StudentDashboard";
+
 
 
 function App() {
@@ -108,6 +110,8 @@ function App() {
         <Route path="/study-assistant" element={<StudyAssistant />} />
         <Route path="/study-recommendation" element={<StudyRecommendation />} />
         <Route path="/student-login" element={<StudentLogin />}  />
+        <Route path="/student-dashboard" element={<StudentDashboard />} />
+
         <Route path="/teacher-login" element={< TeacherLogin />} />
         <Route path="/adminpanel-login" element={< AdminPanelLogin />} />
       </Routes>

@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { FaEnvelope, FaLock } from "react-icons/fa";
+import { useNavigate } from "react-router-dom";
+import { FaEnvelope, FaLock, FaEye, FaEyeSlash } from "react-icons/fa";
 import { Formik, Form, Field, ErrorMessage } from "formik";
 import * as Yup from "yup";
 import axios from "axios";
@@ -13,6 +14,8 @@ const LoginForm = ({ onSwitch, onForgot }) => {
     email: Yup.string().email("Invalid email address").required("Required"),
     password: Yup.string().required("Required"),
   });
+
+  const navigate = useNavigate(); // Initialize navigation
 
   const handleSubmit = async (values, { setSubmitting }) => {
     setError("");
@@ -36,6 +39,8 @@ const LoginForm = ({ onSwitch, onForgot }) => {
         localStorage.setItem("token", JSON.stringify(token));
         localStorage.setItem("userInfo", JSON.stringify(data));
         setSuccess("Logged in successfully!");
+        // Redirect to Student Dashboard
+        navigate("/student-dashboard");  
       } else {
         throw new Error("Invalid token received from server.");
       }
@@ -46,6 +51,12 @@ const LoginForm = ({ onSwitch, onForgot }) => {
       setSubmitting(false);
     }
   };
+  const [showPassword, setShowPassword] = useState(false);
+
+const togglePasswordVisibility = () => {
+  setShowPassword((prev) => !prev);
+};
+
 
   return (
     <>
@@ -86,25 +97,21 @@ const LoginForm = ({ onSwitch, onForgot }) => {
             </div>
 
             {/* Password Field */}
-            <div className="mb-4">
-              <label className="block text-gray-700 text-sm font-bold mb-2">
-                Password
-              </label>
-              <div className="relative">
-                <FaLock className="absolute left-3 top-1/2 transform -translate-x-1/2 ml-2 text-gray-500" />
-                <Field
-                  type="password"
-                  name="password"
-                  placeholder="Enter your password"
-                  className="w-full p-3 pl-10 border border-teal-600 rounded-lg focus:outline-none focus:border-teal-600 focus:ring-2 focus:ring-teal-400"
-                />
-              </div>
-              <ErrorMessage
-                name="password"
-                component="p"
-                className="text-red-500 text-xs mt-1"
-              />
-            </div>
+            <div className="relative">
+  <FaLock className="absolute left-3 top-1/2 transform -translate-x-1/2 ml-2 text-gray-500" />
+  <Field
+    type={showPassword ? "text" : "password"}
+    name="password"
+    placeholder="Enter your password"
+    className="w-full p-3 pl-10 pr-10 border border-teal-600 rounded-lg focus:outline-none focus:border-teal-600 focus:ring-2 focus:ring-teal-400"
+  />
+  <span
+    className="absolute right-3 top-1/2 transform -translate-x-1/2 cursor-pointer text-gray-500"
+    onClick={togglePasswordVisibility}
+  >
+    {showPassword ? <FaEyeSlash /> : <FaEye />}
+  </span>
+</div>
 
             {/* Forgot Password */}
             <div className="flex justify-between items-center mb-6">
