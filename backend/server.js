@@ -43,11 +43,9 @@ const adminRoutes = require("./routes/adminRoutes");
 const forgotPasswordRoutes = require("./routes/student_forgotpassword_routes"); // Import forgot password routes
 const teacherForgotPasswordRoutes = require("./routes/teacher_forgotpassword_routes");
 const internRoutes = require("./routes/webapp-routes/internshipPostRoutes");
-const progressRoutes = require("./routes/progressRoutes");
-const activityRoutes = require("./routes/activityRoutes");
-const taskRoutes = require("./routes/taskRoutes");
 const skillnaavRoute = require("./routes/skillnaavRoute");
 const applicationRoutes = require("./routes/webapp-routes/applicationRoutes");
+const problemsolvingagentRoutes = require("./routes/problemsolvingagentRoutes");
 
 // Define routes
 app.use("/api/users", userRoutes); // User Web App routes
@@ -55,13 +53,12 @@ app.use("/api/teachers", teacherRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/forgot-password", forgotPasswordRoutes);
 app.use("/api/teacher/forgot-password", teacherForgotPasswordRoutes);
-app.use("/api/progress", progressRoutes);
-app.use("/api/activity", activityRoutes);
-app.use("/api/tasks", taskRoutes);
 app.use("/api/interns", internRoutes); // Partner to Admin Intern Posts
 app.use("/api/applications", applicationRoutes); // Application routes
 app.use("/api/skillnaav", skillnaavRoute); // Skillnaav routes
 app.use("/api/contact", skillnaavRoute); // Contact route (Verify if this is correct)
+app.use("/api/ai-agent", problemsolvingagentRoutes);
+
 
 // Serve static assets only in production
 if (process.env.NODE_ENV === "production") {

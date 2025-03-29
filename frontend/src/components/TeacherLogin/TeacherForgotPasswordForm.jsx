@@ -89,7 +89,7 @@ const TeacherForgotPasswordForm = ({ onSwitch }) => {
           <div className="mb-4">
             <label className="block text-gray-700 text-sm font-bold mb-2">Email</label>
             <div className="relative">
-              <FaEnvelope className="absolute left-3 top-1/2 transform -translate-x-1/2 ml-2 text-gray-500" />
+              <FaEnvelope className="absolute left-3 top-1/2 transform -translate-y-1/2 ml-1 text-gray-500" />
               <input
                 type="email"
                 placeholder="Enter your email"
@@ -141,7 +141,7 @@ const TeacherForgotPasswordForm = ({ onSwitch }) => {
           <div className="mb-4">
             <label className="block text-gray-700 text-sm font-bold mb-2">New Password</label>
             <div className="relative">
-              <FaLock className="absolute left-3 top-1/2 transform -translate-x-1/2 ml-2 text-gray-500" />
+              <FaLock className="absolute left-3 top-1/2 transform -translate-y-1/2 ml-1 text-gray-500" />
               <input
                 type={showNewPassword ? "text" : "password"}
                 placeholder="Enter your new password"
@@ -158,7 +158,7 @@ const TeacherForgotPasswordForm = ({ onSwitch }) => {
           <div className="mb-4">
             <label className="block text-gray-700 text-sm font-bold mb-2">Confirm Password</label>
             <div className="relative">
-              <FaLock className="absolute left-3 top-1/2 transform -translate-x-1/2 ml-2 text-gray-500" />
+              <FaLock className="absolute left-3 top-1/2 transform -translate-y-1/2 ml-1 text-gray-500" />
               <input
                 type={showConfirmPassword ? "text" : "password"}
                 placeholder="Confirm your new password"

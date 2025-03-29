@@ -19,22 +19,24 @@ const AdminLogin = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const handleSubmit = async (values, { setSubmitting }) => {
-    setError("");
-    setLoading(true);
-    try {
-      const { data } = await axios.post("/api/admin/login", values, {
-        headers: { "Content-Type": "application/json" },
-      });
-      localStorage.setItem("adminInfo", JSON.stringify(data));
-      navigate("/admin-dashboard");
-    } catch (err) {
-      setError(err.response?.data?.message || "Login failed");
-    } finally {
-      setLoading(false);
-      setSubmitting(false);
-    }
-  };
+  const API_URL = process.env.REACT_APP_API_URL || "http://localhost:5000"; // Use live URL or local
+
+const handleSubmit = async (values, { setSubmitting }) => {
+  setError("");
+  setLoading(true);
+  try {
+    const { data } = await axios.post(`${API_URL}/api/admin/login`, values, {
+      headers: { "Content-Type": "application/json" },
+    });
+    localStorage.setItem("adminInfo", JSON.stringify(data));
+    navigate("/admin-dashboard");
+  } catch (err) {
+    setError(err.response?.data?.message || "Login failed");
+  } finally {
+    setLoading(false);
+    setSubmitting(false);
+  }
+};
 
   return (
     <div className="flex flex-col lg:flex-row min-h-screen font-poppins">
@@ -83,7 +85,7 @@ const AdminLogin = () => {
                       <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
-                        className="absolute top-1/2 right-3 transform -translate-x-1/2"
+                        className="absolute top-1/2 right-3 transform -translate-y-1/2"
                       >
                         <FontAwesomeIcon icon={showPassword ? faEyeSlash : faEye} size="lg" className="text-gray-600" />
                       </button>

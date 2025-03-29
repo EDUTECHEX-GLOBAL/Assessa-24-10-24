@@ -52,7 +52,7 @@ const TeacherSignupForm = ({ onSwitch }) => {
             <div className="mb-4">
               <label className="block text-gray-700 text-sm font-bold mb-2">Full Name</label>
               <div className="relative">
-                <FaUser className="absolute left-3 top-1/2 transform -translate-x-1/2 ml-2 text-gray-500" />
+                <FaUser className="absolute left-3 top-1/2 transform -translate-y-1/2 ml-1 text-gray-500" />
                 <Field type="text" name="name" placeholder="Enter your name"
                  className="w-full p-3 pl-10 border border-purple-600 rounded-lg focus:outline-none focus:border-purple-600 focus:ring-2 focus:ring-purple-400" />
               </div>
@@ -63,7 +63,7 @@ const TeacherSignupForm = ({ onSwitch }) => {
             <div className="mb-4">
               <label className="block text-gray-700 text-sm font-bold mb-2">Email</label>
               <div className="relative">
-                <FaEnvelope className="absolute left-3 top-1/2 transform -translate-x-1/2 ml-2 text-gray-500" />
+                <FaEnvelope className="absolute left-3 top-1/2 transform -translate-y-1/2 ml-1 text-gray-500" />
                 <Field type="email" name="email" placeholder="Enter your email"
                   className="w-full p-3 pl-10 border border-purple-600 rounded-lg focus:outline-none focus:border-purple-600 focus:ring-2 focus:ring-purple-400" />
               </div>
@@ -74,10 +74,10 @@ const TeacherSignupForm = ({ onSwitch }) => {
             <div className="mb-4">
               <label className="block text-gray-700 text-sm font-bold mb-2">Password</label>
               <div className="relative">
-                <FaLock className="absolute left-3 top-1/2 transform -translate-x-1/2 ml-2 text-gray-500" />
+                <FaLock className="absolute left-3 top-1/2 transform -translate-y-1/2 ml-1 text-gray-500" />
                 <Field type={showPassword ? "text" : "password"} name="password" placeholder="Create a password"
                   className="w-full p-3 pl-10 border border-purple-600 rounded-lg focus:outline-none focus:border-purple-600 focus:ring-2 focus:ring-purple-400" />
-                <button type="button" className="absolute right-3 top-1/2 transform -translate-x-1/2 text-gray-500" onClick={() => setShowPassword(!showPassword)}>
+                <button type="button" className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500" onClick={() => setShowPassword(!showPassword)}>
                   {showPassword ? <FaEyeSlash /> : <FaEye />}
                 </button>
               </div>
@@ -88,10 +88,10 @@ const TeacherSignupForm = ({ onSwitch }) => {
             <div className="mb-4">
               <label className="block text-gray-700 text-sm font-bold mb-2">Confirm Password</label>
               <div className="relative">
-                <FaLock className="absolute left-3 top-1/2 transform -translate-x-1/2 ml-2 text-gray-500" />
+                <FaLock className="absolute left-3 top-1/2 transform -translate-y-1/2 ml-1 text-gray-500" />
                 <Field type={showConfirmPassword ? "text" : "password"} name="confirmPassword" placeholder="Confirm your password"
                  className="w-full p-3 pl-10 border border-purple-600 rounded-lg focus:outline-none focus:border-purple-600 focus:ring-2 focus:ring-purple-400" />
-                <button type="button" className="absolute right-3 top-1/2 transform -translate-x-1/2 text-gray-500" onClick={() => setShowConfirmPassword(!showConfirmPassword)}>
+                <button type="button" className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500" onClick={() => setShowConfirmPassword(!showConfirmPassword)}>
                   {showConfirmPassword ? <FaEyeSlash /> : <FaEye />}
                 </button>
               </div>
