@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { FaEnvelope, FaLock, FaEye, FaEyeSlash } from "react-icons/fa";
 import { Formik, Form, Field, ErrorMessage } from "formik";
 import * as Yup from "yup";
@@ -9,6 +10,8 @@ const TeacherLoginForm = ({ onSwitch, onForgot }) => {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+
+  const navigate = useNavigate(); // ✅ Initialize navigation
 
   const togglePasswordVisibility = () => {
     setShowPassword((prev) => !prev);
@@ -41,6 +44,9 @@ const TeacherLoginForm = ({ onSwitch, onForgot }) => {
         localStorage.setItem("token", JSON.stringify(token));
         localStorage.setItem("teacherInfo", JSON.stringify(data));
         setSuccess("Logged in successfully!");
+        
+        // ✅ Redirect to Teacher Dashboard
+        navigate("/teacher-dashboard");
       } else {
         throw new Error("Invalid token received from server.");
       }
@@ -55,8 +61,7 @@ const TeacherLoginForm = ({ onSwitch, onForgot }) => {
   return (
     <>
       <h2 className="text-3xl font-bold text-gray-800 mb-8">
-        Welcome Back Educator - {" "}
-        <span className="text-teal-500">Log in!</span>
+        Welcome Back Educator - <span className="text-teal-500">Log in!</span>
       </h2>
       {error && <p className="text-red-500 text-sm mb-4">{error}</p>}
       {success && <p className="text-green-500 text-sm mb-4">{success}</p>}
@@ -71,7 +76,7 @@ const TeacherLoginForm = ({ onSwitch, onForgot }) => {
             <div className="mb-4">
               <label className="block text-gray-700 text-sm font-bold mb-2">Email</label>
               <div className="relative">
-                <FaEnvelope className="absolute left-3 top-1/2 transform -translate-x-1/2 ml-2 text-gray-500" />
+                <FaEnvelope className="absolute left-3 top-1/2 transform -translate-y-1/2 ml-1 text-gray-500" />
                 <Field
                   type="email"
                   name="email"
@@ -85,7 +90,7 @@ const TeacherLoginForm = ({ onSwitch, onForgot }) => {
             <div className="mb-4">
               <label className="block text-gray-700 text-sm font-bold mb-2">Password</label>
               <div className="relative">
-                <FaLock className="absolute left-3 top-1/2 transform -translate-x-1/2 ml-2 text-gray-500" />
+                <FaLock className="absolute left-3 top-1/2 transform -translate-y-1/2 ml-1 text-gray-500" />
                 <Field
                   type={showPassword ? "text" : "password"}
                   name="password"
@@ -93,7 +98,7 @@ const TeacherLoginForm = ({ onSwitch, onForgot }) => {
                   className="w-full p-3 pl-10 pr-10 border border-teal-600 rounded-lg focus:outline-none focus:border-teal-600 focus:ring-2 focus:ring-teal-400"
                 />
                 <span
-                  className="absolute right-3 top-1/2 transform -translate-x-1/2 cursor-pointer text-gray-500"
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 cursor-pointer text-gray-500"
                   onClick={togglePasswordVisibility}
                 >
                   {showPassword ? <FaEyeSlash /> : <FaEye />}

@@ -32,6 +32,7 @@ const LoginForm = ({ onSwitch, onForgot }) => {
         values,
         config
       );
+      console.log("Login Response:", data); // Log the response
 
       const token = data.token || data.user?.token;
 
@@ -81,7 +82,7 @@ const togglePasswordVisibility = () => {
                 Email
               </label>
               <div className="relative">
-                <FaEnvelope className="absolute left-3 top-1/2 transform -translate-x-1/2 ml-2 text-gray-500" />
+                <FaEnvelope className="absolute left-3 top-1/2 transform -translate-y-1/2 ml-1 text-gray-500" />
                 <Field
                   type="email"
                   name="email"
@@ -98,7 +99,7 @@ const togglePasswordVisibility = () => {
 
             {/* Password Field */}
             <div className="relative">
-  <FaLock className="absolute left-3 top-1/2 transform -translate-x-1/2 ml-2 text-gray-500" />
+  <FaLock className="absolute left-3 top-1/2 transform -translate-y-1/2 ml-1 text-gray-500" />
   <Field
     type={showPassword ? "text" : "password"}
     name="password"
@@ -106,7 +107,7 @@ const togglePasswordVisibility = () => {
     className="w-full p-3 pl-10 pr-10 border border-teal-600 rounded-lg focus:outline-none focus:border-teal-600 focus:ring-2 focus:ring-teal-400"
   />
   <span
-    className="absolute right-3 top-1/2 transform -translate-x-1/2 cursor-pointer text-gray-500"
+    className="absolute right-3 top-1/2 transform -translate-y-1/2 cursor-pointer text-gray-500"
     onClick={togglePasswordVisibility}
   >
     {showPassword ? <FaEyeSlash /> : <FaEye />}

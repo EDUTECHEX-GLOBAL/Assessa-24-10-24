@@ -1,9 +1,13 @@
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { FaHome, FaBook, FaChartBar, FaTasks, FaSignOutAlt } from 'react-icons/fa';
+import { FaHome, FaBook, FaChartBar, FaTasks, FaSignOutAlt, FaBars, FaBell, FaSearch, FaRobot } from 'react-icons/fa';
 import { IoPersonCircleOutline } from 'react-icons/io5';
-import { MdSchool, MdClass, MdAssignment, MdQuiz } from 'react-icons/md';
+import { MdSchool, MdClass, MdAssignment, MdQuiz, MdMenuBook } from 'react-icons/md';
 import assessalogo from "./logo.png";
 import { useEffect, useState } from "react";
+import {useNavigate} from "react-router-dom";
+
+
+
 
 const data = [
   { name: 'January', value: 20 },
@@ -15,49 +19,27 @@ const data = [
 ];
 
 export default function Dashboard() {
-   // State variables for API data
-   const [courses, setCourses] = useState([]);
-   const [progress, setProgress] = useState({ totalClasses: 0, assignments: 0, quizzes: 0 });
-   const [tasks, setTasks] = useState([]);
-   const [activity, setActivity] = useState({ percentage: 0 });
-   const [chartData, setChartData] = useState([]);
- 
-   useEffect(() => {
-     // Fetch Courses
-     fetch("http://localhost:5000/api/courses")
-       .then((res) => res.json())
-       .then((data) => setCourses(data))
-       .catch((err) => console.error("Error fetching courses:", err));
- 
-     // Fetch Progress
-     fetch("http://localhost:5000/api/progress")
-       .then((res) => res.json())
-       .then((data) => setProgress(data))
-       .catch((err) => console.error("Error fetching progress:", err));
- 
-    // Fetch Tasks
-fetch("http://localhost:5000/api/tasks/tasks", {
-  headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }, // Ensure token is included
-})
-  .then((res) => res.json())
-  .then((data) => setTasks(data))
-  .catch((err) => console.error("Error fetching tasks:", err));
+  const [sidebarOpen, setSidebarOpen] = useState(false); // State for sidebar visibility
+  const [username, setUsername] = useState(""); // State for username
+  const navigate = useNavigate();
 
- 
-     // Fetch Activity
-     fetch("http://localhost:5000/api/activity")
-       .then((res) => res.json())
-       .then((data) => {
-         setActivity(data);
-         if (data.chart) setChartData(data.chart);
-       })
-       .catch((err) => console.error("Error fetching activity:", err));
-   }, []);
- 
+  // Fetch username from localStorage
+  useEffect(() => {
+    const userInfo = JSON.parse(localStorage.getItem("userInfo")); // Retrieve user info
+    console.log("User Info from localStorage:", userInfo); // Debugging
+
+    if (userInfo && userInfo.name) { // Access name directly from userInfo
+      setUsername(userInfo.name); // Set the username
+    }
+  }, []);
+
   return (
-    <div className="flex flex-col h-screen bg-gradient-to-r from-teal-400 to-purple-500 md:flex-row">
+    <div className="flex h-screen bg-gradient-to-r from-teal-400 to-purple-500">
       {/* Sidebar */}
-      <aside className="w-full md:w-64 bg-white shadow-lg p-5 flex flex-col justify-between md:h-screen sticky top-0">
+      <aside className={`fixed md:relative z-50 bg-white w-64 p-5 flex flex-col justify-between transition-transform ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} md:translate-x-0 shadow-xl`}>
+        <button className="absolute top-4 right-4 md:hidden text-gray-600 hover:text-teal-600 transition" onClick={() => setSidebarOpen(false)}>
+          ✖
+        </button>
         <div className="flex justify-center mb-6">
           <img src={assessalogo} alt="Assessa Logo" className="w-28" />
         </div>
@@ -68,7 +50,7 @@ fetch("http://localhost:5000/api/tasks/tasks", {
           </a>
           <a href="#" className="flex items-center space-x-2 py-3 px-4 rounded-lg text-gray-700 hover:bg-teal-100 hover:text-teal-600 transition">
             <FaBook className="text-xl" />
-            <span className="text-lg font-medium">Courses</span>
+            <span className="text-lg font-medium">Assessments</span>
           </a>
           <a href="#" className="flex items-center space-x-2 py-3 px-4 rounded-lg text-gray-700 hover:bg-teal-100 hover:text-teal-600 transition">
             <FaChartBar className="text-xl" />
@@ -76,7 +58,7 @@ fetch("http://localhost:5000/api/tasks/tasks", {
           </a>
           <a href="#" className="flex items-center space-x-2 py-3 px-4 rounded-lg text-gray-700 hover:bg-teal-100 hover:text-teal-600 transition">
             <FaTasks className="text-xl" />
-            <span className="text-lg font-medium">Tasks</span>
+            <span className="text-lg font-medium">Study Plan</span>
           </a>
         </nav>
         <div className="flex-grow" />
@@ -87,51 +69,104 @@ fetch("http://localhost:5000/api/tasks/tasks", {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 p-6 overflow-auto md:p-10 bg-white rounded-tl-lg shadow-inner">
+      <main className="flex-1 overflow-y-auto p-6 md:p-10 bg-white rounded-tl-lg shadow-inner">
         {/* Header */}
-        <div className="flex justify-between items-center mb-8">
-          <div>
-            <h2 className="text-4xl font-bold text-gray-800">Welcome, Student!</h2>
-            <p className="text-gray-500">Your AI-Powered Assessment Dashboard</p>
+        <div className="flex flex-col md:flex-row gap-4 md:gap-0 justify-between items-start md:items-center mb-8">
+          <div className="flex items-center w-full md:w-auto">
+            <button 
+              onClick={() => setSidebarOpen(!sidebarOpen)} 
+              className="md:hidden p-2 text-gray-600 hover:text-teal-600 transition-all"
+            >
+              <FaBars className="text-2xl" />
+            </button>
+            <div className="md:hidden flex-1 ml-2">
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Search your course"
+                  className="w-full pl-10 pr-4 py-2 rounded-lg bg-white border border-gray-200 focus:outline-none focus:ring-2 focus:ring-teal-300"
+                />
+                <FaSearch className="absolute left-3 top-3 text-gray-400" />
+              </div>
+            </div>
           </div>
+
+          {/* Desktop Search Bar */}
+          <div className="hidden md:flex flex-1 max-w-2xl mx-4">
+            <div className="relative w-full">
+              <input
+                type="text"
+                placeholder="Search your course"
+                className="w-full pl-10 pr-4 py-2 rounded-lg bg-white border border-teal-200 focus:outline-none focus:ring-2 focus:ring-teal-300"
+              />
+              <FaSearch className="absolute left-3 top-3 text-gray-400" />
+            </div>
+          </div>
+
+          {/* Profile and Notifications Section */}
           <div className="flex items-center space-x-4">
-            <input
-              type="text"
-              placeholder="Search your course"
-              className="border rounded-lg px-4 py-2 w-full md:w-auto shadow-sm focus:ring focus:ring-teal-300"
-            />
-            <IoPersonCircleOutline className="text-gray-600 text-4xl" />
+            <button className="text-gray-600 hover:text-teal-600 transition-all">
+              <FaBell className="text-2xl" />
+            </button>
+            <div className="flex items-center space-x-2 group cursor-pointer">
+              <IoPersonCircleOutline className="text-4xl text-teal-600 transition-transform hover:scale-110" />
+              <div className="text-right">
+                <p className="font-bold text-gray-800">{username || "Student"}</p>
+                <p className="text-sm text-gray-500">Student</p>
+              </div>
+            </div>
           </div>
         </div>
 
+        {/* Welcome Message */}
+        <div className="mb-8">
+  <h2 className="text-4xl font-bold text-gray-700 mb-2">
+    Welcome,{" "}
+    <span className="relative inline-block">
+      <span className="font-sans bg-gradient-to-r from-teal-500 to-purple-600 bg-clip-text text-transparent">
+        {username || "Student"}
+      </span>
+      <span className="absolute -bottom-1 left-0 w-full h-1 bg-gradient-to-r from-teal-500 to-purple-600"></span>
+    </span>
+    !
+  </h2>
+  <p className="text-lg text-gray-600">
+    Your AI-Powered Assessment Dashboard
+  </p>
+</div>
         {/* Stats Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-8 mb-8">
           <div className="bg-gradient-to-br from-purple-300 to-purple-500 text-white shadow-md p-6 rounded-lg flex flex-col items-center justify-center transform hover:scale-[1.03] transition-transform">
             <MdSchool className="text-white text-[40px] mb-[10px]" />
             <p className="text-3xl font-bold">1</p>
-            <p className="text-base">Enrolled Courses</p>
+            <p className="text-base">Assessment Hub</p>
           </div>
           <div className="bg-gradient-to-br from-teal-300 to-teal-500 text-white shadow-md p-6 rounded-lg flex flex-col items-center justify-center transform hover:scale-[1.03] transition-transform">
-            <MdClass className="text-white text-[40px] mb-[10px]" />
+            <MdMenuBook className="text-white text-[40px] mb-[10px]" />
             <p className="text-3xl font-bold">50</p>
-            <p className="text-base">Total Classes</p>
+            <p className="text-base">Subject Insights</p>
           </div>
           <div className="bg-gradient-to-br from-amber-300 to-amber-500 text-white shadow-md p-6 rounded-lg flex flex-col items-center justify-center transform hover:scale-[1.03] transition-transform">
-            <MdAssignment className="text-white text-[40px] mb-[10px]" />
-            <p className="text-3xl font-bold">25</p>
-            <p className="text-base">Assignments</p>
+            <FaRobot className="text-white text-[40px] mb-[10px]" />
+            <p className="text-base">Problem Solving Agent</p>
+              <button
+                  onClick={() => navigate("/problemsolving-agent")}
+                  className="mt-4 px-4 py-2 bg-white text-amber-600 font-bold rounded-full hover:bg-amber-300 hover:text-white transition"
+              >
+                Try AI Agent
+              </button>
           </div>
           <div className="bg-gradient-to-br from-lime-300 to-lime-500 text-white shadow-md p-6 rounded-lg flex flex-col items-center justify-center transform hover:scale-[1.03] transition-transform">
             <MdQuiz className="text-white text-[40px] mb-[10px]" />
             <p className="text-3xl font-bold">10</p>
-            <p className="text-base">Quizzes</p>
+            <p className="text-base">Quiz Quest</p>
           </div>
         </div>
 
         {/* Charts Section */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
           <div className="bg-white shadow-md p-6 rounded-lg">
-            <h3 className="text-lg font-semibold mb-4 text-gray-600">Course Activity</h3>
+            <h3 className="text-lg font-semibold mb-4 text-gray-600">Assessment Activity</h3>
             <ResponsiveContainer width="100%" height={250}>
               <LineChart data={data}>
                 <CartesianGrid strokeDasharray="3 3" />
@@ -145,8 +180,15 @@ fetch("http://localhost:5000/api/tasks/tasks", {
           </div>
           <div className="bg-gradient-to-br from-indigo-100 to-indigo-200 text-sky-700 shadow-md p-6 rounded-lg flex items-center justify-center">
             <div>
-              <h3 className="text-lg font-semibold mb-2">Daily Activity</h3>
-              <p className="text-5xl font-bold">80%</p>
+              <h3 className="text-2xl font-semibold mb-2">AI Challenge of the Day</h3>
+              <p className="text-3xl font-bold text-blue-800 pl-10">3h 20m</p>
+              <p className="text-sm text-gray-500">Time left to complete</p>
+              {/* Progress Bar (Centered Vertically) */}
+  <div className="w-full mt-4">
+    <div className="bg-rose-100 h-2 rounded-full relative">
+      <div className="bg-indigo-600 h-2 w-2/3 rounded-full"></div>
+    </div>
+  </div>
             </div>
           </div>
         </div>
