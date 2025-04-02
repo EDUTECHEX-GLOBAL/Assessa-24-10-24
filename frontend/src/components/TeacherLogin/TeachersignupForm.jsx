@@ -23,7 +23,7 @@ const TeacherSignupForm = ({ onSwitch }) => {
 
   const handleSubmit = async (values, { setSubmitting }) => {
     try {
-      const { data } = await axios.post("http://localhost:5000/api/teachers/register", values);
+      const { data } = await axios.post("https://api.assessaai.com/api/teachers/register", values);
       console.log("Signup Successful:", data);
       alert("Signup successful! Please log in.");
       onSwitch(); // Redirect to Login Form
