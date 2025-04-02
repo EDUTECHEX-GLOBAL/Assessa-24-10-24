@@ -13,20 +13,24 @@ const app = express(); // Initialize express app
 connectDB(); // Establish MongoDB connection
 
 // Enable CORS for frontend-backend communication
-const allowedOrigins = ["http://localhost:3000", "https://test.assessaai.com"];
+const allowedOrigins = [
+  "http://localhost:3000",
+  "https://test.assessaai.com",
+  "https://www.test.assessaai.com"
+];
 
 app.use(
   cors({
     origin: function (origin, callback) {
-      if (!origin || allowedOrigins.includes(origin)) {
+      if (!origin || allowedOrigins.includes(origin) || origin.endsWith(".assessaai.com")) {
         callback(null, true);
       } else {
-        console.log("Blocked by CORS:", origin); // Debugging CORS issues
+        console.log("Blocked by CORS:", origin);
         callback(new Error("Not allowed by CORS"));
       }
     },
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"], 
     credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
