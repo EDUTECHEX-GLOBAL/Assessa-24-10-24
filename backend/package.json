@@ -7,8 +7,8 @@
     "npm": "10.8.0"
   },
   "scripts": {
-    "start": "node server.js",                                // ✅ for Render deployment
-    "dev": "nodemon server.js",                               // ✅ local development only
+    "start": "node server.js",                                
+    "dev": "nodemon server.js",                              
     "client-install": "npm install --prefix client",
     "client": "npm start --prefix client",
     "server": "nodemon server.js",
