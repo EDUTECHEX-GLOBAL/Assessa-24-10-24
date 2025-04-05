@@ -13,7 +13,7 @@ const app = express(); // Initialize express app
 connectDB(); // Establish MongoDB connection
 
 // Enable CORS for frontend-backend communication
-const allowedOrigins = ["http://localhost:3000", ,"https://test.assessaai.com"];
+const allowedOrigins = ["http://localhost:3000", "https://test.assessaai.com"];
 
 app.use(
   cors({
