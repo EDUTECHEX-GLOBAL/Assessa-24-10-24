@@ -7,12 +7,13 @@
     "npm": "10.8.0"
   },
   "scripts": {
+    "start": "node server.js",                                // ✅ for Render deployment
+    "dev": "nodemon server.js",                               // ✅ local development only
     "client-install": "npm install --prefix client",
-    "server": "nodemon server.js",
     "client": "npm start --prefix client",
-    "dev": "concurrently \"npm run server\" \"npm run client\"",
-    "start": "nodemon server.js",
-    "heroku-postbuild": "NPM_CONFIG_PRODUCTION=false npm install --prefix client && npm run build --prefix client"
+    "server": "nodemon server.js",
+    "concurrently": "concurrently \"npm run server\" \"npm run client\"",
+    "heroku-postbuild": "npm install --prefix client && npm run build --prefix client"
   },
   "author": "",
   "license": "ISC",
@@ -31,9 +32,11 @@
     "multer": "^1.4.5-lts.2",
     "node-cache": "^5.1.2",
     "nodemailer": "^6.10.0",
-    "nodemon": "^3.1.5",
     "openai": "^4.87.3",
     "path": "^0.12.7",
     "react-router-dom": "^6.26.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.9"
   }
 }
