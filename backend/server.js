@@ -15,8 +15,7 @@ connectDB(); // Establish MongoDB connection
 // Enable CORS for frontend-backend communication
 const allowedOrigins = [
   "http://localhost:3000",
-  "https://test.assessaai.com",
-  "https://www.test.assessaai.com"
+  "https://test.assessaai.com"
 ];
 
 app.use(
