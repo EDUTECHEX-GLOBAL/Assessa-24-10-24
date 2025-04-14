@@ -1,10 +1,11 @@
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { FaHome, FaBook, FaChartBar, FaTasks, FaSignOutAlt, FaBars, FaBell, FaSearch, FaRobot } from 'react-icons/fa';
 import { IoPersonCircleOutline } from 'react-icons/io5';
-import { MdSchool, MdClass, MdAssignment, MdQuiz, MdMenuBook } from 'react-icons/md';
+import { MdSchool, MdQuiz, MdMenuBook } from 'react-icons/md';
 import assessalogo from "./logo.png";
 import { useEffect, useState } from "react";
 import {useNavigate} from "react-router-dom";
+import { toast } from 'react-toastify'; // Optional for notifications
 
 
 
@@ -33,17 +34,43 @@ export default function Dashboard() {
     }
   }, []);
 
+  // Logout function
+  const handleLogout = () => {
+    // Show confirmation dialog
+    const confirmLogout = window.confirm("Are you sure you want to logout?");
+    
+    if (confirmLogout) {
+      // Clear user data from localStorage
+      localStorage.removeItem("userInfo");
+      // Clear any other related items
+      localStorage.removeItem("token"); // If using authentication tokens
+      
+      // Optional: Show logout success message
+      toast.success("Logged out successfully!", {
+        position: "top-right",
+        autoClose: 3000,
+      });
+      
+      // Redirect to login page
+      navigate("/login"); // Change to your actual login route
+      
+      // Optional: Refresh to clear all state
+      // window.location.reload();
+    }
+  };
+
+
   return (
     <div className="flex h-screen bg-gradient-to-r from-teal-400 to-purple-500">
       {/* Sidebar */}
-      <aside className={`fixed md:relative z-50 bg-white w-64 p-5 flex flex-col justify-between transition-transform ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} md:translate-x-0 shadow-xl`}>
+      <aside className={`fixed md:relative z-50 bg-white text-gray-800 w-64 p-6 transition-transform ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} md:translate-x-0 shadow-xl`}>
         <button className="absolute top-4 right-4 md:hidden text-gray-600 hover:text-teal-600 transition" onClick={() => setSidebarOpen(false)}>
           ✖
         </button>
         <div className="flex justify-center mb-6">
           <img src={assessalogo} alt="Assessa Logo" className="w-28" />
         </div>
-        <nav className="space-y-4">
+        <nav className="space-y-2">
           <a href="#" className="flex items-center space-x-2 py-3 px-4 rounded-lg text-gray-700 hover:bg-teal-100 hover:text-teal-600 transition">
             <FaHome className="text-xl" />
             <span className="text-lg font-medium">Home</span>
@@ -61,12 +88,17 @@ export default function Dashboard() {
             <span className="text-lg font-medium">Study Plan</span>
           </a>
         </nav>
-        <div className="flex-grow" />
-        <a href="#" className="flex items-center space-x-2 py-3 px-4 rounded-lg text-red-500 hover:bg-red-100 transition">
-          <FaSignOutAlt className="text-xl" />
-          <span className="text-lg font-medium">Logout</span>
-        </a>
-      </aside>
+        <div className="flex-grow"></div>
+  <div className="mt-8 border-t border-gray-200 pt-6"> {/* Reduced from mt-8/pt-6 */}
+  <button 
+            onClick={handleLogout} 
+            className="flex items-center space-x-3 py-3 px-4 rounded-lg text-red-500 hover:bg-red-100 transition w-full"
+          >
+            <FaSignOutAlt className="text-xl" />
+            <span className="text-lg font-medium">Logout</span>
+          </button>
+  </div>
+</aside>
 
       {/* Main Content */}
       <main className="flex-1 overflow-y-auto p-6 md:p-10 bg-white rounded-tl-lg shadow-inner">

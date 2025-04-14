@@ -1,27 +1,19 @@
 const asyncHandler = require("express-async-handler");
 const Admin = require("../models/webapp-models/adminModel");
+const User = require("../models/webapp-models/userModel");
+const Teacher = require("../models/webapp-models/teacherModel");
 const generateToken = require("../utils/generateToken");
+const sendEmail = require("../utils/mailer");
 
+// Admin login
 const authAdmin = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
-  console.log("Admin Login Request Received:", email); // Debugging log
-
-  // Check if admin exists in DB
   const admin = await Admin.findOne({ email });
 
-  if (!admin) {
-    console.log("Admin not found in database");
+  if (!admin || !(await admin.matchPassword(password))) {
     return res.status(400).json({ message: "Invalid Email or Password!" });
   }
 
-  // Compare entered password with stored hashed password
-  const isMatch = await admin.matchPassword(password);
-  if (!isMatch) {
-    console.log("Password mismatch");
-    return res.status(400).json({ message: "Invalid Email or Password!" });
-  }
-
-  console.log("Login Successful for:", admin.email);
   res.json({
     _id: admin._id,
     email: admin.email,
@@ -29,4 +21,76 @@ const authAdmin = asyncHandler(async (req, res) => {
   });
 });
 
-module.exports = { authAdmin };
+// Get approval requests (students + teachers)
+const getApprovalRequests = asyncHandler(async (req, res) => {
+  const status = req.query.status;
+  let filter = {};
+  if (["pending", "approved", "rejected"].includes(status)) {
+    filter.status = status;
+  }
+
+  const students = await User.find(filter).lean();
+  const teachers = await Teacher.find(filter).lean();
+
+  const merged = [
+    ...students.map((user) => ({ ...user, role: "student" })),
+    ...teachers.map((teacher) => ({ ...teacher, role: "teacher" })),
+  ];
+
+  // Sort by creation date (newest first)
+  merged.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+  res.json(merged);
+});
+
+// Approve user or teacher
+const approveRequest = asyncHandler(async (req, res) => {
+  const { role } = req.body;
+
+  let account;
+  if (role === "teacher") {
+    account = await Teacher.findById(req.params.id);
+  } else {
+    account = await User.findById(req.params.id);
+  }
+
+  if (!account) return res.status(404).json({ message: `${role} not found` });
+
+  account.status = "approved";
+  account.isAdminApproved = true;
+  await account.save();
+
+  await sendEmail.sendApprovalEmail(account.email, account.name, role);
+
+  res.json({ message: `${role} approved successfully` });
+});
+
+// Reject user or teacher
+const rejectRequest = asyncHandler(async (req, res) => {
+  const { reason, role } = req.body;
+
+  let account;
+  if (role === "teacher") {
+    account = await Teacher.findById(req.params.id);
+  } else {
+    account = await User.findById(req.params.id);
+  }
+
+  if (!account) return res.status(404).json({ message: `${role} not found` });
+
+  account.status = "rejected";
+  account.rejectionReason = reason;
+  account.isAdminApproved = false;
+  await account.save();
+
+  await sendEmail.sendRejectionEmail(account.email, account.name, reason);
+
+  res.json({ message: `${role} rejected successfully` });
+});
+
+module.exports = {
+  authAdmin,
+  getApprovalRequests,
+  approveRequest,
+  rejectRequest,
+};

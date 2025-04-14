@@ -23,6 +23,18 @@ const teacherSchema = new mongoose.Schema(
       required: true,
       default: "https://example.com/default-pic.png",
     },
+    role: {
+      type: String,
+      default: "teacher", // Always teacher for this model
+    },
+    status: {
+      type: String,
+      enum: ["pending", "approved", "rejected"],
+      default: "pending", // Await admin approval
+    },
+    rejectionReason: {
+      type: String,
+    },
     resetPasswordToken: {
       type: String,
     },
@@ -35,6 +47,7 @@ const teacherSchema = new mongoose.Schema(
   }
 );
 
+// Password hash middleware
 teacherSchema.pre("save", async function (next) {
   if (!this.isModified("password")) return next();
   const salt = await bcrypt.genSalt(10);
@@ -42,6 +55,7 @@ teacherSchema.pre("save", async function (next) {
   next();
 });
 
+// Compare password method
 teacherSchema.methods.matchPassword = async function (enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.password);
 };

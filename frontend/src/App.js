@@ -39,7 +39,8 @@ import StudentDashboard from "./components/StudentLogin/StudentDashboard";
 import TeacherDashboard from "./components/TeacherLogin/TeacherDashboard";
 import AdminDashboard from "./components/AdminPanelLogin/AdminDashboard";
 import ProblemsolvingAgent from "./components/StudentLogin/ProblemsolvingAgent.jsx";
-
+import ApprovalRequests from "./components/AdminPanelLogin/ApprovalRequests.jsx";
+import AssessmentLibrary from "./components/TeacherLogin/AssessmentLibrary.jsx"
 
 
 function App() {
@@ -114,9 +115,11 @@ function App() {
         <Route path="/study-recommendation" element={<StudyRecommendation />} />
         <Route path="/student-login" element={<StudentLogin />}  />
         <Route path="/problemsolving-agent" element={<ProblemsolvingAgent />} />
+        <Route path="/assessment-library" element={<AssessmentLibrary />} />
         <Route path="/student-dashboard" element={<StudentDashboard />} />
         <Route path="/teacher-dashboard" element={<TeacherDashboard />} />
         <Route path="/admin-dashboard" element={<AdminDashboard />} />
+        <Route path="/approvals" element={<ApprovalRequests />} />
 
         <Route path="/teacher-login" element={< TeacherLogin />} />
         <Route path="/adminpanel-login" element={< AdminPanelLogin />} />

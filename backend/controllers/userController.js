@@ -7,9 +7,9 @@ const generateToken = require("../utils/generateToken");
 
 // Register User
 const registerUser = asyncHandler(async (req, res) => {
-  const { name, email, password, pic } = req.body;
-
-  if (!name || !email || !password) {
+  const { name, email, password, role } = req.body;
+  let { pic } = req.body;
+  if (!name || !email || !password || !role) {
     return res.status(400).json({ message: "Please fill all required fields." });
   }
 
@@ -18,12 +18,20 @@ const registerUser = asyncHandler(async (req, res) => {
     return res.status(400).json({ message: "User already exists." });
   }
 
+   // ✅ Set default pic if undefined
+   if (!pic) {
+    pic = "https://icon-library.com/images/anonymous-avatar-icon/anonymous-avatar-icon-25.jpg";
+  }
+
   // ✅ Create user (password will be hashed in the model)
   const user = await Userwebapp.create({
     name,
     email,
     password,
+    role, // ✅ now this is defined
     pic,
+    isAdminApproved: false, // ✅ This is required if approval is enforced
+    status: "pending",
   });
 
   if (user) {
@@ -31,6 +39,7 @@ const registerUser = asyncHandler(async (req, res) => {
       _id: user._id,
       name: user.name,
       email: user.email,
+      role: user.role,
       isAdmin: user.isAdmin,
       pic: user.pic,
       token: generateToken(user._id),
@@ -47,6 +56,14 @@ const authUser = asyncHandler(async (req, res) => {
   const user = await Userwebapp.findOne({ email });
 
   if (user && (await user.matchPassword(password))) {
+    if (user.status === "rejected") {
+      return res.status(403).json({ message: "Your registration has been rejected." });
+    }
+
+    if (user.status === "pending" || !user.isAdminApproved) {
+      return res.status(403).json({ message: "Your account is pending admin approval." });
+    }
+
     res.json({
       _id: user._id,
       name: user.name,

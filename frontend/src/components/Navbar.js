@@ -4,6 +4,8 @@ import Menu from "../assets/Menu.svg";
 import Close from "../assets/close.png";
 import { FiUser, FiBookOpen, FiBriefcase, FiSettings } from "react-icons/fi";
 import MobileNavbar from "./MobileNavbar"; // Import MobileNavbar component
+import { useNavigate } from "react-router-dom";
+
 
 const navLinks = [
   { name: "Discover", href: "#discover" },
@@ -27,6 +29,18 @@ const Navbar = () => {
   const toggleLoginDropdown = () => {
     setLoginDropdownOpen(!loginDropdownOpen);
   };
+  const navigate = useNavigate();
+
+const handleRoleNavigation = (role) => {
+  const routeMap = {
+    student: "/student-login",
+    teacher: "/teacher-login",
+    admin: "/adminpanel-login",
+  };
+
+  navigate(routeMap[role], { state: { role } });
+  setLoginDropdownOpen(false); // Close dropdown after clicking
+};
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -77,10 +91,11 @@ const Navbar = () => {
                 </h3>
 
                 <div className="flex flex-col space-y-3">
-                  <a
-                    href="/student-login"
-                    className="flex items-center gap-3 p-3 rounded-lg bg-gradient-to-r from-blue-50 to-blue-100 hover:shadow-md hover:scale-[1.02] transition transform"
-                  >
+                <div
+                  onClick={() => handleRoleNavigation("student")}
+                  className="cursor-pointer flex items-center gap-3 p-3 rounded-lg bg-gradient-to-r from-blue-50 to-blue-100 hover:shadow-md hover:scale-[1.02] transition transform"
+                >
+
                     <div className="p-2 bg-blue-500 text-white rounded-full">
                       <FiBookOpen className="text-lg" />
                     </div>
@@ -90,12 +105,13 @@ const Navbar = () => {
                         Access learning materials & resources
                       </p>
                     </div>
-                  </a>
+                  </div>
 
-                  <a
-                    href="/teacher-login"
-                    className="flex items-center gap-3 p-3 rounded-lg bg-gradient-to-r from-green-50 to-green-100 hover:shadow-md hover:scale-[1.02] transition transform"
+                  <div
+                    onClick={() => handleRoleNavigation("teacher")}
+                    className="cursor-pointer flex items-center gap-3 p-3 rounded-lg bg-gradient-to-r from-green-50 to-green-100 hover:shadow-md hover:scale-[1.02] transition transform"
                   >
+
                     <div className="p-2 bg-green-500 text-white rounded-full">
                       <FiBriefcase className="text-lg" />
                     </div>
@@ -105,12 +121,13 @@ const Navbar = () => {
                         Manage courses and student progress
                       </p>
                     </div>
-                  </a>
+                  </div>
 
-                  <a
-                    href="/adminpanel-login"
-                    className="flex items-center gap-3 p-3 rounded-lg bg-gradient-to-r from-red-50 to-red-100 hover:shadow-md hover:scale-[1.02] transition transform"
+                  <div
+                    onClick={() => handleRoleNavigation("admin")}
+                    className="cursor-pointer flex items-center gap-3 p-3 rounded-lg bg-gradient-to-r from-red-50 to-red-100 hover:shadow-md hover:scale-[1.02] transition transform"
                   >
+
                     <div className="p-2 bg-red-500 text-white rounded-full">
                       <FiSettings className="text-lg" />
                     </div>
@@ -120,7 +137,7 @@ const Navbar = () => {
                         Manage platform users and settings
                       </p>
                     </div>
-                  </a>
+                  </div>
                 </div>
               </div>
             )}

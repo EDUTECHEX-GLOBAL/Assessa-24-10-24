@@ -13,52 +13,58 @@ const app = express(); // Initialize express app
 connectDB(); // Establish MongoDB connection
 
 // Enable CORS for frontend-backend communication
-const allowedOrigins = ["http://localhost:3000", "https://www.assessaai.com","https://assessaai.com"];
+const allowedOrigins = [
+  "http://localhost:3000",
+  "http://localhost:5000",
+  "https://www.assessaai.com",
+  "https://assessaai.com"
+];
 
-app.use(
-  cors({
-    origin: function (origin, callback) {
-      if (!origin || allowedOrigins.includes(origin)) {
-        return callback(null, true);
-      } else {
-        callback(new Error("Not allowed by CORS"));
-      }
-    },
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"], // Ensure OPTIONS is handled for preflight requests
-    credentials: true,
-    allowedHeaders: ["Content-Type", "Authorization"], // Allow specific headers
-  })
-);
+const corsOptions = {
+  origin: function (origin, callback) {
+    const cleanedOrigin = origin?.replace(/\/$/, ""); // Remove trailing slash
+    console.log("CORS Origin:", cleanedOrigin);
 
-// Handle Preflight (OPTIONS) Requests
-app.options("*", cors());
+    if (!origin || allowedOrigins.includes(cleanedOrigin)) {
+      callback(null, true);
+    } else {
+      console.warn("Blocked by CORS:", cleanedOrigin);
+      callback(new Error("Not allowed by CORS"));
+    }
+  },
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  credentials: true,
+  allowedHeaders: ["Content-Type", "Authorization"],
+};
+
+app.use(cors(corsOptions));
 
 // Middleware
-app.use(express.json()); // For parsing application/json
+app.use(express.json());
 
 // Routes
 const userRoutes = require("./routes/webapp-routes/userRoutes");
-const teacherRoutes = require("./routes/teacherRoutes"); 
+const teacherRoutes = require("./routes/teacherRoutes");
 const adminRoutes = require("./routes/adminRoutes");
-const forgotPasswordRoutes = require("./routes/student_forgotpassword_routes"); // Import forgot password routes
+const forgotPasswordRoutes = require("./routes/student_forgotpassword_routes");
 const teacherForgotPasswordRoutes = require("./routes/teacher_forgotpassword_routes");
 const internRoutes = require("./routes/webapp-routes/internshipPostRoutes");
 const skillnaavRoute = require("./routes/skillnaavRoute");
 const applicationRoutes = require("./routes/webapp-routes/applicationRoutes");
 const problemsolvingagentRoutes = require("./routes/problemsolvingagentRoutes");
+const assessmentuploadformRoutes = require("./routes/assessmentuploadformRoutes");
 
-// Define routes
-app.use("/api/users", userRoutes); // User Web App routes
+app.use("/api/users", userRoutes);
 app.use("/api/teachers", teacherRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/forgot-password", forgotPasswordRoutes);
 app.use("/api/teacher/forgot-password", teacherForgotPasswordRoutes);
-app.use("/api/interns", internRoutes); // Partner to Admin Intern Posts
-app.use("/api/applications", applicationRoutes); // Application routes
-app.use("/api/skillnaav", skillnaavRoute); // Skillnaav routes
-app.use("/api/contact", skillnaavRoute); // Contact route (Verify if this is correct)
+app.use("/api/interns", internRoutes);
+app.use("/api/applications", applicationRoutes);
+app.use("/api/skillnaav", skillnaavRoute);
+app.use("/api/contact", skillnaavRoute);
 app.use("/api/ai-agent", problemsolvingagentRoutes);
-
+app.use("/api/assessments", assessmentuploadformRoutes);
 
 // Serve static assets only in production
 if (process.env.NODE_ENV === "production") {
@@ -83,4 +89,3 @@ const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
-

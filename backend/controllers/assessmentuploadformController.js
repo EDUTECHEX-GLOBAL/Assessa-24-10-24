@@ -1,57 +1,50 @@
-const Assessment = require("../models/webapp-models/assessmentuploadformModel");
-const fs = require("fs");
-const path = require("path");
+const asyncHandler = require("express-async-handler");
+const AssessmentUpload = require("../models/webapp-models/assessmentuploadformModel");
+const uploadToS3 = require("../config/s3Upload"); // You should have this configured
 
-exports.uploadAssessment = async (req, res) => {
-  try {
-    if (!req.file) {
-      return res.status(400).json({ error: "No file uploaded" });
-    }
+// @desc    Upload assessment
+// @route   POST /api/assessments/upload
+// @access  Private
+const uploadAssessment = asyncHandler(async (req, res) => {
+  const { assessmentName, subject, gradeLevel } = req.body;
+  const file = req.file;
 
-    const { assessmentName, subject, gradeLevel } = req.body;
-
-    const newAssessment = new Assessment({
-      title: assessmentName,
-      subject,
-      gradeLevel,
-      fileUrl: `/uploads/assessments/${req.file.filename}`,
-      fileType: path.extname(req.file.originalname).substring(1),
-      fileSize: req.file.size,
-      createdBy: req.user.id,
-      type: "teacher"
-    });
-
-    const savedAssessment = await newAssessment.save();
-
-    res.status(201).json({
-      message: "File uploaded successfully",
-      filePath: savedAssessment.fileUrl,
-      assessment: savedAssessment
-    });
-
-  } catch (error) {
-    // Clean up file if error occurs
-    if (req.file) {
-      const filePath = path.join(__dirname, "..", "uploads", "assessments", req.file.filename);
-      if (fs.existsSync(filePath)) {
-        fs.unlinkSync(filePath);
-      }
-    }
-    
-    console.error("Upload error:", error);
-    res.status(500).json({ error: error.message });
+  if (!file) {
+    res.status(400);
+    throw new Error("File is required");
   }
-};
 
-exports.getTeacherAssessments = async (req, res) => {
-  try {
-    const assessments = await Assessment.find({ 
-      createdBy: req.user.id 
-    }).sort({ createdAt: -1 });
-    
-    res.json(assessments);
-  } catch (error) {
-    console.error("Fetch error:", error);
-    res.status(500).json({ error: "Failed to fetch assessments" });
-  }
+  const { key } = await uploadToS3(file); // destructure just the key
+
+  const assessment = await AssessmentUpload.create({
+    teacherId: req.user._id,
+    assessmentName,
+    subject,
+    gradeLevel,
+    fileUrl: key, // ✅ this is now a string
+  });
+
+  res.status(201).json({
+    message: "Assessment uploaded successfully",
+    assessment,
+  });
+});
+
+// @desc    Get assessments of logged in teacher
+// @route   GET /api/assessments/my
+// @access  Private
+const getMyAssessments = asyncHandler(async (req, res) => {
+  const assessments = await AssessmentUpload.find({ teacherId: req.user._id });
+
+  const assessmentsWithUrls = assessments.map((a) => ({
+    ...a._doc,
+    signedUrl: getSignedUrl(a.fileUrl),
+  }));
+
+  res.json(assessmentsWithUrls);
+});
+
+module.exports = {
+  uploadAssessment,
+  getMyAssessments,
 };

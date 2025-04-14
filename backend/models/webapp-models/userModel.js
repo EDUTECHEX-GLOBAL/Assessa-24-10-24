@@ -23,6 +23,23 @@ const userwebappSchema = new mongoose.Schema(
       required: true,
       default: false,
     },
+    isAdminApproved: {
+      type: Boolean,
+      default: false, // 👈 By default, student is not approved
+    },
+    role: {
+      type: String,
+      required: true,
+      enum: ["student", "teacher"],
+    },
+    status: {
+      type: String,
+      enum: ["pending", "approved", "rejected"],
+      default: "pending",
+    },
+    rejectionReason: {
+      type: String,
+    },    
     pic: {
       type: String,
       required: true,

@@ -5,27 +5,29 @@ const adminSchema = new mongoose.Schema(
   {
     email: {
       type: String,
-      required: true,
+      required: [true, "Email is required"],
       unique: true,
-      trim: true, // Ensures no accidental spaces
+      trim: true,
+      lowercase: true,
     },
     password: {
       type: String,
-      required: true,
+      required: [true, "Password is required"],
     },
   },
   { timestamps: true }
 );
 
-// Hash the password before saving
+// Hash password before saving if it's modified
 adminSchema.pre("save", async function (next) {
   if (!this.isModified("password")) return next();
+
   const salt = await bcrypt.genSalt(10);
   this.password = await bcrypt.hash(this.password, salt);
   next();
 });
 
-// Compare the entered password with the hashed password in DB
+// Compare entered password with hashed password
 adminSchema.methods.matchPassword = async function (enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.password);
 };

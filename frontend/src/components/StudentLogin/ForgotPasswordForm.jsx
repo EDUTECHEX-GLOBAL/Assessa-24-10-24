@@ -151,7 +151,7 @@ const ForgotPasswordForm = ({ onSwitch }) => {
           <div className="mb-4">
             <label className="block text-gray-700 text-sm font-bold mb-2">New Password</label>
             <div className="relative">
-              <FaLock className="absolute left-3 top-1/2 transform -translate-x-1/2 ml-2 text-gray-500" />
+              <FaLock className="absolute left-3 top-1/2 transform -translate-y-1/2 ml-2 text-gray-500" />
               <input
                 type={showNewPassword ? "text" : "password"}
                 placeholder="Enter your new password"
@@ -162,7 +162,7 @@ const ForgotPasswordForm = ({ onSwitch }) => {
               <button
                 type="button"
                 onClick={() => setShowNewPassword(!showNewPassword)}
-                className="absolute right-3 top-1/2 transform -translate-x-1/2 flex items-center justify-center"
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 flex items-center justify-center"
               >
                 {showNewPassword ? <FaEyeSlash /> : <FaEye />}
               </button>
@@ -172,7 +172,7 @@ const ForgotPasswordForm = ({ onSwitch }) => {
           <div className="mb-4">
             <label className="block text-gray-700 text-sm font-bold mb-2">Confirm Password</label>
             <div className="relative">
-              <FaLock className="absolute left-3 top-1/2 transform -translate-x-1/2 ml-2 text-gray-500" />
+              <FaLock className="absolute left-3 top-1/2 transform -translate-y-1/2 ml-2 text-gray-500" />
               <input
                 type={showConfirmPassword ? "text" : "password"}
                 placeholder="Confirm your new password"
@@ -183,7 +183,7 @@ const ForgotPasswordForm = ({ onSwitch }) => {
               <button
                 type="button"
                 onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                className="absolute right-3 top-1/2 transform -translate-x-1/2 flex items-center justify-center"
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 flex items-center justify-center"
               >
                 {showConfirmPassword ? <FaEyeSlash /> : <FaEye />}
               </button>
