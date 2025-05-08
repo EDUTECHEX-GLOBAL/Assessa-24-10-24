@@ -28,5 +28,37 @@ const uploadToS3 = (file) => {
     });
   });
 };
+// ✅ NEW FUNCTION: Generate a signed URL
+const getSignedUrl = (key) => {
+  const params = {
+    Bucket: process.env.AWS_BUCKET_NAME,
+    Key: key,
+    Expires: 60 * 5, // URL valid for 5 minutes
+  };
 
-module.exports = uploadToS3;
+  return s3.getSignedUrl("getObject", params);
+};
+// delete assessment
+const deleteFromS3 = (key) => {
+  return new Promise((resolve, reject) => {
+    const params = {
+      Bucket: process.env.AWS_BUCKET_NAME,
+      Key: key,
+    };
+
+    s3.deleteObject(params, (err, data) => {
+      if (err) {
+        console.error("S3 Delete Error:", err);
+        reject(err);
+      } else {
+        resolve(data);
+      }
+    });
+  });
+};
+
+module.exports = {
+  uploadToS3,
+  getSignedUrl,
+  deleteFromS3, // Add this to exports
+};

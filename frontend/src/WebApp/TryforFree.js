@@ -74,7 +74,7 @@ const TryforFree = () => {
             boxShadow: "0 4px 8px rgba(0, 0, 0, 0.2)",
             outline: "none",
           }}
-          onClick={() => handleOptionClick("/study-assistant")}
+          // onClick={() => handleOptionClick("/study-assistant")}
           onMouseDown={(e) => (e.currentTarget.style.transform = "scale(0.98)")}
           onMouseUp={(e) => (e.currentTarget.style.transform = "scale(1)")}
         >
@@ -96,7 +96,7 @@ const TryforFree = () => {
             boxShadow: "0 4px 8px rgba(0, 0, 0, 0.2)",
             outline: "none",
           }}
-          onClick={() => handleOptionClick("/study-recommendation")}
+          // onClick={() => handleOptionClick("/study-recommendation")}
           onMouseDown={(e) => (e.currentTarget.style.transform = "scale(0.98)")}
           onMouseUp={(e) => (e.currentTarget.style.transform = "scale(1)")}
         >

@@ -292,7 +292,7 @@ function DashboardHome() {
       </section>
 
       {/* Quick Actions */}
-      <section className="mt-8 bg-white p-6 rounded-xl shadow-sm">
+      {/* <section className="mt-8 bg-white p-6 rounded-xl shadow-sm">
         <h3 className="text-2xl font-semibold text-gray-800 mb-6">Quick Actions</h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
           <button className="flex flex-col items-center justify-center p-4 border border-blue-200 rounded-lg hover:bg-blue-50 transition-all">
@@ -312,7 +312,7 @@ function DashboardHome() {
             <span className="font-medium">Run Analysis</span>
           </button>
         </div>
-      </section>
+      </section> */}
     </>
   );
 }

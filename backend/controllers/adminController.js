@@ -88,9 +88,23 @@ const rejectRequest = asyncHandler(async (req, res) => {
   res.json({ message: `${role} rejected successfully` });
 });
 
+// Get pending approval counts only
+const getApprovalCounts = asyncHandler(async (req, res) => {
+  const studentCount = await User.countDocuments({ status: 'pending' });
+  const teacherCount = await Teacher.countDocuments({ status: 'pending' });
+
+  res.json({
+    total: studentCount + teacherCount,
+    students: studentCount,
+    teachers: teacherCount,
+  });
+});
+
+
 module.exports = {
   authAdmin,
   getApprovalRequests,
   approveRequest,
   rejectRequest,
+  getApprovalCounts, // Add this line
 };
