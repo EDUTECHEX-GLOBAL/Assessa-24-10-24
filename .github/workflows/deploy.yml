@@ -18,12 +18,12 @@ jobs:
       - name: Setup SSH
         uses: webfactory/ssh-agent@v0.5.3
         with:
-          ssh-private-key: ${{ secrets.EC2_SSH_KEY }}  # Ensure this matches the secret nam
+          ssh-private-key: ${{ secrets.EC2_SSH_KEY }}  # Ensure this matches the secret 
 
       # Run the deployment script on the EC2 instance
       - name: Run deployment script
         run: |
           ssh -o StrictHostKeyChecking=no ubuntu@www.assessaai.com << 'EOF'
             cd /home/ubuntu/Assessa-24-10-24  # Navigate to the correct directory where deploy.sh is located 
-            ./deploy.sh login-portals  # Execute the deploy script with the branch name as the argument
+            ./deploy.sh review-14-4-25 # Execute the deploy script with the branch name as the argument
           EOF
