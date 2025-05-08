@@ -18,7 +18,7 @@ jobs:
       - name: Setup SSH
         uses: webfactory/ssh-agent@v0.5.3
         with:
-          ssh-private-key: ${{ secrets.EC2_SSH_KEY }}  # Ensure this matches the secret 
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}  # Ensure this matches the secret 
 
       # Run the deployment script on the EC2 instance
       - name: Run deployment script
