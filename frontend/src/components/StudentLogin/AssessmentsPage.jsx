@@ -250,25 +250,33 @@ export default function AssessmentsPage() {
     <div className="p-6">
       <h2 className="text-3xl font-bold text-teal-700 mb-6">Available Assessments</h2>
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-        {assessments.map((a) => (
-          <div key={a._id} className="border p-4 rounded-lg shadow bg-white">
-            <h3 className="text-xl font-semibold">{a.assessmentName}</h3>
-            <p className="text-gray-600">Subject: {a.subject}</p>
-            <p className="text-gray-600">Grade: {a.gradeLevel}</p>
-            <p className="text-sm text-gray-400 mt-1">
-              Uploaded: {new Date(a.createdAt).toLocaleDateString()}
-            </p>
-            <p className="text-sm text-gray-600 mt-1">
-              {a.questions?.length || 0} questions • {a.timeLimit} mins
-            </p>
-            <button
-              onClick={() => handleAttemptAssessment(a._id)}
-              className="mt-3 w-full bg-teal-600 text-white py-2 rounded hover:bg-teal-700 transition"
-            >
-              Attempt Assessment
-            </button>
-          </div>
-        ))}
+       {assessments.map((a) => (
+  <div key={a._id} className="border p-4 rounded-lg shadow bg-white">
+    <h3 className="text-xl font-semibold">{a.assessmentName}</h3>
+    <p className="text-gray-600">Subject: {a.subject}</p>
+    <p className="text-gray-600">Grade: {a.gradeLevel}</p>
+    <p className="text-sm text-gray-400 mt-1">
+      Uploaded: {new Date(a.createdAt).toLocaleDateString()}
+    </p>
+    <p className="text-sm text-gray-600 mt-1">
+      {a.questions?.length || 0} questions • {a.timeLimit} mins
+    </p>
+
+    {a.submission ? (
+      <div className="mt-3 w-full bg-green-500 text-white text-center py-2 rounded font-semibold">
+        Completed! {a.submission.score}/{a.submission.totalMarks}
+      </div>
+    ) : (
+      <button
+        onClick={() => handleAttemptAssessment(a._id)}
+        className="mt-3 w-full bg-teal-600 text-white py-2 rounded hover:bg-teal-700 transition"
+      >
+        Attempt Assessment
+      </button>
+    )}
+  </div>
+))}
+
       </div>
     </div>
   );

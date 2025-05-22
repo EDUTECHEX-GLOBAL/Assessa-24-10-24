@@ -113,22 +113,34 @@ const deleteAssessment = asyncHandler(async (req, res) => {
 // @desc    Get all assessments (for students)
 // @route   GET /api/assessments/all
 // @access  Private (Student)
-const getAllAssessments = asyncHandler(async (req, res) => {
-  const assessments = await AssessmentUpload.find({})
-    .populate("teacherId", "name email")
-    .sort({ createdAt: -1 });
+const getAllAssessments = async (req, res) => {
+  try {
+    const userId = req.user._id;
 
-  // Filter out correct answers before sending to students
-  const sanitizedAssessments = assessments.map(a => {
-    const assessment = a.toObject();
-    if (assessment.questions) {
-      assessment.questions.forEach(q => delete q.correctAnswer);
-    }
-    return assessment;
-  });
+    const assessments = await AssessmentUpload.find().lean(); // plain JS objects
 
-  res.json(sanitizedAssessments);
-});
+    const submissions = await AssessmentSubmission.find({
+      studentId: userId,
+    }).select("assessmentId score totalMarks");
+
+    const submittedMap = {};
+    submissions.forEach((s) => {
+      submittedMap[s.assessmentId.toString()] = {
+        score: s.score,
+        totalMarks: s.totalMarks,
+      };
+    });
+
+    const enriched = assessments.map((a) => ({
+      ...a,
+      submission: submittedMap[a._id.toString()] || null,
+    }));
+
+    res.json(enriched);
+  } catch (err) {
+    res.status(500).json({ message: "Failed to fetch assessments" });
+  }
+};
 
 // @desc    Get assessment for attempt (without correct answers)
 // @route   GET /api/assessments/:id/attempt
@@ -162,6 +174,9 @@ const getAssessmentForAttempt = asyncHandler(async (req, res) => {
 // @desc    Submit assessment answers
 // @route   POST /api/assessments/:id/submit
 // @access  Private (Student)
+// @desc    Submit assessment answers
+// @route   POST /api/assessments/:id/submit
+// @access  Private (Student)
 const submitAssessment = asyncHandler(async (req, res) => {
   const { answers, timeTaken } = req.body;
   const assessmentId = req.params.id;
@@ -187,8 +202,9 @@ const submitAssessment = asyncHandler(async (req, res) => {
   let score = 0;
 
   const answerDetails = assessment.questions.map((question, index) => {
-    const selectedOption = answers[index];
-    const correctOption = question.options[question.correctAnswer];
+    const selectedOption = parseInt(answers[index]);
+    const correctOption = parseInt(question.correctAnswer); // index of correct answer
+
     const isCorrect = selectedOption === correctOption;
     const marksObtained = isCorrect ? (question.marks || 1) : 0;
 
@@ -229,6 +245,7 @@ const submitAssessment = asyncHandler(async (req, res) => {
     submittedAt: submission.createdAt,
   });
 });
+
 
 
 // @desc    Get all submissions for an assessment (Teacher view)

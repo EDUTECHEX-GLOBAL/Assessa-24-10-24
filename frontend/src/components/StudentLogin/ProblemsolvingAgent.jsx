@@ -1,10 +1,14 @@
 import React, { useState, useRef, useEffect } from "react";
-import axios from "axios";
+// import axios from "axios";
 import { FaPaperPlane, FaSpinner, FaRobot, FaUser, FaRedo, FaClock, FaBars, FaTimes, FaChevronLeft, FaChevronRight } from "react-icons/fa";
 import ReactMarkdown from "react-markdown";
 import { format } from "date-fns";
+import aiAgentAPI from "../../api/aiAgentAPI";
 
-axios.defaults.baseURL = "http://localhost:5000/api/ai-agent";
+
+
+
+
 
 const ProblemsolvingAgent = () => {
   const [mode, setMode] = useState("chat");
@@ -48,7 +52,7 @@ const ProblemsolvingAgent = () => {
     setPrompt("");
 
     try {
-      const res = await axios.post("/chat", { message: prompt, history: messages.map(m => m.text) });
+      const res = await aiAgentAPI.post("/chat", { message: prompt, history: messages.map(m => m.text) });
       const aiResponse = { sender: "ai", text: res.data.response, timestamp: new Date().toISOString() };
       setMessages(prev => [...prev, aiResponse]);
 
@@ -74,7 +78,7 @@ const ProblemsolvingAgent = () => {
     setGeneratedQuestions(null);
 
     try {
-      const res = await axios.post("/generate-assessment", {
+      const res = await aiAgentAPI.post("/generate-assessment", {
         num_questions: numQuestions,
         curriculum,
         grade,
@@ -97,7 +101,7 @@ const ProblemsolvingAgent = () => {
     setEvaluationResult(null);
 
     try {
-      const res = await axios.post("/evaluate-answer", {
+      const res = await aiAgentAPI.post("/evaluate-answer", {
         question: questionToEvaluate,
         correct_option: correctOption,
         selected_option: selectedOption
