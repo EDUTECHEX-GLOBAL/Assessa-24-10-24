@@ -2,65 +2,101 @@ const axios = require("axios");
 const ProblemsolvingAgent = require("../models/webapp-models/problemsolvingagentModel");
 require("dotenv").config();
 
-// Function to classify the prompt and determine the mode
+const FASTAPI_URL = process.env.FASTAPI_URL || "http://127.0.0.1:8000";
+
+// (Optional) same classification logic if you still want to cache certain prompts
 const classifyPrompt = (prompt) => {
   const keywords = {
     "pre-built": ["basic", "fundamental", "standard"],
     "teacher-contributed": ["advanced", "expert", "teacher"],
   };
-
   for (const [mode, words] of Object.entries(keywords)) {
     if (words.some((word) => prompt.toLowerCase().includes(word))) {
       return mode;
     }
   }
-
   return "ai-generated";
 };
 
-// Function to call FastAPI AI Agent
-const aiAgentHandler = async (req, res) => {
+// POST /chat
+const chatHandler = async (req, res) => {
   try {
-    const { prompt } = req.body;
+    const { message, history = [] } = req.body;
+    const resp = await axios.post(
+      `${FASTAPI_URL}/chat`,
+      { message, history }
+    );
+    return res.status(200).json({ response: resp.data.response });
+  } catch (err) {
+    console.error("Chat error:", err.message);
+    return res.status(500).json({ error: "Failed to chat." });
+  }
+};
 
-    // Determine the mode based on the prompt
-    const mode = classifyPrompt(prompt);
-
-    // Check MongoDB for existing pre-built or teacher-contributed assessments
+// POST /generate-assessment
+const generateHandler = async (req, res) => {
+  try {
+    const { num_questions, curriculum, grade, subject, topic } = req.body;
+    const mode = classifyPrompt(topic);
+    // check cache only for non–AI-generated
     if (mode !== "ai-generated") {
-      const existingAssessment = await ProblemsolvingAgent.findOne({ prompt, mode });
-      if (existingAssessment) {
-        return res.status(200).json({ message: existingAssessment.response });
+      const existing = await ProblemsolvingAgent.findOne({ prompt: topic, mode });
+      if (existing) {
+        return res.status(200).json({ questions: existing.response });
       }
     }
 
-    // Call FastAPI for AI-generated assessments
-    const response = await axios.post("http://127.0.0.1:8000/ai-agent/", { prompt, mode });
-    const aiResponse = response.data.response;
+    const resp = await axios.post(
+      `${FASTAPI_URL}/generate-assessment`,
+      { num_questions, curriculum, grade, subject, topic }
+    );
+    const questions = resp.data.questions;
 
-    // Store AI-generated assessments in MongoDB
+    // cache AI‐generated
     if (mode === "ai-generated") {
-      const newAssessment = new ProblemsolvingAgent({ prompt, mode, response: aiResponse });
-      await newAssessment.save();
+      await new ProblemsolvingAgent({
+        prompt: topic,
+        mode,
+        response: questions,
+      }).save();
     }
 
-    res.status(200).json({ message: aiResponse });
-
-  } catch (error) {
-    console.error("Error:", error.message);
-    res.status(500).json({ error: "Failed to process AI request." });
+    return res.status(200).json({ questions });
+  } catch (err) {
+    console.error("Generate error:", err.message);
+    return res.status(500).json({ error: "Failed to generate assessment." });
   }
 };
 
-// Fetch all assessments
+// POST /evaluate-answer
+const evaluateHandler = async (req, res) => {
+  try {
+    const { question, selected_option, correct_option } = req.body;
+    const resp = await axios.post(
+      `${FASTAPI_URL}/evaluate-answer`,
+      { question, selected_option, correct_option }
+    );
+    return res.status(200).json(resp.data);
+  } catch (err) {
+    console.error("Evaluate error:", err.message);
+    return res.status(500).json({ error: "Failed to evaluate answer." });
+  }
+};
+
+// GET /assessments
 const getAllAssessments = async (req, res) => {
   try {
     const assessments = await ProblemsolvingAgent.find();
-    res.status(200).json(assessments);
-  } catch (error) {
-    console.error("Error:", error.message);
-    res.status(500).json({ error: "Failed to fetch assessments." });
+    return res.status(200).json(assessments);
+  } catch (err) {
+    console.error("Fetch assessments error:", err.message);
+    return res.status(500).json({ error: "Failed to fetch assessments." });
   }
 };
 
-module.exports = { aiAgentHandler, getAllAssessments };
+module.exports = {
+  chatHandler,
+  generateHandler,
+  evaluateHandler,
+  getAllAssessments,
+};

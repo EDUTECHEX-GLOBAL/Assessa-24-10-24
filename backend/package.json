@@ -39,6 +39,7 @@
     "path": "^0.12.7",
     "pdf-lib": "^1.17.1",
     "pdf-parse": "^1.1.1",
+    "pdfjs-dist": "^5.2.133",
     "react-router-dom": "^6.26.1"
   }
 }

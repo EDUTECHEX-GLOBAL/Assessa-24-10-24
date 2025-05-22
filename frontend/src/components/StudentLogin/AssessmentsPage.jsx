@@ -1,6 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { toast } from "react-toastify";
-import { useNavigate } from "react-router-dom";
 
 export default function AssessmentsPage() {
   const [assessments, setAssessments] = useState([]);
@@ -8,7 +7,9 @@ export default function AssessmentsPage() {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState([]);
   const [timeLeft, setTimeLeft] = useState(0);
-  const navigate = useNavigate();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submissionResult, setSubmissionResult] = useState(null);
+  const timerRef = useRef(null);
 
   useEffect(() => {
     const fetchAssessments = async () => {
@@ -39,42 +40,42 @@ export default function AssessmentsPage() {
     fetchAssessments();
   }, []);
 
- const handleAttemptAssessment = async (assessmentId) => {
-  try {
-    const token = JSON.parse(localStorage.getItem("userInfo"))?.token;
-    const res = await fetch(
-      `http://localhost:5000/api/assessments/${assessmentId}/attempt`,
-      { 
-        headers: { 
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json"
-        } 
+  const handleAttemptAssessment = async (assessmentId) => {
+    try {
+      const token = JSON.parse(localStorage.getItem("userInfo"))?.token;
+      const res = await fetch(
+        `http://localhost:5000/api/assessments/${assessmentId}/attempt`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.message || "Failed to load assessment");
       }
-    );
 
-    const data = await res.json();
-    
-    if (!res.ok) {
-      console.error('Server response:', data); // Add this for debugging
-      throw new Error(data.message || 'Failed to load assessment');
+      if (!data.questions || data.questions.length === 0) {
+        throw new Error("No questions available - please contact your teacher");
+      }
+
+      setCurrentAssessment(data);
+      setTimeLeft(data.timeLimit * 60);
+      setAnswers(new Array(data.questions.length).fill(null));
+      setCurrentQuestionIndex(0);
+      setSubmissionResult(null); // Clear previous results
+    } catch (err) {
+      console.error("Assessment load error:", err.message);
+      toast.error(err.message);
     }
-
-    // Add validation
-    if (!data.questions || data.questions.length === 0) {
-      throw new Error('No questions available - please contact your teacher');
-    }
-    setCurrentAssessment(data);
-    setTimeLeft(data.timeLimit * 60);
-    setAnswers(new Array(data.questions.length).fill(null));
-    setCurrentQuestionIndex(0);
-
-  } catch (err) {
-    console.error('Assessment load error:', err.message);
-    toast.error(err.message);
-  }
-};
+  };
 
   const handleAnswerSelect = (optionIndex) => {
+    if (submissionResult) return; // prevent changes after submission
     const newAnswers = [...answers];
     newAnswers[currentQuestionIndex] = optionIndex;
     setAnswers(newAnswers);
@@ -93,8 +94,19 @@ export default function AssessmentsPage() {
   };
 
   const handleSubmitAssessment = async () => {
+    if (isSubmitting || submissionResult) return;
+    setIsSubmitting(true);
+
     try {
       const token = JSON.parse(localStorage.getItem("userInfo"))?.token;
+
+      const payload = {
+        answers: answers.map((selectedIndex, i) =>
+          selectedIndex !== null ? selectedIndex : -1
+        ),
+        timeTaken: currentAssessment.timeLimit * 60 - timeLeft,
+      };
+
       const res = await fetch(
         `http://localhost:5000/api/assessments/${currentAssessment._id}/submit`,
         {
@@ -103,34 +115,33 @@ export default function AssessmentsPage() {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify({
-            answers,
-            timeTaken: currentAssessment.timeLimit * 60 - timeLeft,
-          }),
+          body: JSON.stringify(payload),
         }
       );
 
       const data = await res.json();
+
       if (res.ok) {
-        toast.success("Assessment submitted successfully!");
-        setCurrentAssessment(null);
-        // Optionally navigate to results page
+        const { score, totalMarks, percentage } = data;
+        toast.success(`Assessment submitted! Your score: ${score}/${totalMarks}`);
+        setSubmissionResult({ score, totalMarks, percentage });
       } else {
         toast.error(data.message || "Submission failed");
       }
     } catch (err) {
       toast.error("Error submitting assessment");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  // Timer effect
   useEffect(() => {
-    if (!currentAssessment || timeLeft <= 0) return;
+    if (!currentAssessment || timeLeft <= 0 || submissionResult) return;
 
-    const timer = setInterval(() => {
+    timerRef.current = setInterval(() => {
       setTimeLeft((prev) => {
         if (prev <= 1) {
-          clearInterval(timer);
+          clearInterval(timerRef.current);
           handleSubmitAssessment();
           return 0;
         }
@@ -138,77 +149,98 @@ export default function AssessmentsPage() {
       });
     }, 1000);
 
-    return () => clearInterval(timer);
-  }, [currentAssessment, timeLeft]);
+    return () => clearInterval(timerRef.current);
+  }, [currentAssessment, submissionResult]);
 
-  // In the assessment rendering part:
-if (currentAssessment) {
-  const currentQuestion = currentAssessment.questions?.[currentQuestionIndex];
-  const minutes = Math.floor(timeLeft / 60);
-  const seconds = timeLeft % 60;
+  if (currentAssessment) {
+    const currentQuestion = currentAssessment.questions?.[currentQuestionIndex];
+    const minutes = Math.floor(timeLeft / 60);
+    const seconds = timeLeft % 60;
 
-  return (
-    <div className="p-6 max-w-3xl mx-auto">
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-2xl font-bold">{currentAssessment.assessmentName}</h2>
-        <div className="text-lg font-semibold">
-          Time Left: {minutes}:{seconds.toString().padStart(2, "0")}
+    return (
+      <div className="p-6 max-w-3xl mx-auto">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-2xl font-bold">{currentAssessment.assessmentName}</h2>
+          {!submissionResult && (
+            <div className="text-lg font-semibold">
+              Time Left: {minutes}:{seconds.toString().padStart(2, "0")}
+            </div>
+          )}
         </div>
-      </div>
 
-      <div className="bg-white p-6 rounded-lg shadow">
-        {currentQuestion ? (
-          <>
-            <div className="mb-4">
-              <span className="font-medium">Question {currentQuestionIndex + 1}:</span>
-              <p className="mt-2 text-lg">{currentQuestion.questionText}</p>
+        <div className="bg-white p-6 rounded-lg shadow">
+          {submissionResult ? (
+            <div className="text-center space-y-4">
+              <h3 className="text-2xl font-bold text-green-600">Assessment Submitted!</h3>
+              <p className="text-xl">
+                Score: <span className="font-semibold">{submissionResult.score}</span> /{" "}
+                {submissionResult.totalMarks}
+              </p>
+              <p className="text-lg text-gray-700">
+                Percentage: {submissionResult.percentage.toFixed(2)}%
+              </p>
+              <button
+                className="mt-4 px-4 py-2 bg-teal-600 text-white rounded"
+                onClick={() => {
+                  setCurrentAssessment(null);
+                  setSubmissionResult(null);
+                }}
+              >
+                Back to Assessments
+              </button>
             </div>
+          ) : currentQuestion ? (
+            <>
+              <div className="mb-4">
+                <span className="font-medium">Question {currentQuestionIndex + 1}:</span>
+                <p className="mt-2 text-lg">{currentQuestion.questionText}</p>
+              </div>
 
-            <div className="space-y-3">
-              {currentQuestion.options.map((option, index) => (
-                <div
-                  key={index}
-                  className={`p-3 border rounded cursor-pointer ${
-                    answers[currentQuestionIndex] === index
-                      ? "bg-teal-100 border-teal-500"
-                      : "hover:bg-gray-50"
-                  }`}
-                  onClick={() => handleAnswerSelect(index)}
+              <div className="space-y-3">
+                {currentQuestion.options.map((option, index) => (
+                  <div
+                    key={index}
+                    className={`p-3 border rounded cursor-pointer ${
+                      answers[currentQuestionIndex] === index
+                        ? "bg-teal-100 border-teal-500"
+                        : "hover:bg-gray-50"
+                    }`}
+                    onClick={() => handleAnswerSelect(index)}
+                  >
+                    {option}
+                  </div>
+                ))}
+              </div>
+
+              <div className="flex justify-between mt-6">
+                <button
+                  onClick={handlePrevQuestion}
+                  disabled={currentQuestionIndex === 0}
+                  className="px-4 py-2 bg-gray-200 rounded disabled:opacity-50"
                 >
-                  {option}
-                </div>
-              ))}
-            </div>
-          </>
-        ) : (
-  <div className="text-red-500">No question found for this index.</div>
-)}
-
-
-          <div className="flex justify-between mt-6">
-            <button
-              onClick={handlePrevQuestion}
-              disabled={currentQuestionIndex === 0}
-              className="px-4 py-2 bg-gray-200 rounded disabled:opacity-50"
-            >
-              Previous
-            </button>
-            {currentQuestionIndex < currentAssessment.questions.length - 1 ? (
-              <button
-                onClick={handleNextQuestion}
-                className="px-4 py-2 bg-teal-600 text-white rounded"
-              >
-                Next
-              </button>
-            ) : (
-              <button
-                onClick={handleSubmitAssessment}
-                className="px-4 py-2 bg-green-600 text-white rounded"
-              >
-                Submit Assessment
-              </button>
-            )}
-          </div>
+                  Previous
+                </button>
+                {currentQuestionIndex < currentAssessment.questions.length - 1 ? (
+                  <button
+                    onClick={handleNextQuestion}
+                    className="px-4 py-2 bg-teal-600 text-white rounded"
+                  >
+                    Next
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleSubmitAssessment}
+                    className="px-4 py-2 bg-green-600 text-white rounded"
+                    disabled={isSubmitting}
+                  >
+                    {isSubmitting ? "Submitting..." : "Submit Assessment"}
+                  </button>
+                )}
+              </div>
+            </>
+          ) : (
+            <div className="text-red-500">No question found for this index.</div>
+          )}
         </div>
       </div>
     );

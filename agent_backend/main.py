@@ -1,105 +1,207 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, Request
 from pydantic import BaseModel
-import httpx
+from fastapi.middleware.cors import CORSMiddleware
+import boto3
 import os
-import logging
-import re
+import json
 from dotenv import load_dotenv
+from typing import List
 
-# Load environment variables
 load_dotenv()
-GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 
-# Logging config
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+# === AWS Bedrock Clients ===
+bedrock = boto3.client(
+    service_name="bedrock-runtime",
+    region_name=os.getenv("AWS_REGION"),
+    aws_access_key_id=os.getenv("AWS_ACCESS_KEY_ID"),
+    aws_secret_access_key=os.getenv("AWS_SECRET_ACCESS_KEY")
+)
 
 app = FastAPI()
 
-# Request model
-class AIRequest(BaseModel):
-    prompt: str
-    mode: str  # ai-generated, pre-built, teacher-contributed
+# === CORS Setup ===
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Update with frontend URL in production
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
-# Pre-built data
-PRE_BUILT_ASSESSMENTS = {
-    "math": ["Solve x in 2x + 5 = 15", "Find the area of a triangle with base 10 and height 5"],
-    "science": ["Describe Newton's First Law", "Explain the process of photosynthesis"],
-}
+# === Pydantic Schemas ===
+class ChatRequest(BaseModel):
+    message: str
+    history: List[str] = []
 
-# Gemini endpoint
-GEMINI_ENDPOINT = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={GOOGLE_API_KEY}"
+class AssessmentRequest(BaseModel):
+    topic: str
+    grade: str
+    subject: str
+    curriculum: str
+    num_questions: int = 5
 
-# Normalize user input
-def clean_prompt(raw_prompt: str) -> str:
-    # Remove unnecessary characters and lowercase
-    prompt = raw_prompt.strip()
-    prompt = re.sub(r'[^a-zA-Z0-9\s]', '', prompt)
-    prompt = re.sub(r'\s+', ' ', prompt)
-    return prompt.lower()
+class EvaluationRequest(BaseModel):
+    question: str
+    selected_option: str
+    correct_option: str
 
-@app.post("/ai-agent/")
-async def ai_agent(request: AIRequest):
-    raw_prompt = request.prompt
-    mode = request.mode.lower().strip()
-
-    if not raw_prompt or not mode:
-        raise HTTPException(status_code=400, detail="Prompt and mode are required.")
-
-    logger.info(f"📢 Received request: '{raw_prompt}' | Mode: {mode}")
-
+# === Call Mistral Model ===
+def call_mistral(messages: List[dict]):
     try:
-        cleaned_prompt = clean_prompt(raw_prompt)
+        prompt_texts = " ".join([msg["content"][0]["text"] for msg in messages])
+        prompt = f"<s>[INST] {prompt_texts} [/INST]"
 
-        if mode == "pre-built":
-            logger.info("🔍 Checking pre-built assessments...")
-            subject = cleaned_prompt
-            return {"response": PRE_BUILT_ASSESSMENTS.get(subject, ["❗ No pre-built questions available for this subject."])}
+        body = {
+            "prompt": prompt,
+            "max_tokens": 3000,
+            "temperature": 0.5,
+            "top_p": 0.9,
+            "top_k": 50
+        }
 
-        elif mode == "ai-generated":
-            logger.info("🧠 Processing AI-generated assessment...")
+        model_id = "mistral.mistral-large-2402-v1:0"
 
-            # Gracefully handle unclear input
-            if len(cleaned_prompt.split()) < 2:
-                cleaned_prompt = "general knowledge"
+        response = bedrock.invoke_model(
+            modelId=model_id,
+            body=json.dumps(body),
+            contentType="application/json",
+            accept="application/json"
+        )
 
-            formatted_prompt = (
-                f"Generate a detailed assessment with 5 multiple choice questions on the topic: {cleaned_prompt}. "
-                "Each question must include 4 answer options, clearly highlight the correct answer, "
-                "and ensure the content is appropriate for school-level students."
-            )
+        raw_body = response["body"].read().decode("utf-8")
+        response_body = json.loads(raw_body)
 
-            async with httpx.AsyncClient(timeout=30.0) as client:
-                response = await client.post(
-                    GEMINI_ENDPOINT,
-                    headers={"Content-Type": "application/json"},
-                    json={"contents": [{"parts": [{"text": formatted_prompt}]}]},
-                )
-
-            if response.status_code != 200:
-                logger.error(f"❌ Gemini API Error: {response.text}")
-                raise HTTPException(status_code=500, detail="Gemini API Error")
-
-            data = response.json()
-            ai_output = data.get("candidates", [{}])[0].get("content", {}).get("parts", [{}])[0].get("text", "")
-
-            if not ai_output:
-                raise HTTPException(status_code=500, detail="Gemini returned an empty response.")
-
-            logger.info("✅ Successfully generated AI-based assessment.")
-            return {"response": ai_output}
-
-        elif mode == "teacher-contributed":
-            return {"response": f"👩‍🏫 Teacher-created assessments for '{cleaned_prompt}' are coming soon!"}
-
+        if "outputs" in response_body:
+            return response_body["outputs"][0].get("text", "").strip()
+        elif "completion" in response_body:
+            return response_body["completion"].strip()
+        elif "output" in response_body:
+            return response_body["output"].strip()
         else:
-            logger.error("❌ Invalid mode received.")
-            raise HTTPException(status_code=400, detail="Invalid mode. Use 'pre-built', 'ai-generated', or 'teacher-contributed'.")
-
-    except httpx.RequestError as e:
-        logger.error(f"🌐 HTTP Error: {str(e)}")
-        raise HTTPException(status_code=502, detail=f"External API Error: {str(e)}")
+            print("Unknown response structure:", response_body)
+            return "No valid output found in response."
 
     except Exception as e:
-        logger.error(f"🔥 Internal Server Error: {str(e)}")
-        raise HTTPException(status_code=500, detail="An unexpected error occurred. Please try again later.")
+        print(f"Error while calling Mistral model: {e}")
+        return "Error occurred during model call."
+
+# === Call LLaMA 3.3 Model for Assessment Generation ===
+def call_llama(prompt: str):
+    try:
+        body = {
+            "prompt": prompt,
+            "max_gen_len": 4096,
+            "temperature": 0.5,
+            "top_p": 0.9
+        }
+
+        model_id = "meta.llama3-70b-instruct-v1:0"
+
+        response = bedrock.invoke_model(
+            modelId=model_id,
+            body=json.dumps(body),  # must be a valid JSON string
+            contentType="application/json",  # must be exactly this
+            accept="application/json"        # must be exactly this
+        )
+
+        raw_body = response["body"].read().decode("utf-8")
+        response_body = json.loads(raw_body)
+
+        # LLaMA 3 returns the text under 'generation'
+        if "generation" in response_body:
+            return response_body["generation"].strip()
+        else:
+            print("Unexpected LLaMA response format:", response_body)
+            return "No valid generation output from LLaMA."
+
+    except Exception as e:
+        print(f"Error while calling LLaMA model: {e}")
+        return "Error occurred during LLaMA model call."
+
+    try:
+        body = {
+            "prompt": prompt,
+            "max_gen_len": 8192,  # you can increase based on your response length needs
+            "temperature": 0.5,
+            "top_p": 0.9
+        }
+
+        model_id = "meta.llama3-70b-instruct-v1:0"  # ✅ corrected model ID
+
+        response = bedrock.invoke_model(
+            modelId=model_id,
+            body=json.dumps(body),
+            contentType="application/json",
+            accept="application/json"
+        )
+
+        raw_body = response["body"].read().decode("utf-8")
+        response_body = json.loads(raw_body)
+
+        # Meta LLaMA 3 usually returns a 'generation' field
+        if "generation" in response_body:
+            return response_body["generation"].strip()
+        elif "completion" in response_body:
+            return response_body["completion"].strip()
+        elif "output" in response_body:
+            return response_body["output"].strip()
+        else:
+            print("Unknown response format from LLaMA:", response_body)
+            return "No valid output found in LLaMA response."
+
+    except Exception as e:
+        print(f"Error while calling LLaMA model: {e}")
+        return "Error occurred during LLaMA model call."
+
+# === Intent Detection ===
+def detect_intent(message: str) -> str:
+    message_lower = message.lower()
+    if "generate" in message_lower and ("question" in message_lower or "quiz" in message_lower or "assessment" in message_lower):
+        return "generate-assessment"
+    elif "answer" in message_lower and ("is correct" in message_lower or "check" in message_lower or "evaluate" in message_lower):
+        return "evaluate-answer"
+    else:
+        return "chat"
+
+# === Routes ===
+
+@app.post("/chat")
+async def smart_chat(req: ChatRequest):
+    intent = detect_intent(req.message)
+
+    if intent == "generate-assessment":
+        prompt = f"Create 5 MCQs on this topic: '{req.message}'. Each with 4 options and mark the correct one."
+        messages = [{"role": "user", "content": [{"type": "text", "text": prompt}]}]
+        response = call_mistral(messages)
+        return {"type": "assessment", "response": response}
+
+    elif intent == "evaluate-answer":
+        return {
+            "type": "evaluation",
+            "response": "Please use /evaluate-answer endpoint for structured evaluation."
+        }
+
+    else:  # Default Chat
+        all_history = [{"role": "user", "content": [{"type": "text", "text": msg}]} for msg in req.history]
+        all_history.append({"role": "user", "content": [{"type": "text", "text": req.message}]})
+        response = call_mistral(all_history)
+        return {"type": "chat", "response": response}
+
+@app.post("/generate-assessment")
+async def generate_assessment(req: AssessmentRequest):
+    prompt = (
+        f"Create {req.num_questions} multiple-choice questions for a {req.curriculum} Grade {req.grade} student "
+        f"in {req.subject} on the topic '{req.topic}'. Each question should have 4 options and indicate the correct one clearly."
+    )
+    questions = call_llama(prompt)
+    return {"questions": questions}
+
+# @app.post("/evaluate-answer")
+# async def evaluate_answer(req: EvaluationRequest):
+#     if req.selected_option.strip().lower() == req.correct_option.strip().lower():
+#         return {"result": "Correct!", "correct": True}
+#     else:
+#         return {
+#             "result": f"Incorrect. The correct answer was: {req.correct_option}",
+#             "correct": False
+#         }

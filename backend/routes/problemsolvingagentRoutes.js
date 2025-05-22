@@ -1,11 +1,22 @@
 const express = require("express");
 const router = express.Router();
-const { aiAgentHandler, getAllAssessments } = require("../controllers/problemsolvingagentController");
+const {
+  chatHandler,
+  generateHandler,
+  evaluateHandler,
+  getAllAssessments,
+} = require("../controllers/problemsolvingagentController");
 
-// Route to generate assessments
-router.post("/ask-ai", aiAgentHandler);
+// Chat proxy
+router.post("/chat", chatHandler);
 
-// Route to fetch all stored assessments
+// Generate MCQs proxy
+router.post("/generate-assessment", generateHandler);
+
+// Evaluate Answer proxy
+router.post("/evaluate-answer", evaluateHandler);
+
+// Get all cached assessments
 router.get("/assessments", getAllAssessments);
 
 module.exports = router;

@@ -30,6 +30,12 @@ const uploadAssessment = asyncHandler(async (req, res) => {
 
   // Parse PDF to extract questions
   const questions = await parsePDFToQuestions(file.buffer);
+console.log("Parsed Questions:", questions);
+
+if (!questions || questions.length === 0) {
+  res.status(400);
+  throw new Error("No questions extracted — please upload a valid PDF.");
+}
 
   const assessment = await AssessmentUpload.create({
     teacherId: req.user._id,
@@ -161,42 +167,38 @@ const submitAssessment = asyncHandler(async (req, res) => {
   const assessmentId = req.params.id;
   const studentId = req.user._id;
 
-  // Verify assessment exists
   const assessment = await AssessmentUpload.findById(assessmentId);
   if (!assessment) {
     res.status(404);
     throw new Error('Assessment not found');
   }
 
-  // Check if already submitted
-  const existingSubmission = await AssessmentSubmission.findOne({
-    assessmentId,
-    studentId
-  });
+  const existingSubmission = await AssessmentSubmission.findOne({ assessmentId, studentId });
   if (existingSubmission) {
     res.status(400);
     throw new Error('You have already submitted this assessment');
   }
 
-  // Validate answers length matches questions length
-  if (answers.length !== assessment.questions.length) {
+  if (!answers || answers.length !== assessment.questions.length) {
     res.status(400);
     throw new Error('Number of answers does not match number of questions');
   }
 
-  // Calculate results
   let score = 0;
+
   const answerDetails = assessment.questions.map((question, index) => {
     const selectedOption = answers[index];
-    const isCorrect = selectedOption === question.correctAnswer;
+    const correctOption = question.options[question.correctAnswer];
+    const isCorrect = selectedOption === correctOption;
     const marksObtained = isCorrect ? (question.marks || 1) : 0;
+
     score += marksObtained;
-    
+
     return {
       questionId: question._id,
       questionText: question.questionText,
       selectedOption,
-      correctOption: question.correctAnswer,
+      correctOption,
       isCorrect,
       marksObtained
     };
@@ -205,9 +207,9 @@ const submitAssessment = asyncHandler(async (req, res) => {
   const totalMarks = assessment.questions.reduce(
     (sum, q) => sum + (q.marks || 1), 0
   );
+
   const percentage = totalMarks > 0 ? (score / totalMarks) * 100 : 0;
 
-  // Create submission
   const submission = await AssessmentSubmission.create({
     assessmentId,
     studentId,
@@ -220,9 +222,14 @@ const submitAssessment = asyncHandler(async (req, res) => {
 
   res.status(201).json({
     message: "Assessment submitted successfully",
-    submission
+    score: submission.score,
+    totalMarks: submission.totalMarks,
+    percentage: submission.percentage,
+    timeTaken: submission.timeTaken,
+    submittedAt: submission.createdAt,
   });
 });
+
 
 // @desc    Get all submissions for an assessment (Teacher view)
 // @route   GET /api/assessments/:id/submissions
