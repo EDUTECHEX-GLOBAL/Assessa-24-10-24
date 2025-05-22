@@ -75,7 +75,7 @@ export default function Dashboard() {
             <FaHome className="text-xl" />
             <span className="text-lg font-medium">Home</span>
           </a>
-          <a href="#" className="flex items-center space-x-2 py-3 px-4 rounded-lg text-gray-700 hover:bg-teal-100 hover:text-teal-600 transition">
+          <a href="/assessments-page" className="flex items-center space-x-2 py-3 px-4 rounded-lg text-gray-700 hover:bg-teal-100 hover:text-teal-600 transition">
             <FaBook className="text-xl" />
             <span className="text-lg font-medium">Assessments</span>
           </a>

@@ -40,7 +40,8 @@ import TeacherDashboard from "./components/TeacherLogin/TeacherDashboard";
 import AdminDashboard from "./components/AdminPanelLogin/AdminDashboard";
 import ProblemsolvingAgent from "./components/StudentLogin/ProblemsolvingAgent.jsx";
 import ApprovalRequests from "./components/AdminPanelLogin/ApprovalRequests.jsx";
-import AssessmentLibrary from "./components/TeacherLogin/AssessmentLibrary.jsx"
+import AssessmentLibrary from "./components/TeacherLogin/AssessmentLibrary.jsx";
+import AssessmentsPage from "./components/StudentLogin/AssessmentsPage.jsx";
 
 
 function App() {
@@ -120,6 +121,7 @@ function App() {
         <Route path="/teacher-dashboard" element={<TeacherDashboard />} />
         <Route path="/admin-dashboard" element={<AdminDashboard />} />
         <Route path="/approvals" element={<ApprovalRequests />} />
+        <Route path="/assessments-page" element={<AssessmentsPage />} />
 
         <Route path="/teacher-login" element={< TeacherLogin />} />
         <Route path="/adminpanel-login" element={< AdminPanelLogin />} />

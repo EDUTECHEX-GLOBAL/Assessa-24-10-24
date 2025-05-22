@@ -15,8 +15,8 @@ const protect = asyncHandler(async (req, res, next) => {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
       // Try finding user in both Userwebapp and Teacher
-      const user = await Userwebapp.findById(decoded.id).select("-password");
-      const teacher = await Teacher.findById(decoded.id).select("-password");
+      const user = await Userwebapp.findById(decoded._id).select("-password");
+      const teacher = await Teacher.findById(decoded._id).select("-password");
 
       if (user) {
         req.user = user;

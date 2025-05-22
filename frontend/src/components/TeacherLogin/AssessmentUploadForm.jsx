@@ -26,6 +26,16 @@ export default function AssessmentUploadForm({ onClose }) {
       return;
     }
 
+    const teacherInfo = localStorage.getItem('teacherInfo')
+      ? JSON.parse(localStorage.getItem('teacherInfo'))
+      : null;
+
+    const token = teacherInfo?.token;
+    if (!token) {
+      alert('You are not authenticated. Please login again.');
+      return;
+    }
+
     const formData = new FormData();
     formData.append('file', file);
     formData.append('assessmentName', assessmentName);
@@ -34,12 +44,6 @@ export default function AssessmentUploadForm({ onClose }) {
 
     try {
       setLoading(true);
-      const teacherInfo = localStorage.getItem('teacherInfo')
-  ? JSON.parse(localStorage.getItem('teacherInfo'))
-  : null;
-
-const token = teacherInfo?.token;
-
       const response = await axios.post(
         `${process.env.REACT_APP_API_URL}/api/assessments/upload`,
         formData,
@@ -53,10 +57,14 @@ const token = teacherInfo?.token;
 
       alert('Assessment uploaded successfully!');
       console.log('Upload response:', response.data);
-      onClose(); // Close modal
+      onClose();
     } catch (error) {
       console.error('Upload failed:', error);
-      alert('Upload failed. Please try again.');
+
+      // Show server error message if available
+      const message =
+        error.response?.data?.message || 'Upload failed. Please try again.';
+      alert(message);
     } finally {
       setLoading(false);
     }
@@ -116,17 +124,15 @@ const token = teacherInfo?.token;
               <div className="space-y-1 text-center">
                 <label className="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500 focus-within:outline-none">
                   <span>Click to upload</span>
-                  <input 
-                    type="file" 
+                  <input
+                    type="file"
                     className="sr-only"
                     onChange={handleFileChange}
                     accept=".pdf,.doc,.docx"
                     required
                   />
                 </label>
-                <p className="text-xs text-gray-500 mt-2">
-                  PDF, DOC, DOCX up to 10MB
-                </p>
+                <p className="text-xs text-gray-500 mt-2">PDF, DOC, DOCX up to 10MB</p>
               </div>
             </div>
             {fileName && (
@@ -159,7 +165,7 @@ const token = teacherInfo?.token;
               disabled={loading}
               className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700"
             >
-              {loading ? "Uploading..." : "Upload Assessment"}
+              {loading ? 'Uploading...' : 'Upload Assessment'}
             </button>
           </div>
         </form>
