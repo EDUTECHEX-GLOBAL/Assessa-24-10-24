@@ -1,14 +1,12 @@
 import React, { useState, useRef, useEffect } from "react";
 // import axios from "axios";
+import aiAgentAPI from "../../api/aiAgentAPI";
 import { FaPaperPlane, FaSpinner, FaRobot, FaUser, FaRedo, FaClock, FaBars, FaTimes, FaChevronLeft, FaChevronRight } from "react-icons/fa";
 import ReactMarkdown from "react-markdown";
 import { format } from "date-fns";
-import aiAgentAPI from "../../api/aiAgentAPI";
+import MCQAssessment from "./MCQAssessment";
 
-
-
-
-
+// axios.defaults.baseURL = "http://localhost:5000/api/ai-agent";
 
 const ProblemsolvingAgent = () => {
   const [mode, setMode] = useState("chat");
@@ -28,6 +26,10 @@ const ProblemsolvingAgent = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [parsedQuestions, setParsedQuestions] = useState([]);
+  const [selectedAnswers, setSelectedAnswers] = useState({});
+  const [submitted, setSubmitted] = useState(false);
+  const [score, setScore] = useState(0);
   const chatEndRef = useRef(null);
   const contentRef = useRef(null);
 
@@ -76,6 +78,10 @@ const ProblemsolvingAgent = () => {
     setLoading(true);
     setError("");
     setGeneratedQuestions(null);
+    setParsedQuestions([]);
+    setSelectedAnswers({});
+    setSubmitted(false);
+    setScore(0);
 
     try {
       const res = await aiAgentAPI.post("/generate-assessment", {
@@ -86,6 +92,13 @@ const ProblemsolvingAgent = () => {
         topic
       });
       setGeneratedQuestions(res.data.questions);
+      
+      try {
+        const parsed = JSON.parse(res.data.questions);
+        setParsedQuestions(parsed);
+      } catch (err) {
+        console.error("Failed to parse questions:", err);
+      }
     } catch (err) {
       console.error(err);
       setError("Failed to generate assessment. Please try again.");
@@ -115,6 +128,25 @@ const ProblemsolvingAgent = () => {
     }
   };
 
+  const handleAnswerSelect = (questionIndex, optionIndex) => {
+    setSelectedAnswers(prev => ({
+      ...prev,
+      [questionIndex]: optionIndex
+    }));
+  };
+
+  const handleSubmitAssessment = () => {
+    let correct = 0;
+    parsedQuestions.forEach((question, index) => {
+      if (selectedAnswers[index] !== undefined && 
+          question.answer === selectedAnswers[index].toString()) {
+        correct++;
+      }
+    });
+    setScore(correct);
+    setSubmitted(true);
+  };
+
   const loadChat = (chat) => {
     setMessages(chat.messages);
     setMode("chat");
@@ -128,12 +160,6 @@ const ProblemsolvingAgent = () => {
           <h2 className="text-lg font-bold flex items-center text-indigo-600">
             <FaClock className="mr-2"/> Recent Chats
           </h2>
-          {/* <button 
-            onClick={() => setSidebarOpen(false)} 
-            className="p-1 rounded-full hover:bg-gray-100/50 transition-colors"
-          >
-            <FaChevronLeft className="text-gray-500 hover:text-gray-700"/>
-          </button> */}
         </div>
         <div className="p-4 space-y-4 overflow-y-auto h-[calc(100vh-60px)]">
           {recentChats.length === 0 ? (
@@ -182,11 +208,6 @@ const ProblemsolvingAgent = () => {
                 className={`px-4 py-1.5 rounded-full transition-all ${mode === 'generate' ? 'bg-indigo-500 text-white shadow-md' : 'bg-white/80 hover:bg-gray-100/50 border border-gray-200/50'}`}>
                 Generate MCQs
               </button>
-              {/* <button
-                onClick={() => setMode("evaluate")}
-                className={`px-4 py-1.5 rounded-full transition-all ${mode === 'evaluate' ? 'bg-indigo-500 text-white shadow-md' : 'bg-white/80 hover:bg-gray-100/50 border border-gray-200/50'}`}>
-                Evaluate Answer
-              </button> */}
             </div>
           </div>
           <button
@@ -206,7 +227,6 @@ const ProblemsolvingAgent = () => {
                   <div className="text-center max-w-md p-6 bg-white/70 backdrop-blur-sm rounded-xl shadow-sm border border-gray-200/50">
                     <FaRobot className="mx-auto text-4xl text-indigo-500 mb-4"/>
                     <h2 className="text-xl font-semibold text-gray-700 mb-2">How can I help you today?</h2>
-                    {/* <p className="text-gray-500">Ask me anything about chemistry, math, or other subjects.</p> */}
                   </div>
                 </div>
               ) : (
@@ -339,13 +359,17 @@ const ProblemsolvingAgent = () => {
               </button>
 
               {generatedQuestions && (
-                <div className="mt-8 bg-white/90 p-6 rounded-xl shadow-sm border border-gray-200/50">
-                  <h3 className="text-lg font-semibold text-gray-700 mb-4">Generated Questions</h3>
-                  <div className="prose prose-sm max-w-none">
-                    <ReactMarkdown>{generatedQuestions}</ReactMarkdown>
-                  </div>
-                </div>
-              )}
+ <MCQAssessment
+  loading={loading}
+  generatedQuestions={generatedQuestions}
+  parsedQuestions={parsedQuestions}
+  selectedAnswers={selectedAnswers}
+  submitted={submitted}
+  score={score}
+  onAnswerSelect={handleAnswerSelect}
+  onSubmitAssessment={handleSubmitAssessment}
+/>
+)}
             </form>
           </main>
         )}

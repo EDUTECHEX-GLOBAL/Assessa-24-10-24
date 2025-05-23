@@ -45,6 +45,10 @@ class EvaluationRequest(BaseModel):
     selected_option: str
     correct_option: str
 
+class ScoreRequest(BaseModel):
+    answers: dict
+    correctAnswers: dict
+
 # === Call Mistral Model ===
 def call_mistral(messages: List[dict]):
     try:
@@ -85,48 +89,26 @@ def call_mistral(messages: List[dict]):
         print(f"Error while calling Mistral model: {e}")
         return "Error occurred during model call."
 
-# === Call LLaMA 3.3 Model for Assessment Generation ===
-def call_llama(prompt: str):
+# === Call Claude Model ===
+def call_claude(prompt: str):
     try:
         body = {
-            "prompt": prompt,
-            "max_gen_len": 4096,
-            "temperature": 0.5,
-            "top_p": 0.9
+            "anthropic_version": "bedrock-2023-05-31",
+            "max_tokens": 4096,
+            "messages": [
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "text",
+                            "text": prompt
+                        }
+                    ]
+                }
+            ]
         }
 
-        model_id = "meta.llama3-70b-instruct-v1:0"
-
-        response = bedrock.invoke_model(
-            modelId=model_id,
-            body=json.dumps(body),  # must be a valid JSON string
-            contentType="application/json",  # must be exactly this
-            accept="application/json"        # must be exactly this
-        )
-
-        raw_body = response["body"].read().decode("utf-8")
-        response_body = json.loads(raw_body)
-
-        # LLaMA 3 returns the text under 'generation'
-        if "generation" in response_body:
-            return response_body["generation"].strip()
-        else:
-            print("Unexpected LLaMA response format:", response_body)
-            return "No valid generation output from LLaMA."
-
-    except Exception as e:
-        print(f"Error while calling LLaMA model: {e}")
-        return "Error occurred during LLaMA model call."
-
-    try:
-        body = {
-            "prompt": prompt,
-            "max_gen_len": 8192,  # you can increase based on your response length needs
-            "temperature": 0.5,
-            "top_p": 0.9
-        }
-
-        model_id = "meta.llama3-70b-instruct-v1:0"  # ✅ corrected model ID
+        model_id = "anthropic.claude-3-5-sonnet-20240620-v1:0"
 
         response = bedrock.invoke_model(
             modelId=model_id,
@@ -138,20 +120,24 @@ def call_llama(prompt: str):
         raw_body = response["body"].read().decode("utf-8")
         response_body = json.loads(raw_body)
 
-        # Meta LLaMA 3 usually returns a 'generation' field
-        if "generation" in response_body:
-            return response_body["generation"].strip()
+        if "content" in response_body:
+            for c in response_body["content"]:
+                if c.get("type") == "text":
+                    return c.get("text", "").strip()
+            return "No text content found in response."
+        elif "outputs" in response_body:
+            return response_body["outputs"][0].get("text", "").strip()
         elif "completion" in response_body:
             return response_body["completion"].strip()
         elif "output" in response_body:
             return response_body["output"].strip()
         else:
-            print("Unknown response format from LLaMA:", response_body)
-            return "No valid output found in LLaMA response."
+            print("Unknown Claude response structure:", response_body)
+            return "No valid output found from Claude."
 
     except Exception as e:
-        print(f"Error while calling LLaMA model: {e}")
-        return "Error occurred during LLaMA model call."
+        print(f"Error while calling Claude model: {e}")
+        return "Error occurred during Claude model call."
 
 # === Intent Detection ===
 def detect_intent(message: str) -> str:
@@ -184,6 +170,7 @@ async def smart_chat(req: ChatRequest):
     else:  # Default Chat
         all_history = [{"role": "user", "content": [{"type": "text", "text": msg}]} for msg in req.history]
         all_history.append({"role": "user", "content": [{"type": "text", "text": req.message}]})
+
         response = call_mistral(all_history)
         return {"type": "chat", "response": response}
 
@@ -191,17 +178,77 @@ async def smart_chat(req: ChatRequest):
 async def generate_assessment(req: AssessmentRequest):
     prompt = (
         f"Create {req.num_questions} multiple-choice questions for a {req.curriculum} Grade {req.grade} student "
-        f"in {req.subject} on the topic '{req.topic}'. Each question should have 4 options and indicate the correct one clearly."
+        f"in {req.subject} on the topic '{req.topic}'. Each question must follow these rules:\n\n"
+        f"1. Return only valid JSON format (no additional text before or after)\n"
+        f"2. Each question must have exactly 4 options (A, B, C, D)\n"
+        f"3. The answer must be one of the option letters (A, B, C, or D)\n"
+        f"4. Format each question exactly like this example:\n\n"
+        f"{{\n"
+        f"  \"question\": \"What is the capital of France?\",\n"
+        f"  \"options\": [\"London\", \"Berlin\", \"Paris\", \"Madrid\"],\n"
+        f"  \"answer\": \"C\"\n"
+        f"}}\n\n"
+        f"Return the complete JSON array of questions without any additional commentary or formatting.\n"
+        f"Here's the required output format:\n"
+        f"[{{\"question\": \"...\", \"options\": [\"A\", \"B\", \"C\", \"D\"], \"answer\": \"A\"}}, ...]"
     )
-    questions = call_llama(prompt)
-    return {"questions": questions}
 
-# @app.post("/evaluate-answer")
-# async def evaluate_answer(req: EvaluationRequest):
-#     if req.selected_option.strip().lower() == req.correct_option.strip().lower():
-#         return {"result": "Correct!", "correct": True}
-#     else:
-#         return {
-#             "result": f"Incorrect. The correct answer was: {req.correct_option}",
-#             "correct": False
-#         }
+    try:
+        response = call_claude(prompt)
+        
+        # Try to parse the response to validate it's proper JSON
+        parsed = json.loads(response)
+        
+        # If parsing succeeds, return the cleaned response
+        return {"questions": json.dumps(parsed)}
+    except json.JSONDecodeError as e:
+        print(f"Failed to parse generated questions: {e}")
+        # If parsing fails, try to extract JSON from the response
+        try:
+            # Try to find JSON in the response
+            json_start = response.find('[')
+            json_end = response.rfind(']') + 1
+            if json_start != -1 and json_end != -1:
+                json_str = response[json_start:json_end]
+                parsed = json.loads(json_str)
+                return {"questions": json.dumps(parsed)}
+        except Exception as e:
+            print(f"Failed to extract JSON from response: {e}")
+        
+        # If all else fails, return an error structure
+        return {
+            "error": "Failed to generate valid JSON format questions",
+            "raw_response": response,
+            "questions": json.dumps([{
+                "question": "Error: Could not generate questions in required format",
+                "options": ["Check the topic and try again", "Contact support", "Try a different topic", "Verify your input"],
+                "answer": "A"
+            }])
+        }
+
+@app.post("/evaluate-score")
+async def evaluate_score(req: ScoreRequest):
+    answers = req.answers
+    correct_answers = req.correctAnswers
+
+    if not answers or not correct_answers:
+        return {"success": False, "error": "Answers and correct answers are required!"}
+
+    score = 0
+    for key in correct_answers:
+        try:
+            user_answer = int(answers.get(key, -1))
+            correct_answer = int(correct_answers[key])
+            if user_answer == correct_answer:
+                score += 1
+        except (ValueError, TypeError):
+            continue
+
+    total_questions = len(correct_answers)
+
+    return {
+        "success": True,
+        "score": score,
+        "totalQuestions": total_questions,
+        "message": f"You scored {score} out of {total_questions}."
+    }

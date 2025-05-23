@@ -4,7 +4,6 @@ require("dotenv").config();
 
 const FASTAPI_URL = process.env.FASTAPI_URL || "http://127.0.0.1:8000";
 
-// (Optional) same classification logic if you still want to cache certain prompts
 const classifyPrompt = (prompt) => {
   const keywords = {
     "pre-built": ["basic", "fundamental", "standard"],
@@ -18,7 +17,6 @@ const classifyPrompt = (prompt) => {
   return "ai-generated";
 };
 
-// POST /chat
 const chatHandler = async (req, res) => {
   try {
     const { message, history = [] } = req.body;
@@ -33,12 +31,10 @@ const chatHandler = async (req, res) => {
   }
 };
 
-// POST /generate-assessment
 const generateHandler = async (req, res) => {
   try {
     const { num_questions, curriculum, grade, subject, topic } = req.body;
     const mode = classifyPrompt(topic);
-    // check cache only for non–AI-generated
     if (mode !== "ai-generated") {
       const existing = await ProblemsolvingAgent.findOne({ prompt: topic, mode });
       if (existing) {
@@ -52,7 +48,6 @@ const generateHandler = async (req, res) => {
     );
     const questions = resp.data.questions;
 
-    // cache AI‐generated
     if (mode === "ai-generated") {
       await new ProblemsolvingAgent({
         prompt: topic,
@@ -68,22 +63,21 @@ const generateHandler = async (req, res) => {
   }
 };
 
-// POST /evaluate-answer
+// ✅ UPDATED: POST /evaluate-score
 const evaluateHandler = async (req, res) => {
   try {
-    const { question, selected_option, correct_option } = req.body;
+    const { answers, correctAnswers } = req.body;
     const resp = await axios.post(
-      `${FASTAPI_URL}/evaluate-answer`,
-      { question, selected_option, correct_option }
+      `${FASTAPI_URL}/evaluate-score`,
+      { answers, correctAnswers }
     );
     return res.status(200).json(resp.data);
   } catch (err) {
-    console.error("Evaluate error:", err.message);
-    return res.status(500).json({ error: "Failed to evaluate answer." });
+    console.error("Evaluate score error:", err.message);
+    return res.status(500).json({ error: "Failed to evaluate score." });
   }
 };
 
-// GET /assessments
 const getAllAssessments = async (req, res) => {
   try {
     const assessments = await ProblemsolvingAgent.find();
@@ -97,6 +91,6 @@ const getAllAssessments = async (req, res) => {
 module.exports = {
   chatHandler,
   generateHandler,
-  evaluateHandler,
+  evaluateHandler, // now mapped to /evaluate-score logic
   getAllAssessments,
 };

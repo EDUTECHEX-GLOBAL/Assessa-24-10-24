@@ -9,12 +9,12 @@ const {
 
 // Chat proxy
 router.post("/chat", chatHandler);
-
+``
 // Generate MCQs proxy
 router.post("/generate-assessment", generateHandler);
 
 // Evaluate Answer proxy
-router.post("/evaluate-answer", evaluateHandler);
+router.post("/evaluate-score", evaluateHandler);
 
 // Get all cached assessments
 router.get("/assessments", getAllAssessments);
