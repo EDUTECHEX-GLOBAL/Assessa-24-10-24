@@ -1,11 +1,10 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import "@fontsource/inter/400.css";
 import "@fontsource/inter/600.css";
 import "@fontsource/inter/700.css";
 import Home from "./pages/Home";
 import axios from "axios";
-import { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { HideLoading, SetassessaData } from "./redux/rootSlice";
 import Admin from "./pages/Admin";
@@ -39,10 +38,12 @@ import StudentDashboard from "./components/StudentLogin/StudentDashboard";
 import TeacherDashboard from "./components/TeacherLogin/TeacherDashboard";
 import AdminDashboard from "./components/AdminPanelLogin/AdminDashboard";
 import ProblemsolvingAgent from "./components/StudentLogin/ProblemsolvingAgent.jsx";
-import ApprovalRequests from "./components/AdminPanelLogin/ApprovalRequests.jsx";
 import AssessmentLibrary from "./components/TeacherLogin/AssessmentLibrary.jsx";
 import AssessmentsPage from "./components/StudentLogin/AssessmentsPage.jsx";
 
+// Import these for dashboard nested routes
+import DashboardHome from "./components/AdminPanelLogin/DashboardHome";
+import ApprovalRequests from "./components/AdminPanelLogin/ApprovalRequests";
 
 function App() {
   const { assessaData, reloadData } = useSelector((state) => state.root);
@@ -67,15 +68,14 @@ function App() {
 
   return (
     <BrowserRouter>
-    <Customcursor />  {/* Add this inside BrowserRouter to make it global */}
+      <Customcursor />
       <Routes>
-        {/* Skillnaav Website Routes */}
+        {/* Website Routes */}
         <Route path="/" element={<Home />} />
         <Route path="/admin" element={<Admin />} />
         <Route path="/admin-login" element={<Login />} />
         <Route path="*" element={<Navigate to="/" replace />} />
 
-        {/* Skillnaav Web App Routes */}
         {/* User Flow */}
         <Route path="/user" element={<UserFlow />} />
         <Route path="/user-create-account" element={<UserCreateAccount />} />
@@ -86,16 +86,10 @@ function App() {
 
         {/* Partner Flow */}
         <Route path="/partner" element={<PartnerFlow />} />
-        <Route
-          path="/partner-create-account"
-          element={<PartnerCreateAccount />}
-        />
+        <Route path="/partner-create-account" element={<PartnerCreateAccount />} />
         <Route path="/partner/login" element={<PartnerLogin />} />
         <Route path="/partner-profile-form" element={<PartnerProfileForm />} />
-        <Route
-          path="/partner-profile-picture"
-          element={<PartnerProfilePicture />}
-        />
+        <Route path="/partner-profile-picture" element={<PartnerProfilePicture />} />
         <Route path="/partner-main-page" element={<PartnerMainPage />} />
 
         {/* Admin Flow */}
@@ -103,10 +97,7 @@ function App() {
         <Route path="/admin-create-account" element={<AdminCreateAccount />} />
         <Route path="/admin/login" element={<AdminLogin />} />
         <Route path="/admin-profile-form" element={<AdminProfileForm />} />
-        <Route
-          path="/admin-profile-picture"
-          element={<AdminProfilePicture />}
-        />
+        <Route path="/admin-profile-picture" element={<AdminProfilePicture />} />
         <Route path="/admin-main-page" element={<AdminMainPage />} />
 
         {/* Try for free */}
@@ -114,17 +105,22 @@ function App() {
 
         <Route path="/study-assistant" element={<StudyAssistant />} />
         <Route path="/study-recommendation" element={<StudyRecommendation />} />
-        <Route path="/student-login" element={<StudentLogin />}  />
+        <Route path="/student-login" element={<StudentLogin />} />
         <Route path="/problemsolving-agent" element={<ProblemsolvingAgent />} />
         <Route path="/assessment-library" element={<AssessmentLibrary />} />
         <Route path="/student-dashboard" element={<StudentDashboard />} />
         <Route path="/teacher-dashboard" element={<TeacherDashboard />} />
-        <Route path="/admin-dashboard" element={<AdminDashboard />} />
-        <Route path="/approvals" element={<ApprovalRequests />} />
-        <Route path="/assessments-page" element={<AssessmentsPage />} />
 
-        <Route path="/teacher-login" element={< TeacherLogin />} />
-        <Route path="/adminpanel-login" element={< AdminPanelLogin />} />
+        {/* NESTED ADMIN DASHBOARD ROUTES */}
+        <Route path="/admin-dashboard/*" element={<AdminDashboard />}>
+          <Route index element={<DashboardHome />} />
+          <Route path="approvals" element={<ApprovalRequests />} />
+          {/* Add more child routes here as needed */}
+        </Route>
+
+        <Route path="/teacher-login" element={<TeacherLogin />} />
+        <Route path="/adminpanel-login" element={<AdminPanelLogin />} />
+        <Route path="/assessments-page" element={<AssessmentsPage />} />
       </Routes>
     </BrowserRouter>
   );

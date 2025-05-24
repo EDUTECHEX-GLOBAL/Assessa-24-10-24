@@ -13,7 +13,7 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen }) {
         <img src={assessalogo} alt="Logo" className="w-32" />
       </div>
       <nav className="space-y-2">
-        <NavItem icon={FaHome} label="Dashboard" path="/" />
+        <NavItem icon={FaHome} label="Home" path="/admin-dashboard" />
         <NavItem icon={MdAdminPanelSettings} label="Teachers" path="/teachers" />
         <NavItem icon={FaUsers} label="Students" path="/students" />
         <NavItem icon={MdAssignment} label="Assessments" path="/assessments" />

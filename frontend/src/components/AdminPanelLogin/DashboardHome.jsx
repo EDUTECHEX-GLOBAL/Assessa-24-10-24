@@ -109,7 +109,7 @@ export default function DashboardHome() {
               <p>Students: {approvalCounts.students || 0}</p>
             </div>
             <Link 
-              to="/approvals" 
+              to="/admin-dashboard/approvals" 
               className="bg-white/20 hover:bg-white/30 px-3 py-3 rounded-full"
             >
               Review

@@ -1,39 +1,19 @@
-import { Routes, Route } from "react-router-dom";
+import { useState, useEffect } from "react";
 import { FaHome, FaSignOutAlt, FaBars, FaSearch, FaFileUpload, FaChartBar, FaUserGraduate, FaClipboardCheck, FaComments, FaFileImport } from 'react-icons/fa';
 import { IoPersonCircleOutline } from 'react-icons/io5';
 import { MdOutlineAutoAwesome, MdOutlineFeedback } from 'react-icons/md';
 import { BiAnalyse, BiBookAdd } from 'react-icons/bi';
 import assessalogo from "./logo.png";
-import { useEffect, useState } from "react";
-import "tailwindcss/tailwind.css";
 import AssessmentUploadForm from './AssessmentUploadForm';
-import { useNavigate } from "react-router-dom";
+import AssessmentLibrary from "./AssessmentLibrary";
+import "tailwindcss/tailwind.css";
 
 export default function TeacherDashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [teacherInfo, setTeacherInfo] = useState(null);
-  const navigate = useNavigate(); // Add this import at the top
-   // Add this logout handler function
-  const handleLogout = async () => {
-    try {
-      // Optional: Call your backend logout endpoint if you have one
-      // await axios.post(`${process.env.REACT_APP_API_URL}/api/teachers/logout`);
-      
-      // Clear local storage
-      localStorage.removeItem("token");
-      localStorage.removeItem("teacherInfo");
-      
-      // Redirect to login page
-      navigate("/teacher-login"); // or window.location.href = "/teacher-login"
-    } catch (error) {
-      console.error("Logout error:", error);
-      // Still clear storage and redirect even if API fails
-      localStorage.removeItem("token");
-      localStorage.removeItem("teacherInfo");
-      navigate("/teacher-login");
-    }
-  };
-  // Load teacher info on component mount
+  const [currentView, setCurrentView] = useState("dashboard"); // 'dashboard', 'library', 'progress', etc.
+  const [showUploadForm, setShowUploadForm] = useState(false);
+
   useEffect(() => {
     const storedInfo = localStorage.getItem("teacherInfo");
     if (storedInfo) {
@@ -41,10 +21,77 @@ export default function TeacherDashboard() {
     }
   }, []);
 
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("teacherInfo");
+    window.location.href = "/teacher-login";
+  };
+
+  const renderContent = () => {
+    switch(currentView) {
+      case "library":
+        return <AssessmentLibrary onBack={() => setCurrentView("dashboard")} />;
+      case "progress":
+        return <StudentProgress />;
+      case "feedback":
+        return <FeedbackHub />;
+      case "dashboard":
+      default:
+        return (
+          <DashboardHome 
+            setCurrentView={setCurrentView}
+            setShowUploadForm={setShowUploadForm}
+          />
+        );
+    }
+  };
+
   return (
     <div className="flex h-screen bg-gradient-to-br from-gray-50 to-gray-100">
       {/* Sidebar */}
-      <Sidebar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} handleLogout={handleLogout} />
+      <aside className={`fixed md:relative z-50 bg-gradient-to-b from-blue-50 to-blue-100 text-gray-800 w-64 p-6 transition-transform ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} md:translate-x-0 shadow-xl`}>
+        <button className="absolute top-4 right-4 md:hidden text-gray-600 hover:text-blue-600 transition" onClick={() => setSidebarOpen(false)}>
+          ✖
+        </button>
+        <div className="flex items-center justify-center mb-8">
+          <img src={assessalogo} alt="Logo" className="w-32" />
+        </div>
+        <nav className="space-y-2">
+          <button 
+            onClick={() => setCurrentView("dashboard")}
+            className={`flex items-center space-x-3 py-3 px-4 rounded-lg w-full text-left ${currentView === "dashboard" ? "bg-blue-200/50 text-blue-800" : "text-gray-700 hover:bg-blue-200/50 hover:text-blue-800"}`}
+          >
+            <FaHome className="text-xl" />
+            <span className="text-lg font-medium">Home</span>
+          </button>
+          {/* Progress Tracking - No onClick */}
+          <div className="flex items-center space-x-3 py-3 px-4 rounded-lg text-gray-700">
+            <FaChartBar className="text-xl" />
+            <span className="text-lg font-medium">Progress Tracking</span>
+          </div>
+          
+          {/* Feedback Hub - No onClick */}
+          <div className="flex items-center space-x-3 py-3 px-4 rounded-lg text-gray-700">
+            <MdOutlineFeedback className="text-xl" />
+            <span className="text-lg font-medium">Feedback Hub</span>
+          </div>
+          
+          {/* AI Analysis - No onClick */}
+          <div className="flex items-center space-x-3 py-3 px-4 rounded-lg text-gray-700">
+            <BiAnalyse className="text-xl" />
+            <span className="text-lg font-medium">AI Analysis</span>
+          </div>
+        </nav>
+        <div className="mt-8 border-t border-blue-200 pt-6">
+          <button
+            onClick={handleLogout}
+            className="flex items-center space-x-3 py-3 px-4 rounded-lg w-full text-left text-red-500 hover:bg-red-100"
+          >
+            <FaSignOutAlt className="text-xl" />
+            <span className="text-lg font-medium">Logout</span>
+          </button>
+        </div>
+      </aside>
       
       {/* Main Content */}
       <main className="flex-1 overflow-y-auto p-4 md:p-8">
@@ -81,116 +128,51 @@ export default function TeacherDashboard() {
           </div>
 
           <div className="flex items-center space-x-4 group cursor-pointer w-full md:w-auto justify-end">
-    <IoPersonCircleOutline className="text-4xl text-blue-600 transition-transform hover:scale-110" />
-    <div className="text-right">
-      <p className="font-bold text-gray-800">
-        {teacherInfo?.name || "Loading..."}
-      </p>
-      <p className="text-sm text-gray-500">
-        {teacherInfo?.role || "Teacher"}
-      </p>
-    </div>
-  </div>
+            <div className="text-right">
+              <p className="font-bold text-gray-800">
+                {teacherInfo?.name || "Loading..."}
+              </p>
+              <p className="text-sm text-gray-500">
+                {teacherInfo?.role || "Teacher"}
+              </p>
+            </div>
+            <IoPersonCircleOutline className="text-4xl text-blue-600 transition-transform hover:scale-110" />
+          </div>
         </div>
-        <div className="mb-8">
-    <h2 className="text-4xl font-bold text-gray-700 mb-2">
-      Welcome,{" "}
-      <span className="relative inline-block">
-        <span className="font-sans bg-gradient-to-r from-blue-500 to-purple-600 bg-clip-text text-transparent">
-          {teacherInfo?.name || "Teacher"}
-        </span>
-        <span className="absolute -bottom-1 left-0 w-full h-1 bg-gradient-to-r from-blue-500 to-purple-600"></span>
-      </span>
-      !
-    </h2>
-    <p className="text-lg text-gray-600">
-      Your AI-Powered Teaching Dashboard
-    </p>
-  </div>
 
-        <Routes>
-          <Route path="/" element={<DashboardHome />} />
-          <Route path="/templates" element={<AssessmentTemplates />} />
-          <Route path="/monitor" element={<StudentAssessments />} />
-          <Route path="/progress" element={<StudentProgress />} />
-          <Route path="/feedback" element={<FeedbackHub />} />
-        </Routes>
+        {/* Dynamic Content Area */}
+        {currentView === "dashboard" && (
+          <div className="mb-8">
+            <h2 className="text-4xl font-bold text-gray-700 mb-2">
+              Welcome,{" "}
+              <span className="relative inline-block">
+                <span className="font-sans bg-gradient-to-r from-blue-500 to-purple-600 bg-clip-text text-transparent">
+                  {teacherInfo?.name || "Teacher"}
+                </span>
+                <span className="absolute -bottom-1 left-0 w-full h-1 bg-gradient-to-r from-blue-500 to-purple-600"></span>
+              </span>
+              !
+            </h2>
+            <p className="text-lg text-gray-600">
+              Your AI-Powered Teaching Dashboard
+            </p>
+          </div>
+        )}
+
+        {showUploadForm && <AssessmentUploadForm onClose={() => setShowUploadForm(false)} />}
+        {renderContent()}
       </main>
     </div>
   );
 }
 
-function Sidebar({ sidebarOpen, setSidebarOpen, handleLogout }) {
-  return (
-    <aside className={`fixed md:relative z-50 bg-gradient-to-b from-blue-50 to-blue-100 text-gray-800 w-64 p-6 transition-transform ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} md:translate-x-0 shadow-xl`}>
-      <button className="absolute top-4 right-4 md:hidden text-gray-600 hover:text-blue-600 transition" onClick={() => setSidebarOpen(false)}>
-        ✖
-      </button>
-      <div className="flex items-center justify-center mb-8">
-        <img src={assessalogo} alt="Logo" className="w-32" />
-      </div>
-      <nav className="space-y-2">
-        <NavItem icon={FaHome} label="Dashboard" path="/" />
-        <NavItem icon={FaChartBar} label="Progress Tracking" path="/progress" />
-        <NavItem icon={MdOutlineFeedback} label="Feedback Hub" path="/feedback" />
-        <NavItem icon={BiAnalyse} label="AI Analysis" path="/analysis" />
-      </nav>
-      <div className="mt-8 border-t border-blue-200 pt-6">
-      <NavItem 
-        icon={FaSignOutAlt} 
-        label="Logout" 
-        isLogout 
-        handleLogout={handleLogout} // Pass the handler here
-        className="hover:bg-blue-200/50 transition-all"
-      />
-      </div>
-    </aside>
-  );
-}
-
-// Update the NavItem component definition to receive handleLogout
-function NavItem({ icon: Icon, label, path, isLogout, className = "", handleLogout }) {
-  const navigate = useNavigate();
-
-  const handleClick = () => {
-    if (isLogout) {
-      // Confirm before logging out
-      if (window.confirm("Are you sure you want to log out?")) {
-        handleLogout();
-      }
-    } else {
-      navigate(path);
-    }
-  };
-
-  return (
-    <div 
-      onClick={handleClick}
-      className={`flex items-center space-x-3 py-3 px-4 rounded-lg 
-        ${isLogout ? 
-          "text-red-500 hover:bg-red-100" : 
-          "text-gray-700 hover:bg-blue-200/50 hover:text-blue-800"
-        } 
-        transition-all group ${className} cursor-pointer`
-      }
-    >
-      <Icon className="text-xl" />
-      <span className="text-lg font-medium">{label}</span>
-    </div>
-  );
-}
-
-function DashboardHome() {
-  const [showUploadForm, setShowUploadForm] = useState(false);
-  const navigate = useNavigate(); // Add this here
-
+function DashboardHome({ setCurrentView, setShowUploadForm }) {
   return (
     <>
-    {showUploadForm && <AssessmentUploadForm onClose={() => setShowUploadForm(false)} />}
       <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Assessment Templates Card */}
+        {/* Assessment Library Card */}
         <div
-          onClick={() => navigate("/assessment-library")}
+          onClick={() => setCurrentView("library")}
           className="cursor-pointer hover:shadow-lg transition-all bg-gradient-to-br from-indigo-300 to-cyan-400 text-white shadow-md p-6 h-44 rounded-lg flex items-center justify-between"
         >
           <div>
@@ -201,7 +183,7 @@ function DashboardHome() {
           <BiBookAdd className="text-4xl opacity-80" />
         </div>
 
-        {/* upload Assessments Card */}
+        {/* Upload Assessments Card */}
         <div 
           className="bg-gradient-to-br from-red-300 to-pink-400 text-white shadow-md p-6 h-44 rounded-lg flex items-center justify-between cursor-pointer hover:shadow-lg transition-all"
           onClick={() => setShowUploadForm(true)}
@@ -273,51 +255,15 @@ function DashboardHome() {
               </div>
             </div>
           </div>
-
-          <div className="flex items-start space-x-4 p-4 hover:bg-gray-50 rounded-lg transition-all">
-            <div className="min-w-fit pt-1">
-              <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
-                <MdOutlineAutoAwesome className="text-purple-600 text-lg" />
-              </div>
-            </div>
-            <div className="w-full">
-              <div className="flex justify-between items-start">
-                <p className="font-medium text-gray-800">AI Analysis Complete</p>
-                <span className="text-sm text-gray-500">1d ago</span>
-              </div>
-              <p className="text-gray-600 mt-1">Class 10B - Common Knowledge Gaps Identified</p>
-            </div>
-          </div>
         </div>
       </section>
-
-      {/* Quick Actions */}
-      {/* <section className="mt-8 bg-white p-6 rounded-xl shadow-sm">
-        <h3 className="text-2xl font-semibold text-gray-800 mb-6">Quick Actions</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-          <button className="flex flex-col items-center justify-center p-4 border border-blue-200 rounded-lg hover:bg-blue-50 transition-all">
-            <FaFileUpload className="text-blue-600 text-2xl mb-2" />
-            <span className="font-medium">Upload Template</span>
-          </button>
-          <button className="flex flex-col items-center justify-center p-4 border border-green-200 rounded-lg hover:bg-green-50 transition-all">
-            <FaClipboardCheck className="text-green-600 text-2xl mb-2" />
-            <span className="font-medium">Review Assessments</span>
-          </button>
-          <button className="flex flex-col items-center justify-center p-4 border border-purple-200 rounded-lg hover:bg-purple-50 transition-all">
-            <MdOutlineFeedback className="text-purple-600 text-2xl mb-2" />
-            <span className="font-medium">Give Feedback</span>
-          </button>
-          <button className="flex flex-col items-center justify-center p-4 border border-orange-200 rounded-lg hover:bg-orange-50 transition-all">
-            <BiAnalyse className="text-orange-600 text-2xl mb-2" />
-            <span className="font-medium">Run Analysis</span>
-          </button>
-        </div>
-      </section> */}
     </>
   );
 }
 
-// Page Components
+// Keep your other components (StudentProgress, FeedbackHub) the same as before
+
+// Page Components (keep your existing ones)
 function AssessmentTemplates() {
   return (
     <div className="bg-white p-6 rounded-xl shadow-sm">
@@ -327,7 +273,6 @@ function AssessmentTemplates() {
           <FaFileUpload /> Upload New Template
         </button>
       </div>
-      {/* Template management components */}
     </div>
   );
 }
@@ -336,7 +281,6 @@ function StudentAssessments() {
   return (
     <div className="bg-white p-6 rounded-xl shadow-sm">
       <h2 className="text-2xl font-semibold text-gray-800 mb-4">Student-Generated Assessments</h2>
-      {/* Assessment monitoring components */}
     </div>
   );
 }
@@ -345,7 +289,6 @@ function StudentProgress() {
   return (
     <div className="bg-white p-6 rounded-xl shadow-sm">
       <h2 className="text-2xl font-semibold text-gray-800 mb-4">Student Progress Tracking</h2>
-      {/* Progress tracking components */}
     </div>
   );
 }
@@ -354,7 +297,6 @@ function FeedbackHub() {
   return (
     <div className="bg-white p-6 rounded-xl shadow-sm">
       <h2 className="text-2xl font-semibold text-gray-800 mb-4">Assessment Feedback Hub</h2>
-      {/* Feedback management components */}
     </div>
   );
 }

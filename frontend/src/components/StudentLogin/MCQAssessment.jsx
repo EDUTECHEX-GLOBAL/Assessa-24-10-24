@@ -23,6 +23,7 @@ const MCQAssessment = ({
     if (submitted) {
       setShowResults(true);
     }
+
   }, [submitted]);
 
   // Prepare answers and correctAnswers objects for API
@@ -155,12 +156,12 @@ const prepareAnswersPayload = () => {
   })}
 </div>
 
-    …
 
-              <div className="mt-3 p-3 bg-gray-50 rounded text-sm">
+
+              {/* <div className="mt-3 p-3 bg-gray-50 rounded text-sm">
                 <p className="font-medium">Explanation:</p>
                 <p>{question.explanation || "No explanation provided."}</p>
-              </div>
+              </div> */}
             </div>
           ))}
         </div>

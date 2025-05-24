@@ -2,8 +2,9 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify"; // Make sure to install this package
+import { BiArrowBack } from "react-icons/bi"; // Import back arrow icon
 
-const AssessmentLibrary = () => {
+const AssessmentLibrary = ({ onBack }) => {
   const [assessments, setAssessments] = useState([]);
   const [filteredAssessments, setFilteredAssessments] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -106,6 +107,15 @@ const AssessmentLibrary = () => {
 
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
+      <div className="flex items-center justify-between mb-6">
+        <button
+          onClick={onBack}
+          className="flex items-center gap-2 text-amber-600 hover:text-amber-500 font-medium"
+        >
+          <BiArrowBack className="text-xl" />
+          Back to Dashboard
+        </button>
+      </div>
       {/* Header Section */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
         <div>
@@ -114,7 +124,7 @@ const AssessmentLibrary = () => {
         </div>
         
         <div className="w-full md:w-auto">
-          <div className="relative">
+          {/* <div className="relative">
             <input
               type="text"
               placeholder="Search assessments..."
@@ -135,7 +145,7 @@ const AssessmentLibrary = () => {
                 d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
               />
             </svg>
-          </div>
+          </div> */}
         </div>
       </div>
 

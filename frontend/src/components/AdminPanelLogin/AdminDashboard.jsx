@@ -1,8 +1,7 @@
-import { Routes, Route } from "react-router-dom";
+import { Outlet } from "react-router-dom";
 import { useState } from "react";
 import "tailwindcss/tailwind.css";
 import Sidebar from "./Sidebar";
-import DashboardHome from "./DashboardHome";
 import AdminHeader from "./AdminHeader";
 
 export default function AdminDashboard() {
@@ -17,15 +16,9 @@ export default function AdminDashboard() {
       <main className="flex-1 overflow-y-auto p-4 md:p-8">
         {/* Responsive Header */}
         <AdminHeader sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
-        
-        <Routes>
-          <Route path="/" element={<DashboardHome />} />
-          {/* 
-          <Route path="/teachers" element={<Teachers />} />
-          <Route path="/students" element={<Students />} />
-          <Route path="/assessments" element={<Assessments />} />
-          */}
-        </Routes>
+
+        {/* Nested Route Content */}
+        <Outlet />
       </main>
     </div>
   );
