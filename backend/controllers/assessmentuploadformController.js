@@ -29,7 +29,10 @@ const uploadAssessment = asyncHandler(async (req, res) => {
   const { key } = await uploadToS3(file);
 
   // Parse PDF to extract questions
-  const questions = await parsePDFToQuestions(file.buffer);
+ const questions = await parsePDFToQuestions(
+    file.buffer,
+    file.originalname 
+    );
 console.log("Parsed Questions:", questions);
 
 if (!questions || questions.length === 0) {
