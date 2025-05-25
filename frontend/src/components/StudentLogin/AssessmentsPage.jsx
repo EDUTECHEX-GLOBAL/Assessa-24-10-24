@@ -24,7 +24,7 @@ export default function AssessmentsPage({ onBackHome }) {
           return;
         }
 
-        const res = await fetch("http://localhost:5000/api/assessments/all", {
+        const res = await fetch("/api/assessments/all", {
           headers: { Authorization: `Bearer ${token}` },
         });
 
@@ -46,7 +46,7 @@ export default function AssessmentsPage({ onBackHome }) {
     try {
       const token = JSON.parse(localStorage.getItem("userInfo"))?.token;
       const res = await fetch(
-        `http://localhost:5000/api/assessments/${assessmentId}/attempt`,
+        `/api/assessments/${assessmentId}/attempt`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -110,7 +110,7 @@ export default function AssessmentsPage({ onBackHome }) {
       };
 
       const res = await fetch(
-        `http://localhost:5000/api/assessments/${currentAssessment._id}/submit`,
+        `/api/assessments/${currentAssessment._id}/submit`,
         {
           method: "POST",
           headers: {

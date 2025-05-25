@@ -24,7 +24,7 @@ const SignupForm = ({ onSwitch }) => {
   const handleSubmit = async (values, { setSubmitting }) => {
     try {
       const { confirmPassword, ...formData } = values; // remove confirmPassword
-      const { data } = await axios.post("http://localhost:5000/api/users/register", formData);
+      const { data } = await axios.post("/api/users/register", formData);
       console.log("Signup Successful:", data);
       alert("Signup successful! Please wait for admin approval.");
       onSwitch(); // Switch to login
