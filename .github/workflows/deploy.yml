@@ -3,27 +3,27 @@ name: Deploy to Server
 on:
   push:
     branches:
-      - review-14-4-25  # Adjust the branch as necessary
+      - CI_CD_PROD27MAY  # Trigger only on this branch
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
 
     steps:
-      # Checkout the code from the GitHub repository
+      # Step 1: Checkout repository code
       - name: Checkout code
         uses: actions/checkout@v2
 
-      # Set up SSH for connecting to the EC2 instance
+      # Step 2: Setup SSH key
       - name: Setup SSH
         uses: webfactory/ssh-agent@v0.5.3
         with:
-          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}  # Ensure this matches the secret 
+          ssh-private-key: ${{ secrets.EC2_SSH_KEY }}
 
-      # Run the deployment script on the EC2 instance
-      - name: Run deployment script
+      # Step 3: SSH into EC2 and run deployment
+      - name: Run deploy.sh on EC2
         run: |
           ssh -o StrictHostKeyChecking=no ubuntu@www.assessaai.com << 'EOF'
-            cd /home/ubuntu/Assessa-24-10-24  # Navigate to the correct directory where deploy.sh is located 
-            ./deploy.sh review-14-4-25 # Execute the deploy script with the branch name as the argument
+          echo "✅ SSH successful, running deployment..."
+          sudo bash /home/ubuntu/deploy.sh CI_CD_PROD27MAY
           EOF
