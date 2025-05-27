@@ -35,7 +35,7 @@ class ChatRequest(BaseModel):
 
 class AssessmentRequest(BaseModel):
     topic: str
-    grade: str
+    grade: int
     subject: str
     curriculum: str
     num_questions: int = 5

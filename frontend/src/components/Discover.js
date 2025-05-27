@@ -53,7 +53,7 @@ const Discover = () => {
           <div className="absolute top-0 left-0 w-full h-full flex flex-col items-center justify-center">
             <img src={HeroImage} alt="Hero" className="hero-image max-h-[300px] sm:max-h-[350px] lg:max-h-[400px] xl:max-h-[600px] object-contain mt-0 ml-[20px]" />
             <motion.button className="hero-button" initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ duration: 0.8, delay: 0.2 }}>
-              Generate LM Powered assignment
+              Generate LM Powered Assignment
             </motion.button>
           </div>
         </div>

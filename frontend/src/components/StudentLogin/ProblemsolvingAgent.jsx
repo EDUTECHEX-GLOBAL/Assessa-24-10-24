@@ -304,10 +304,10 @@ const ProblemsolvingAgent = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Number of Questions</label>
-                  <input 
-                    type="number" 
-                    value={numQuestions} 
-                    onChange={e=>setNumQuestions(e.target.value)} 
+                  <input
+                    type="number"
+                    value={numQuestions}
+                    onChange={(e) => setNumQuestions(Number(e.target.value))} 
                     className="w-full p-3 border border-gray-200/50 rounded-lg focus:ring-2 focus:ring-indigo-300 focus:border-transparent bg-white/70"
                     min="1"
                   />
@@ -323,10 +323,10 @@ const ProblemsolvingAgent = () => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Grade Level</label>
-                  <input 
-                    type="number" 
-                    value={grade} 
-                    onChange={e=>setGrade(e.target.value)} 
+                  <input
+                    type="number"
+                    value={grade}
+                    onChange={(e) => setGrade(Number(e.target.value))} 
                     className="w-full p-3 border border-gray-200/50 rounded-lg focus:ring-2 focus:ring-indigo-300 focus:border-transparent bg-white/70"
                     min="1"
                   />
