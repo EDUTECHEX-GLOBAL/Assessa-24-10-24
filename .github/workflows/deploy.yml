@@ -3,7 +3,7 @@ name: Deploy to Server
 on:
   push:
     branches:
-      - CI_CD_PROD27MAY  # Trigger only on this branch
+      - 5-05-25  # Trigger only on this branch
 
 jobs:
   deploy:
@@ -25,5 +25,5 @@ jobs:
         run: |
           ssh -o StrictHostKeyChecking=no ubuntu@www.assessaai.com << 'EOF'
           echo "✅ SSH successful, running deployment..."
-          sudo bash /home/ubuntu/deploy.sh CI_CD_PROD27MAY
+          sudo bash /home/ubuntu/deploy.sh 5-05-25
           EOF
