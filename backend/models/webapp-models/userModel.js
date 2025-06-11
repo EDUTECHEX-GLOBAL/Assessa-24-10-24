@@ -45,6 +45,26 @@ const userwebappSchema = new mongoose.Schema(
       required: true,
       default: "https://example.com/default-pic.png",
     },
+    class: {
+      type: String,
+      default: "",
+    },
+    mobile: {
+      type: String,
+      default: "",
+    },
+    bio: {
+      type: String,
+      default: "",
+    },
+    city: {
+      type: String,
+      default: "",
+    },
+    country: {
+      type: String,
+      default: "",
+    },
     resetPasswordToken: {
       type: String,
     },

@@ -13,8 +13,11 @@ import { toast } from 'react-toastify';
 import { useLocation } from "react-router-dom";
 
 
+
 // ✅ Importing the AssessmentsPage component
 import AssessmentsPage from './AssessmentsPage'; // Make sure this path is correct
+import UserProfile from './UserProfile'; // Ensure the path is correct
+
 
 
 const data = [
@@ -104,6 +107,19 @@ export default function Dashboard() {
             <FaTasks className="text-xl" />
             <span className="text-lg font-medium">Study Plan</span>
           </div>
+          <div
+  onClick={() => setSelectedSection("profile")}
+  className={`flex items-center space-x-2 py-3 px-4 rounded-lg transition cursor-pointer
+    ${
+      selectedSection === "profile"
+        ? "bg-teal-100 text-teal-700 font-semibold"
+        : "text-gray-700 hover:bg-teal-100 hover:text-teal-600"
+    }`}
+>
+  <IoPersonCircleOutline className="text-xl" />
+  <span className="text-lg font-medium">My Profile</span>
+</div>
+
         </nav>
 
         <div className="flex-grow"></div>
@@ -249,6 +265,9 @@ export default function Dashboard() {
         {selectedSection === "assessments" && (
           <AssessmentsPage onBackHome={() => setSelectedSection("home")} />
         )}
+        {selectedSection === "profile" && (
+    <UserProfile onBackHome={() => setSelectedSection("home")} />
+  )}
       </main>
     </div>
   );

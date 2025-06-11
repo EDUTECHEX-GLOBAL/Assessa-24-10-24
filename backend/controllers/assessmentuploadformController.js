@@ -119,13 +119,33 @@ const deleteAssessment = asyncHandler(async (req, res) => {
 const getAllAssessments = async (req, res) => {
   try {
     const userId = req.user._id;
+    const userRole = req.user.role;
+    let studentClass = req.user.class; // Could be "11" or "11th"
 
-    const assessments = await AssessmentUpload.find().lean(); // plain JS objects
+    // Only students need filtering by class
+    let assessmentsQuery = {};
+    if (userRole === "student") {
+      // Normalize class: remove "th" if present
+      const normalizedClass = studentClass.replace(/th$/, '');
 
+      // Validate
+      if (!["9", "10", "11", "12"].includes(normalizedClass)) {
+        return res.status(400).json({ message: "Invalid student class" });
+      }
+
+      // Use normalized class for query
+      assessmentsQuery = { gradeLevel: normalizedClass };
+    }
+
+    // Fetch assessments
+    const assessments = await AssessmentUpload.find(assessmentsQuery).lean();
+
+    // Fetch user's submissions
     const submissions = await AssessmentSubmission.find({
       studentId: userId,
     }).select("assessmentId score totalMarks");
 
+    // Map submissions for quick lookup
     const submittedMap = {};
     submissions.forEach((s) => {
       submittedMap[s.assessmentId.toString()] = {
@@ -134,6 +154,7 @@ const getAllAssessments = async (req, res) => {
       };
     });
 
+    // Enrich assessments with submission info
     const enriched = assessments.map((a) => ({
       ...a,
       submission: submittedMap[a._id.toString()] || null,
@@ -144,6 +165,7 @@ const getAllAssessments = async (req, res) => {
     res.status(500).json({ message: "Failed to fetch assessments" });
   }
 };
+
 
 // @desc    Get assessment for attempt (without correct answers)
 // @route   GET /api/assessments/:id/attempt

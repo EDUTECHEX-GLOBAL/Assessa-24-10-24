@@ -7,9 +7,10 @@ const s3 = new AWS.S3({
   region: process.env.AWS_REGION,
 });
 
-const uploadToS3 = (file) => {
+// Accepts an optional folder argument for different upload types
+const uploadToS3 = (file, folder = "assessments") => {
   return new Promise((resolve, reject) => {
-    const fileKey = `assessments/${uuidv4()}-${file.originalname}`;
+    const fileKey = `${folder}/${uuidv4()}-${file.originalname}`;
     const params = {
       Bucket: process.env.AWS_BUCKET_NAME,
       Key: fileKey,
@@ -28,7 +29,7 @@ const uploadToS3 = (file) => {
     });
   });
 };
-// ✅ NEW FUNCTION: Generate a signed URL
+
 const getSignedUrl = (key) => {
   const params = {
     Bucket: process.env.AWS_BUCKET_NAME,
@@ -38,7 +39,7 @@ const getSignedUrl = (key) => {
 
   return s3.getSignedUrl("getObject", params);
 };
-// delete assessment
+
 const deleteFromS3 = (key) => {
   return new Promise((resolve, reject) => {
     const params = {
@@ -60,5 +61,5 @@ const deleteFromS3 = (key) => {
 module.exports = {
   uploadToS3,
   getSignedUrl,
-  deleteFromS3, // Add this to exports
+  deleteFromS3,
 };

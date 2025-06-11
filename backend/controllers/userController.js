@@ -4,6 +4,7 @@ const crypto = require("crypto");
 const nodemailer = require("nodemailer");
 const Userwebapp = require("../models/webapp-models/userModel");
 const generateToken = require("../utils/generateToken");
+const { getSignedUrl } = require("../config/s3Upload");
 
 // Register User
 const registerUser = asyncHandler(async (req, res) => {
@@ -18,19 +19,17 @@ const registerUser = asyncHandler(async (req, res) => {
     return res.status(400).json({ message: "User already exists." });
   }
 
-   // ✅ Set default pic if undefined
-   if (!pic) {
+  if (!pic) {
     pic = "https://icon-library.com/images/anonymous-avatar-icon/anonymous-avatar-icon-25.jpg";
   }
 
-  // ✅ Create user (password will be hashed in the model)
   const user = await Userwebapp.create({
     name,
     email,
     password,
-    role, // ✅ now this is defined
+    role,
     pic,
-    isAdminApproved: false, // ✅ This is required if approval is enforced
+    isAdminApproved: false,
     status: "pending",
   });
 
@@ -49,7 +48,7 @@ const registerUser = asyncHandler(async (req, res) => {
   }
 });
 
-// ✅ Login (Authenticate User)
+// Login (Authenticate User)
 const authUser = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
 
@@ -69,6 +68,7 @@ const authUser = asyncHandler(async (req, res) => {
       name: user.name,
       email: user.email,
       isAdmin: user.isAdmin,
+      role: user.role,
       pic: user.pic,
       token: generateToken(user._id),
     });
@@ -80,24 +80,39 @@ const authUser = asyncHandler(async (req, res) => {
 // Update User Profile
 const updateUserProfile = asyncHandler(async (req, res) => {
   const user = await Userwebapp.findById(req.user._id);
-  if (user) {
-    user.name = req.body.name || user.name;
-    user.email = req.body.email || user.email;
-
-    if (req.body.password) {
-      user.password = await bcrypt.hash(req.body.password, 10);
-    }
-
-    const updatedUser = await user.save();
-    res.json({
-      _id: updatedUser._id,
-      name: updatedUser.name,
-      email: updatedUser.email,
-      token: generateToken(updatedUser._id),
-    });
-  } else {
-    res.status(404).json({ message: "User Not Found!" });
+  if (!user) {
+    return res.status(404).json({ message: "User not found" });
   }
+
+  // Update all fields if present in req.body
+  user.name = req.body.name !== undefined ? req.body.name : user.name;
+  user.email = req.body.email !== undefined ? req.body.email : user.email;
+  user.class = req.body.class !== undefined ? req.body.class : user.class;
+  user.mobile = req.body.mobile !== undefined ? req.body.mobile : user.mobile;
+  user.bio = req.body.bio !== undefined ? req.body.bio : user.bio;
+  user.city = req.body.city !== undefined ? req.body.city : user.city;
+  user.country = req.body.country !== undefined ? req.body.country : user.country;
+  user.pic = req.body.pic !== undefined ? req.body.pic : user.pic;
+
+  if (req.body.password) {
+    user.password = await bcrypt.hash(req.body.password, 10);
+  }
+
+  const updatedUser = await user.save();
+
+  res.json({
+    _id: updatedUser._id,
+    name: updatedUser.name,
+    email: updatedUser.email,
+    class: updatedUser.class,
+    mobile: updatedUser.mobile,
+    bio: updatedUser.bio,
+    city: updatedUser.city,
+    country: updatedUser.country,
+    pic: updatedUser.pic,
+    role: updatedUser.role,
+    isAdmin: updatedUser.isAdmin,
+  });
 });
 
 // Forgot Password - Request Reset
@@ -161,25 +176,46 @@ const resetPassword = asyncHandler(async (req, res) => {
 
   res.json({ message: "Password reset successful. You can now log in." });
 });
+
 // Test Password Hashing
 const testPasswordHashing = asyncHandler(async (req, res) => {
-  const { plainPassword } = req.body; // Expecting plain password in request body
+  const { plainPassword } = req.body;
   const hashedPassword = "$2b$10$R0MyMGKvcj50R93vKkuVGuhCFmRJQnK2VeJYj6efR0M/hjIUeuyRy"; // Replace with actual hash from DB
-
-  console.log("Testing bcrypt.compare directly...");
-  console.log("Plain Password:", plainPassword);
-  console.log("Hashed Password:", hashedPassword);
 
   try {
     const match = await bcrypt.compare(plainPassword, hashedPassword);
-    console.log("bcrypt.compare result:", match);
     res.json({ match });
   } catch (error) {
-    console.error("Error during bcrypt.compare:", error);
     res.status(500).json({ error: error.message });
   }
 });
 
+// Get User Profile
+const getUserProfile = asyncHandler(async (req, res) => {
+  const user = await Userwebapp.findById(req.user._id).select("-password -resetPasswordToken -resetPasswordExpire");
+  if (!user) {
+    return res.status(404).json({ message: "User not found" });
+  }
+  let picUrl = user.pic;
+  if (picUrl && !picUrl.startsWith("http")) {
+    picUrl = getSignedUrl(picUrl);
+  }
+  res.json({
+    _id: user._id,
+    name: user.name,
+    email: user.email,
+    class: user.class || "",
+    mobile: user.mobile || "",
+    bio: user.bio || "",
+    city: user.city || "",
+    country: user.country || "",
+    pic: picUrl,
+    role: user.role,
+    isAdmin: user.isAdmin,
+    status: user.status,
+    isAdminApproved: user.isAdminApproved
+  });
+});
 
 module.exports = { 
   registerUser, 
@@ -187,7 +223,6 @@ module.exports = {
   updateUserProfile, 
   requestPasswordReset, 
   resetPassword,
-  testPasswordHashing // Ensure this is included
+  testPasswordHashing,
+  getUserProfile
 };
-
-

@@ -53,6 +53,7 @@ const skillnaavRoute = require("./routes/skillnaavRoute");
 const applicationRoutes = require("./routes/webapp-routes/applicationRoutes");
 const problemsolvingagentRoutes = require("./routes/problemsolvingagentRoutes");
 const assessmentuploadformRoutes = require("./routes/assessmentuploadformRoutes");
+const uploadProfilePicRoutes = require("./routes/uploadProfilePicRoutes");
 
 app.use("/api/users", userRoutes);
 app.use("/api/teachers", teacherRoutes);
@@ -65,6 +66,7 @@ app.use("/api/skillnaav", skillnaavRoute);
 app.use("/api/contact", skillnaavRoute);
 app.use("/api/ai-agent", problemsolvingagentRoutes);
 app.use("/api/assessments", assessmentuploadformRoutes);
+app.use("/api/upload", require("./routes/uploadProfilePicRoutes"));
 
 // Serve static assets only in production
 if (process.env.NODE_ENV === "production") {
