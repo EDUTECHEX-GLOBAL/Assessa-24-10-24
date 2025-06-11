@@ -15,6 +15,7 @@ const upload = multer({
 
 router.post(
   "/profile-pic",
+  protect,
   upload.single("image"),
   (err, req, res, next) => {
     if (err) {
