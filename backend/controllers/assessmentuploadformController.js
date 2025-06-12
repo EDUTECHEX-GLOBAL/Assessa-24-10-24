@@ -304,6 +304,43 @@ const getAssessmentSubmissions = asyncHandler(async (req, res) => {
     submissions
   });
 });
+// Get total count of assessments in the library
+const getAssessmentLibraryCount = async (req, res) => {
+  try {
+    const count = await AssessmentUpload.countDocuments({ teacherId: req.user._id });
+    res.json({ count });
+  } catch (error) {
+    res.status(500).json({ message: "Error fetching assessment library count" });
+  }
+};
+
+
+// Get count of assessments uploaded by the logged-in teacher
+const getUploadedAssessmentsCount = async (req, res) => {
+  try {
+    const count = await AssessmentUpload.countDocuments({ teacherId: req.user._id });
+    res.json({ count });
+  } catch (error) {
+    res.status(500).json({ message: "Error fetching uploaded assessments count" });
+  }
+};
+
+// Get count of new assessments added this week
+const getNewThisWeekCount = async (req, res) => {
+  try {
+    const startOfWeek = new Date();
+    startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay()); // Sunday
+    startOfWeek.setHours(0, 0, 0, 0);
+
+    const count = await AssessmentUpload.countDocuments({
+      createdAt: { $gte: startOfWeek }
+    });
+    res.json({ count });
+  } catch (error) {
+    res.status(500).json({ message: "Error fetching new this week count" });
+  }
+};
+
 
 module.exports = {
   uploadAssessment,
@@ -312,5 +349,9 @@ module.exports = {
   getAllAssessments,
   getAssessmentForAttempt,
   submitAssessment,
-  getAssessmentSubmissions
+  getAssessmentSubmissions,
+   // Add these three:
+  getAssessmentLibraryCount,
+  getUploadedAssessmentsCount,
+  getNewThisWeekCount,
 };

@@ -13,7 +13,16 @@ const {
   submitAssessment,
   getAssessmentForAttempt, // Import the new controller
   getAssessmentSubmissions, // New controller for teacher to view submissions
+  // Add the new controllers:
+  getAssessmentLibraryCount,
+  getUploadedAssessmentsCount,
+  getNewThisWeekCount
 } = require("../controllers/assessmentuploadformController");
+
+// Dashboard count endpoints
+router.get("/library/count", protect, getAssessmentLibraryCount); // Total in library
+router.get("/uploaded/count", protect, getUploadedAssessmentsCount); // Uploaded by teacher
+router.get("/library/new-this-week/count", protect, getNewThisWeekCount); // New this week
 
 // Teacher routes
 router.post("/upload", protect, upload.single("file"), uploadAssessment);

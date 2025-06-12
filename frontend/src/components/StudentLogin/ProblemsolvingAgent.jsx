@@ -339,14 +339,26 @@ const ProblemsolvingAgent = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Curriculum</label>
-                  <input 
-                    type="text" 
-                    value={curriculum} 
-                    onChange={e=>setCurriculum(e.target.value)} 
-                    className="w-full p-2 md:p-3 border border-gray-200/50 rounded-lg focus:ring-2 focus:ring-indigo-300 focus:border-transparent bg-white/70 text-sm md:text-base"
-                  />
-                </div>
+  <label className="block text-sm font-medium text-gray-700 mb-1">
+    Curriculum
+  </label>
+  <div className="relative">
+    <select
+      value={curriculum}
+      onChange={e => setCurriculum(e.target.value)}
+      className="w-full p-2.5 md:p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 bg-white/90 shadow-sm text-gray-800 appearance-none transition"
+    >
+      <option value="CBSE">CBSE</option>
+      <option value="ICSE">ICSE</option>
+      <option value="State Board">State Board</option>
+      <option value="IB">IB</option>
+    </select>
+    <span className="pointer-events-none absolute top-1/2 right-3 transform -translate-y-1/2 text-gray-400">
+      ▼
+    </span>
+  </div>
+</div>
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Grade Level</label>
                   <input

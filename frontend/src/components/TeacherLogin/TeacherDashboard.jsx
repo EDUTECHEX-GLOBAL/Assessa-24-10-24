@@ -8,11 +8,17 @@ import AssessmentUploadForm from './AssessmentUploadForm';
 import AssessmentLibrary from "./AssessmentLibrary";
 import "tailwindcss/tailwind.css";
 
+// --- Main Component ---
 export default function TeacherDashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [teacherInfo, setTeacherInfo] = useState(null);
   const [currentView, setCurrentView] = useState("dashboard"); // 'dashboard', 'library', 'progress', etc.
   const [showUploadForm, setShowUploadForm] = useState(false);
+
+  // State for dashboard numbers
+  const [assessmentLibraryCount, setAssessmentLibraryCount] = useState(0);
+  const [uploadAssessmentsCount, setUploadAssessmentsCount] = useState(0);
+  const [newThisWeekCount, setNewThisWeekCount] = useState(0);
 
   useEffect(() => {
     const storedInfo = localStorage.getItem("teacherInfo");
@@ -20,6 +26,45 @@ export default function TeacherDashboard() {
       setTeacherInfo(JSON.parse(storedInfo));
     }
   }, []);
+
+  useEffect(() => {
+  async function fetchDashboardCounts() {
+    try {
+      // 1. Get the token from localStorage
+      const token = localStorage.getItem("token");
+      if (!token) {
+        throw new Error("No token found");
+      }
+
+      // 2. Build headers with Authorization
+      const headers = {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token.replace(/^"|"$/g, "")}` // Remove quotes if present
+      };
+
+      // 3. Fetch with headers!
+      const [libRes, uploadRes, newRes] = await Promise.all([
+        fetch("/api/assessments/library/count", { method: "GET", headers }),
+        fetch("/api/assessments/uploaded/count", { method: "GET", headers }),
+        fetch("/api/assessments/library/new-this-week/count", { method: "GET", headers }),
+      ]);
+
+      // 4. Parse JSON
+      const libData = await libRes.json();
+      const uploadData = await uploadRes.json();
+      const newData = await newRes.json();
+
+      // 5. Set state
+      setAssessmentLibraryCount(libData.count);
+      setUploadAssessmentsCount(uploadData.count);
+      setNewThisWeekCount(newData.count);
+    } catch (err) {
+      console.error("Failed to fetch dashboard counts", err);
+    }
+  }
+  fetchDashboardCounts();
+}, []);
+
 
   const handleLogout = () => {
     localStorage.removeItem("token");
@@ -41,6 +86,9 @@ export default function TeacherDashboard() {
           <DashboardHome 
             setCurrentView={setCurrentView}
             setShowUploadForm={setShowUploadForm}
+            assessmentLibraryCount={assessmentLibraryCount}
+            uploadAssessmentsCount={uploadAssessmentsCount}
+            newThisWeekCount={newThisWeekCount}
           />
         );
     }
@@ -166,7 +214,8 @@ export default function TeacherDashboard() {
   );
 }
 
-function DashboardHome({ setCurrentView, setShowUploadForm }) {
+// --- DashboardHome now receives the counts as props ---
+function DashboardHome({ setCurrentView, setShowUploadForm, assessmentLibraryCount, uploadAssessmentsCount, newThisWeekCount }) {
   return (
     <>
       <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -176,9 +225,9 @@ function DashboardHome({ setCurrentView, setShowUploadForm }) {
           className="cursor-pointer hover:shadow-lg transition-all bg-gradient-to-br from-indigo-300 to-cyan-400 text-white shadow-md p-6 h-44 rounded-lg flex items-center justify-between"
         >
           <div>
-            <p className="text-3xl font-bold mb-1">28</p>
+            <p className="text-3xl font-bold mb-1">{assessmentLibraryCount}</p>
             <p>Assessment Library</p>
-            <p className="text-xs mt-1 opacity-90">+3 new this week</p>
+            <p className="text-xs mt-1 opacity-90">+{newThisWeekCount} new this week</p>
           </div>
           <BiBookAdd className="text-4xl opacity-80" />
         </div>
@@ -189,8 +238,8 @@ function DashboardHome({ setCurrentView, setShowUploadForm }) {
           onClick={() => setShowUploadForm(true)}
         >
           <div>
-            <p className="text-3xl font-bold mb-1">156</p>
-            <p>Upload Assessments</p>
+           <p className="text-3xl font-bold mb-1">{uploadAssessmentsCount}</p>
+           <p>Upload Assessments</p>
           </div>
           <FaFileImport className="text-4xl opacity-80" />
         </div>
@@ -204,7 +253,6 @@ function DashboardHome({ setCurrentView, setShowUploadForm }) {
           </div>
           <FaChartBar className="text-4xl opacity-80" />
         </div>
-
         {/* Feedback Card */}
         <div className="bg-gradient-to-br from-orange-300 to-yellow-500 text-white shadow-md p-6 h-44 rounded-lg flex items-center justify-between">
           <div>
@@ -261,9 +309,7 @@ function DashboardHome({ setCurrentView, setShowUploadForm }) {
   );
 }
 
-// Keep your other components (StudentProgress, FeedbackHub) the same as before
-
-// Page Components (keep your existing ones)
+// The rest of your components remain unchanged
 function AssessmentTemplates() {
   return (
     <div className="bg-white p-6 rounded-xl shadow-sm">

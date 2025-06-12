@@ -4,6 +4,11 @@ const multer = require("multer");
 const { protect } = require("../middlewares/authMiddleware");
 const { uploadProfilePic } = require("../controllers/profilePicController");
 
+// Add a GET test endpoint to confirm route reachability
+router.get('/test', (req, res) => {
+  res.json({ message: "Upload test endpoint is working!" });
+});
+
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 5 * 1024 * 1024, files: 1 },
