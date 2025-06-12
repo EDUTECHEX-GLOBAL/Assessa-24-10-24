@@ -19,6 +19,9 @@ const {
   getNewThisWeekCount
 } = require("../controllers/assessmentuploadformController");
 
+// --- Add your test route here ---
+router.get("/test", (req, res) => res.json({ ok: true, message: "Test route is working!" }));
+
 // Dashboard count endpoints
 router.get("/library/count", protect, getAssessmentLibraryCount); // Total in library
 router.get("/uploaded/count", protect, getUploadedAssessmentsCount); // Uploaded by teacher
