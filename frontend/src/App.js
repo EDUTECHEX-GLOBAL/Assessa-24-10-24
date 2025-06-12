@@ -40,6 +40,8 @@ import AdminDashboard from "./components/AdminPanelLogin/AdminDashboard";
 import ProblemsolvingAgent from "./components/StudentLogin/ProblemsolvingAgent.jsx";
 import AssessmentLibrary from "./components/TeacherLogin/AssessmentLibrary.jsx";
 import AssessmentsPage from "./components/StudentLogin/AssessmentsPage.jsx";
+import ProtectedRoute from "./components/ProtectedRoute";
+
 
 // Import these for dashboard nested routes
 import DashboardHome from "./components/AdminPanelLogin/DashboardHome";
@@ -109,7 +111,16 @@ function App() {
         <Route path="/problemsolving-agent" element={<ProblemsolvingAgent />} />
         <Route path="/assessment-library" element={<AssessmentLibrary />} />
         <Route path="/student-dashboard" element={<StudentDashboard />} />
-        <Route path="/teacher-dashboard" element={<TeacherDashboard />} />
+        {/* <Route path="/teacher-dashboard" element={<TeacherDashboard />} /> */}
+        <Route
+  path="/teacher-dashboard"
+  element={
+    <ProtectedRoute>
+      <TeacherDashboard />
+    </ProtectedRoute>
+  }
+/>
+
 
         {/* NESTED ADMIN DASHBOARD ROUTES */}
         <Route path="/admin-dashboard/*" element={<AdminDashboard />}>
