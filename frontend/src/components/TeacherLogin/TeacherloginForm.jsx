@@ -40,11 +40,11 @@ const TeacherLoginForm = ({ onSwitch, onForgot }) => {
 
       const token = data.token || data.teacher?.token;
 
-      if (token) {
-        localStorage.setItem("token", JSON.stringify(token));
-        localStorage.setItem("teacherInfo", JSON.stringify(data));
-        setSuccess("Logged in successfully!");
-        navigate("/teacher-dashboard");
+     if (token) {
+  localStorage.setItem("token", token); // <-- FIXED
+  localStorage.setItem("teacherInfo", JSON.stringify(data));
+  setSuccess("Logged in successfully!");
+  navigate("/teacher-dashboard");
       } else {
         throw new Error("Invalid token received from server.");
       }
