@@ -178,7 +178,7 @@ function DashboardHome({ setCurrentView, setShowUploadForm }) {
           <div>
             <p className="text-3xl font-bold mb-1">28</p>
             <p>Assessment Library</p>
-            <p className="text-xs mt-1 opacity-90">+3 new this week</p>
+            <p className="text-xs mt-1 opacity-90">+5 new this week</p>
           </div>
           <BiBookAdd className="text-4xl opacity-80" />
         </div>
