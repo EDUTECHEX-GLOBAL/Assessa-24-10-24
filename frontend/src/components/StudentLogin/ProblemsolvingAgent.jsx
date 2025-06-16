@@ -350,8 +350,8 @@ const ProblemsolvingAgent = () => {
     >
       <option value="CBSE">CBSE</option>
       <option value="ICSE">ICSE</option>
+      <option value="">IB</option>
       <option value="State Board">State Board</option>
-      <option value="IB">IB</option>
     </select>
     <span className="pointer-events-none absolute top-1/2 right-3 transform -translate-y-1/2 text-gray-400">
       ▼

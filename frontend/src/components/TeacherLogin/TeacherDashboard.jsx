@@ -43,11 +43,14 @@ export default function TeacherDashboard() {
       };
 
       // 3. Fetch with headers!
-      const [libRes, uploadRes, newRes] = await Promise.all([
-        fetch("/api/assessments/library/count", { method: "GET", headers }),
-        fetch("/api/assessments/uploaded/count", { method: "GET", headers }),
-        fetch("/api/assessments/library/new-this-week/count", { method: "GET", headers }),
-      ]);
+      const API_BASE_URL = process.env.REACT_APP_API_URL || "";
+
+const [libRes, uploadRes, newRes] = await Promise.all([
+  fetch(`${API_BASE_URL}/api/assessments/library/count`, { method: "GET", headers }),
+  fetch(`${API_BASE_URL}/api/assessments/uploaded/count`, { method: "GET", headers }),
+  fetch(`${API_BASE_URL}/api/assessments/library/new-this-week/count`, { method: "GET", headers }),
+]);
+
 
       // 4. Parse JSON
       const libData = await libRes.json();
