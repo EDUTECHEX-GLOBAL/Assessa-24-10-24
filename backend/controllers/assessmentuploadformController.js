@@ -341,6 +341,110 @@ const getNewThisWeekCount = async (req, res) => {
   }
 };
 
+// @desc    Get progress for logged-in student
+// @route   GET /api/assessments/progress
+// @access  Private (Student)
+const getStudentProgress = asyncHandler(async (req, res) => {
+  if (req.user.role !== "student") {
+    res.status(403);
+    throw new Error("Only students can access their progress");
+  }
+
+  const submissions = await AssessmentSubmission.find({ studentId: req.user._id })
+    .populate("assessmentId", "assessmentName createdAt")
+    .sort({ submittedAt: -1 });
+
+  const progressData = submissions.map((s) => ({
+    assessmentTitle: s.assessmentId?.assessmentName || "Untitled",
+    score: s.score,
+    totalMarks: s.totalMarks,
+    percentage: s.percentage,
+    date: s.submittedAt,
+  }));
+
+  res.json(progressData);
+});
+
+// @desc    Get progress of all students for assessments uploaded by the logged-in teacher
+// @route   GET /api/assessments/teacher/student-progress
+// @access  Private (Teacher)
+const getStudentProgressForTeacher = asyncHandler(async (req, res) => {
+  if (req.user.role !== "teacher") {
+    res.status(403);
+    throw new Error("Only teachers can access this data");
+  }
+
+  // Step 1: Find assessments uploaded by this teacher
+  const assessments = await AssessmentUpload.find({ teacherId: req.user._id }).select("_id assessmentName gradeLevel");
+
+  const assessmentMap = {};
+  const assessmentIds = assessments.map((a) => {
+    assessmentMap[a._id.toString()] = {
+      assessmentTitle: a.assessmentName,
+      gradeLevel: a.gradeLevel,
+    };
+    return a._id;
+  });
+
+  // Step 2: Get all submissions for those assessments
+  const submissions = await AssessmentSubmission.find({
+    assessmentId: { $in: assessmentIds },
+  })
+    .populate("studentId", "name class")
+    .sort({ submittedAt: -1 });
+
+  // Step 3: Structure the response
+  const progressData = submissions.map((s) => ({
+  studentName: s.studentId?.name || "Unknown",
+  studentClass: s.studentId?.class || "N/A",
+  assessmentTitle: assessmentMap[s.assessmentId.toString()]?.assessmentTitle || "Untitled",
+  score: s.score,
+  totalMarks: s.totalMarks,
+  percentage: s.percentage,
+  date: s.submittedAt || s.createdAt, // ✅ Fix date
+  timeTaken: s.timeTaken || null      // ✅ Add this if tracked
+}));
+
+
+  res.json(progressData);
+});
+
+// @desc    Get progress summary for logged-in teacher
+// @route   GET /api/assessments/teacher-progress
+// @access  Private (Teacher)
+const getTeacherProgress = asyncHandler(async (req, res) => {
+  if (req.user.role !== "teacher") {
+    res.status(403);
+    throw new Error("Only teachers can access this route");
+  }
+
+  const teacherId = req.user._id;
+
+  // Fetch all assessments by this teacher
+  const assessments = await AssessmentUpload.find({ teacherId });
+
+  const assessmentIds = assessments.map(a => a._id);
+  const totalAssessments = assessments.length;
+
+  // Fetch all submissions to these assessments
+  const submissions = await AssessmentSubmission.find({ assessmentId: { $in: assessmentIds } });
+
+  const totalSubmissions = submissions.length;
+
+  const averageScore = submissions.length > 0
+    ? (submissions.reduce((sum, s) => sum + s.percentage, 0) / submissions.length).toFixed(2)
+    : 0;
+
+  res.json({
+    totalAssessments,
+    totalSubmissions,
+    averageScore: parseFloat(averageScore),
+  });
+});
+
+
+
+
 
 module.exports = {
   uploadAssessment,
@@ -354,4 +458,7 @@ module.exports = {
   getAssessmentLibraryCount,
   getUploadedAssessmentsCount,
   getNewThisWeekCount,
+  getStudentProgress,
+  getStudentProgressForTeacher,
+  getTeacherProgress, // ✅ ADD THIS
 };

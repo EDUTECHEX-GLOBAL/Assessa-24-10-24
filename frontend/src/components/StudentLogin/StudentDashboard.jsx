@@ -11,6 +11,8 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from 'react-toastify';
 import { useLocation } from "react-router-dom";
+import Progress from "./Progress";
+
 
 
 
@@ -99,10 +101,18 @@ export default function Dashboard() {
   <span className="text-lg font-medium">Assessments</span>
 </div>
 
-          <div className="flex items-center space-x-2 py-3 px-4 rounded-lg text-gray-700 hover:bg-teal-100 hover:text-teal-600 transition cursor-pointer">
-            <FaChartBar className="text-xl" />
-            <span className="text-lg font-medium">Progress</span>
-          </div>
+          <div
+  onClick={() => setSelectedSection("progress")}
+  className={`flex items-center space-x-2 py-3 px-4 rounded-lg transition cursor-pointer ${
+    selectedSection === "progress"
+      ? "bg-teal-100 text-teal-700 font-semibold"
+      : "text-gray-700 hover:bg-teal-100 hover:text-teal-600"
+  }`}
+>
+  <FaChartBar className="text-xl" />
+  <span className="text-lg font-medium">Progress</span>
+</div>
+
           <div className="flex items-center space-x-2 py-3 px-4 rounded-lg text-gray-700 hover:bg-teal-100 hover:text-teal-600 transition cursor-pointer">
             <FaTasks className="text-xl" />
             <span className="text-lg font-medium">Study Plan</span>
@@ -268,6 +278,10 @@ export default function Dashboard() {
         {selectedSection === "profile" && (
     <UserProfile onBackHome={() => setSelectedSection("home")} />
   )}
+  {selectedSection === "progress" && (
+  <Progress onBack={() => setSelectedSection("home")} />
+)}
+
       </main>
     </div>
   );

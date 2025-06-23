@@ -16,7 +16,10 @@ const {
   // Add the new controllers:
   getAssessmentLibraryCount,
   getUploadedAssessmentsCount,
-  getNewThisWeekCount
+  getNewThisWeekCount,
+  getStudentProgress,
+  getStudentProgressForTeacher,
+  getTeacherProgress,
 } = require("../controllers/assessmentuploadformController");
 
 // --- Add your test route here ---
@@ -35,6 +38,10 @@ router.get("/:id/submissions", protect, getAssessmentSubmissions); // Teacher vi
 
 // Student routes
 router.get("/all", protect, getAllAssessments); // Students can view all assessments
+router.get("/progress", protect, getStudentProgress);
+router.get("/teacher/student-progress", protect, getStudentProgressForTeacher);
+router.get("/teacher-progress", protect, getTeacherProgress);
+
 router.get("/:id/attempt", protect, getAssessmentForAttempt); // Get assessment for attempt
 router.post("/:id/submit", protect, submitAssessment); // Submit assessment answers
 
