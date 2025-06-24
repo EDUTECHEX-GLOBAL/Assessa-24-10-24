@@ -1,12 +1,13 @@
-// assessmentSubmissionModel.js
 const mongoose = require("mongoose");
 
-const answerSchema = new mongoose.Schema({
-  questionId: { type: mongoose.Schema.Types.ObjectId, required: true },
-  selectedOption: { type: Number, required: true },
-  correctOption: { type: Number, required: true },  // ✅ Add this
+const responseSchema = new mongoose.Schema({
+  questionText: { type: String, required: true },
+  options: { type: [String], required: true },
+  correctAnswer: { type: Number, required: true },
+  studentAnswer: { type: Number, required: true },
   isCorrect: { type: Boolean, required: true },
-  marksObtained: { type: Number, required: true }
+  marks: { type: Number, required: true },
+  topic: { type: String }, // optional, useful for feedback AI
 });
 
 const assessmentSubmissionSchema = new mongoose.Schema({
@@ -20,7 +21,7 @@ const assessmentSubmissionSchema = new mongoose.Schema({
     ref: "AssessmentUpload",
     required: true,
   },
-  answers: [answerSchema], // Array of question answers
+  responses: [responseSchema], // ✅ Replaces 'answers'
   score: { type: Number, required: true },
   totalMarks: { type: Number, required: true },
   percentage: { type: Number, required: true },

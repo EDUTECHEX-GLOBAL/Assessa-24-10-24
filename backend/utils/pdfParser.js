@@ -180,6 +180,8 @@ const parseWithTraditional = async (pdfBuffer) => {
         options: q.options,
         correctAnswer: idx,
         marks: 1,
+        fromAI: false,          // <── add this (true in the AI branch)
+        topic: detectTopic(questionText) // optional helper
       };
     })
     .filter(Boolean);

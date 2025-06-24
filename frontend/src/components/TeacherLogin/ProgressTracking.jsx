@@ -5,19 +5,18 @@ export default function ProgressTracking({ onBack }) {
   const [progressData, setProgressData] = useState([]);
   const [error, setError] = useState(null);
   const [selectedEntry, setSelectedEntry] = useState(null);
-  const [feedback, setFeedback] = useState("");
+  const [feedbackObj, setFeedbackObj] = useState(null);
   const [loadingFeedback, setLoadingFeedback] = useState(false);
   const [feedbackSuccess, setFeedbackSuccess] = useState(false);
   const [feedbackError, setFeedbackError] = useState(null);
 
-  const API_BASE_URL_EXPRESS = process.env.REACT_APP_API_URL || "http://localhost:5000";
-  const API_BASE_URL_FASTAPI = "http://localhost:8000"; // Claude-based feedback
+  const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:5000";
 
   const fetchProgressData = async () => {
     try {
       const token = localStorage.getItem("token");
       const res = await axios.get(
-        `${API_BASE_URL_EXPRESS}/api/assessments/teacher/student-progress`,
+        `${API_BASE_URL}/api/assessments/teacher/student-progress`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
@@ -36,18 +35,19 @@ export default function ProgressTracking({ onBack }) {
 
   const fetchFeedback = async (entry) => {
     setLoadingFeedback(true);
-    setFeedback("");
+    setFeedbackObj(null);
     setFeedbackError(null);
     setFeedbackSuccess(false);
     setSelectedEntry(entry);
 
     try {
-      const res = await axios.post(`${API_BASE_URL_FASTAPI}/feedback/generate`, {
-        question: entry.question || `Assessment: ${entry.assessmentTitle}`,
-        answer: `Score: ${entry.score}/${entry.totalMarks}, Time Taken: ${entry.timeTaken}s`,
+      const res = await axios.post(`${API_BASE_URL}/api/feedback/send`, {
+        studentId: entry.studentId,
+        submissionId: entry.submissionId,
       });
 
-      setFeedback(res.data.feedback || "No feedback available.");
+      // feedbackText is already an object from the updated backend
+      setFeedbackObj(res.data.feedbackText || null);
     } catch (err) {
       console.error("Error generating feedback:", err);
       setFeedbackError("Failed to generate feedback.");
@@ -59,22 +59,16 @@ export default function ProgressTracking({ onBack }) {
   const sendFeedback = async () => {
     try {
       const token = localStorage.getItem("token");
-
       await axios.post(
-        `${API_BASE_URL_EXPRESS}/api/feedback/send`,
+        `${API_BASE_URL}/api/feedback/send`,
         {
           studentId: selectedEntry.studentId,
-          assessmentId: selectedEntry.assessmentId,
-          score: selectedEntry.score,
-          total: selectedEntry.totalMarks,
-          topic: selectedEntry.assessmentTitle,
-          feedbackMessage: feedback,
+          submissionId: selectedEntry.submissionId,
         },
         {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
-
       setFeedbackSuccess(true);
     } catch (err) {
       console.error("Error sending feedback:", err);
@@ -195,11 +189,44 @@ export default function ProgressTracking({ onBack }) {
 
             {!loadingFeedback && !feedbackError && (
               <>
-                <textarea
-                  className="w-full h-40 border border-gray-300 rounded p-2 text-sm mb-3"
-                  value={feedback}
-                  onChange={(e) => setFeedback(e.target.value)}
-                />
+                {feedbackObj ? (
+                  <div className="mb-3 text-sm">
+                    <p>
+                      <strong>Overall Summary:</strong>
+                      <br />
+                      {feedbackObj.overallSummary || "No feedback available."}
+                    </p>
+                    <p className="mt-3">
+                      <strong>Topic Strengths:</strong>{" "}
+                      {feedbackObj.topicStrengths && feedbackObj.topicStrengths.length > 0
+                        ? feedbackObj.topicStrengths.join(", ")
+                        : "None"}
+                    </p>
+                    <p className="mt-3">
+                      <strong>Topic Weaknesses:</strong>{" "}
+                      {feedbackObj.topicWeaknesses && feedbackObj.topicWeaknesses.length > 0
+                        ? feedbackObj.topicWeaknesses.join(", ")
+                        : "None"}
+                    </p>
+                    <div className="mt-3">
+                      <strong>Next Steps:</strong>
+                      <ul className="list-disc pl-5">
+                        {feedbackObj.nextSteps && feedbackObj.nextSteps.length > 0 ? (
+                          feedbackObj.nextSteps.map((step, idx) => (
+                            <li key={idx}>
+                              <span className="font-medium">Action:</span> {step.action} <br />
+                              <span className="font-medium">Resource:</span> {step.resource}
+                            </li>
+                          ))
+                        ) : (
+                          <li>None</li>
+                        )}
+                      </ul>
+                    </div>
+                  </div>
+                ) : (
+                  <p>No feedback available.</p>
+                )}
                 {feedbackSuccess && <p className="text-green-600 text-sm mb-2">Feedback sent!</p>}
                 <div className="flex justify-end space-x-2">
                   <button
@@ -210,9 +237,9 @@ export default function ProgressTracking({ onBack }) {
                   </button>
                   <button
                     onClick={sendFeedback}
-                    disabled={loadingFeedback || feedback.trim() === ""}
+                    disabled={loadingFeedback}
                     className={`px-4 py-1 text-sm rounded text-white ${
-                      loadingFeedback || feedback.trim() === ""
+                      loadingFeedback
                         ? "bg-blue-300 cursor-not-allowed"
                         : "bg-blue-600 hover:bg-blue-700"
                     }`}

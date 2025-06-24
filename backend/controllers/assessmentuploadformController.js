@@ -226,39 +226,37 @@ const submitAssessment = asyncHandler(async (req, res) => {
 
   let score = 0;
 
-  const answerDetails = assessment.questions.map((question, index) => {
-    const selectedOption = parseInt(answers[index]);
-    const correctOption = parseInt(question.correctAnswer); // index of correct answer
+  // 💡 New rich responses array
+  const responses = assessment.questions.map((question, index) => {
+    const studentAnswer = parseInt(answers[index]);
+    const correctAnswer = parseInt(question.correctAnswer);
+    const isCorrect = studentAnswer === correctAnswer;
+    const marks = question.marks || 1;
 
-    const isCorrect = selectedOption === correctOption;
-    const marksObtained = isCorrect ? (question.marks || 1) : 0;
-
-    score += marksObtained;
+    if (isCorrect) score += marks;
 
     return {
-      questionId: question._id,
       questionText: question.questionText,
-      selectedOption,
-      correctOption,
+      options: question.options,
+      correctAnswer,
+      studentAnswer,
       isCorrect,
-      marksObtained
+      marks,
+      topic: question.topic || "", // optional
     };
   });
 
-  const totalMarks = assessment.questions.reduce(
-    (sum, q) => sum + (q.marks || 1), 0
-  );
-
+  const totalMarks = assessment.questions.reduce((sum, q) => sum + (q.marks || 1), 0);
   const percentage = totalMarks > 0 ? (score / totalMarks) * 100 : 0;
 
   const submission = await AssessmentSubmission.create({
     assessmentId,
     studentId,
-    answers: answerDetails,
+    responses, // ✅ store full data
     score,
     totalMarks,
     percentage,
-    timeTaken
+    timeTaken,
   });
 
   res.status(201).json({
@@ -270,6 +268,7 @@ const submitAssessment = asyncHandler(async (req, res) => {
     submittedAt: submission.createdAt,
   });
 });
+
 
 
 
@@ -394,16 +393,19 @@ const getStudentProgressForTeacher = asyncHandler(async (req, res) => {
     .sort({ submittedAt: -1 });
 
   // Step 3: Structure the response
-  const progressData = submissions.map((s) => ({
+ const progressData = submissions.map((s) => ({
+  submissionId: s._id,                             // ✅ REQUIRED for feedback
+  studentId: s.studentId?._id,                     // ✅ REQUIRED for feedback
   studentName: s.studentId?.name || "Unknown",
   studentClass: s.studentId?.class || "N/A",
   assessmentTitle: assessmentMap[s.assessmentId.toString()]?.assessmentTitle || "Untitled",
   score: s.score,
   totalMarks: s.totalMarks,
   percentage: s.percentage,
-  date: s.submittedAt || s.createdAt, // ✅ Fix date
-  timeTaken: s.timeTaken || null      // ✅ Add this if tracked
+  date: s.submittedAt || s.createdAt,
+  timeTaken: s.timeTaken || null
 }));
+
 
 
   res.json(progressData);

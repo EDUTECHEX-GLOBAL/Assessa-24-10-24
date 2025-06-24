@@ -1,11 +1,15 @@
 const express = require("express");
 const router = express.Router();
+
 const {
   generateFeedback,
   getAllFeedbacks,
 } = require("../controllers/feedbackController");
 
-router.post("/send", generateFeedback); // changed to `/send`
+// POST to generate and save AI-based feedback
+router.post("/send", generateFeedback);
+
+// GET all feedback entries
 router.get("/", getAllFeedbacks);
 
 module.exports = router;
