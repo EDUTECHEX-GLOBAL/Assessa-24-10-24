@@ -216,7 +216,7 @@ export default function Dashboard() {
               <div className="bg-gradient-to-br from-purple-300 to-purple-500 text-white shadow-md p-6 rounded-lg flex flex-col items-center justify-center transform hover:scale-[1.03] transition-transform">
                 <MdSchool className="text-white text-[40px] mb-[10px]" />
                 <p className="text-3xl font-bold">1</p>
-                <p className="text-base">Assessment Hub</p>
+                <p className="text-base">Feedback Hub</p>
               </div>
               <div className="bg-gradient-to-br from-teal-300 to-teal-500 text-white shadow-md p-6 rounded-lg flex flex-col items-center justify-center transform hover:scale-[1.03] transition-transform">
                 <MdMenuBook className="text-white text-[40px] mb-[10px]" />

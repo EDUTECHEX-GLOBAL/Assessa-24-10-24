@@ -1,5 +1,20 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
+import { 
+  FiArrowLeft, 
+  FiCheckCircle, 
+  FiAlertCircle, 
+  FiClock, 
+  FiSend, 
+  FiX, 
+  FiChevronLeft, 
+  FiChevronRight,
+  FiUser,
+  FiBook,
+  FiAward,
+  FiCalendar,
+  FiBarChart2
+} from "react-icons/fi";
 
 export default function ProgressTracking({ onBack }) {
   const [progressData, setProgressData] = useState([]);
@@ -9,10 +24,14 @@ export default function ProgressTracking({ onBack }) {
   const [loadingFeedback, setLoadingFeedback] = useState(false);
   const [feedbackSuccess, setFeedbackSuccess] = useState(false);
   const [feedbackError, setFeedbackError] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(8);
 
   const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:5000";
 
   const fetchProgressData = async () => {
+    setIsLoading(true);
     try {
       const token = localStorage.getItem("token");
       const res = await axios.get(
@@ -30,6 +49,8 @@ export default function ProgressTracking({ onBack }) {
     } catch (err) {
       console.error("Error fetching progress:", err);
       setError("Failed to load student progress data.");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -46,7 +67,6 @@ export default function ProgressTracking({ onBack }) {
         submissionId: entry.submissionId,
       });
 
-      // feedbackText is already an object from the updated backend
       setFeedbackObj(res.data.feedbackText || null);
     } catch (err) {
       console.error("Error generating feedback:", err);
@@ -76,6 +96,14 @@ export default function ProgressTracking({ onBack }) {
     }
   };
 
+  // Pagination logic
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentItems = progressData.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(progressData.length / itemsPerPage);
+
+  const paginate = (pageNumber) => setCurrentPage(pageNumber);
+
   useEffect(() => {
     fetchProgressData();
   }, []);
@@ -90,165 +118,373 @@ export default function ProgressTracking({ onBack }) {
     }
   }, [feedbackSuccess]);
 
+  const getScoreColor = (percentage) => {
+    if (percentage >= 80) return "bg-emerald-100 text-emerald-800";
+    if (percentage >= 50) return "bg-amber-100 text-amber-800";
+    return "bg-rose-100 text-rose-800";
+  };
+
   return (
-    <div className="bg-white p-6 rounded-xl shadow-md">
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-2xl font-semibold text-gray-800">Student Progress</h2>
-        {onBack && (
-          <button
-            onClick={onBack}
-            className="px-4 py-2 text-sm bg-gray-200 text-gray-800 rounded hover:bg-gray-300 transition"
-          >
-            ← Back to Dashboard
-          </button>
+    <div className="min-h-screen p-6 bg-gradient-to-br from-orange-50 to-amber-50">
+      {/* Glass Panel Container */}
+      <div className="max-w-7xl mx-auto">
+        {/* Header with Glass Effect */}
+        <div className="backdrop-blur-lg bg-white/70 rounded-xl shadow-lg p-6 mb-8 border border-white/30">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-3xl font-bold text-gray-800 bg-gradient-to-r from-red-500 to-amber-500 bg-clip-text text-transparent">
+                Student Progress Dashboard
+              </h2>
+              <p className="text-gray-600 mt-1">
+                Track and analyze student performance with detailed insights
+              </p>
+            </div>
+            {onBack && (
+              <button
+                onClick={onBack}
+                className="flex items-center px-4 py-2 backdrop-blur-sm bg-amber-100/30 text-pink-800 rounded-lg border border-pink-200/50 hover:bg-pink-100/50 transition-all shadow-sm hover:shadow-md"
+              >
+                <FiArrowLeft className="mr-2" />
+                Back to Dashboard
+              </button>
+            )}
+          </div>
+        </div>
+
+        {error && (
+          <div className="mb-6 p-4 bg-rose-50 border-l-4 border-rose-500 rounded-r backdrop-blur-sm">
+            <div className="flex items-center">
+              <FiAlertCircle className="text-rose-500 mr-2" />
+              <p className="text-rose-700">{error}</p>
+            </div>
+          </div>
         )}
-      </div>
 
-      {error && <p className="text-red-500 mb-4">{error}</p>}
-
-      <div className="overflow-x-auto">
-        <table className="w-full table-auto border border-gray-200">
-          <thead className="bg-gray-100 text-gray-700">
-            <tr>
-              <th className="p-3 text-left">Student</th>
-              <th className="p-3 text-left">Class</th>
-              <th className="p-3 text-left">Assessment</th>
-              <th className="p-3 text-left">Score</th>
-              <th className="p-3 text-left">Percentage</th>
-              <th className="p-3 text-left">Duration</th>
-              <th className="p-3 text-left">Submitted At</th>
-              <th className="p-3 text-left">Feedback</th>
-            </tr>
-          </thead>
-          <tbody>
-            {progressData.map((item, index) => (
-              <tr key={index} className="border-t border-gray-100 hover:bg-gray-50">
-                <td className="p-3 font-medium">{item.studentName}</td>
-                <td className="p-3">{item.studentClass}</td>
-                <td className="p-3">{item.assessmentTitle}</td>
-                <td className="p-3">{item.score} / {item.totalMarks}</td>
-                <td className="p-3">{item.percentage?.toFixed(1)}%</td>
-                <td className="p-3">
-                  {item.timeTaken ? `${Math.floor(item.timeTaken / 60)}m ${item.timeTaken % 60}s` : "N/A"}
-                </td>
-                <td className="p-3">
-                  {new Date(item.date).toLocaleString()}
-                </td>
-                <td className="p-3">
-                  <button
-                    onClick={() => fetchFeedback(item)}
-                    className="text-blue-600 hover:underline text-sm"
-                  >
-                    Give Feedback
-                  </button>
-                </td>
-              </tr>
-            ))}
-            {progressData.length === 0 && !error && (
-              <tr>
-                <td colSpan="8" className="p-4 text-center text-gray-500">
-                  No submissions found for your assessments yet.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Feedback Modal */}
-      {selectedEntry && (
-        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 w-full max-w-xl shadow-lg relative">
-            <h3 className="text-xl font-semibold mb-2">
-              Feedback for {selectedEntry.studentName}
-            </h3>
-
-            {loadingFeedback && (
-              <div className="flex items-center text-sm text-gray-500 mb-2">
-                <svg className="animate-spin h-4 w-4 mr-2 text-gray-500" viewBox="0 0 24 24">
-                  <circle
-                    className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                    fill="none"
-                  />
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8v4l5-5-5-5v4a10 10 0 00-10 10h4z"
-                  />
-                </svg>
-                Generating feedback...
+        {/* Main Glass Panel */}
+        <div className="backdrop-blur-lg bg-white/70 rounded-xl shadow-lg overflow-hidden border border-white/30">
+          {isLoading ? (
+            <div className="p-8 flex justify-center items-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-teal-500"></div>
+            </div>
+          ) : (
+            <>
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gradient-to-r from-teal-600 to-green-400 text-white">
+                    <tr>
+                      <th className="p-4 text-left font-medium">
+                        <FiUser className="inline mr-2" />
+                        Student
+                      </th>
+                      <th className="p-4 text-left font-medium">Class</th>
+                      <th className="p-4 text-left font-medium">
+                        <FiBook className="inline mr-2" />
+                        Assessment
+                      </th>
+                      <th className="p-4 text-left font-medium">
+                        <FiAward className="inline mr-2" />
+                        Score
+                      </th>
+                      <th className="p-4 text-left font-medium">
+                        <FiBarChart2 className="inline mr-2" />
+                        Percentage
+                      </th>
+                      <th className="p-4 text-left font-medium">
+                        <FiClock className="inline mr-2" />
+                        Duration
+                      </th>
+                      <th className="p-4 text-left font-medium">
+                        <FiCalendar className="inline mr-2" />
+                        Submitted
+                      </th>
+                      <th className="p-4 text-left font-medium">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200/50">
+                    {currentItems.map((item, index) => (
+                      <tr key={index} className="hover:bg-white/50 transition-colors">
+                        <td className="p-4 font-medium text-gray-800">{item.studentName}</td>
+                        <td className="p-4 text-gray-600">{item.studentClass}</td>
+                        <td className="p-4 text-gray-700">{item.assessmentTitle}</td>
+                        <td className="p-4">
+                          <span className="font-medium">
+                            {item.score} / {item.totalMarks}
+                          </span>
+                        </td>
+                        <td className="p-4">
+                          <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getScoreColor(item.percentage)}`}>
+                            {item.percentage?.toFixed(1)}%
+                          </span>
+                        </td>
+                        <td className="p-4 text-gray-600">
+                          {item.timeTaken
+                            ? `${Math.floor(item.timeTaken / 60)}m ${item.timeTaken % 60}s`
+                            : "N/A"}
+                        </td>
+                        <td className="p-4 text-gray-600">
+                          {new Date(item.date).toLocaleDateString()}
+                        </td>
+                        <td className="p-4">
+                          <button
+                            onClick={() => fetchFeedback(item)}
+                            className="px-3 py-1 bg-teal-50 text-sky-600 rounded-md text-sm font-medium hover:bg-teal-100 transition-colors shadow-sm"
+                          >
+                            Give Feedback
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                    {progressData.length === 0 && !error && (
+                      <tr>
+                        <td colSpan="8" className="p-8 text-center text-gray-500">
+                          No submissions found for your assessments yet.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
               </div>
-            )}
 
-            {feedbackError && <p className="text-sm text-red-500 mb-2">{feedbackError}</p>}
-
-            {!loadingFeedback && !feedbackError && (
-              <>
-                {feedbackObj ? (
-                  <div className="mb-3 text-sm">
-                    <p>
-                      <strong>Overall Summary:</strong>
-                      <br />
-                      {feedbackObj.overallSummary || "No feedback available."}
-                    </p>
-                    <p className="mt-3">
-                      <strong>Topic Strengths:</strong>{" "}
-                      {feedbackObj.topicStrengths && feedbackObj.topicStrengths.length > 0
-                        ? feedbackObj.topicStrengths.join(", ")
-                        : "None"}
-                    </p>
-                    <p className="mt-3">
-                      <strong>Topic Weaknesses:</strong>{" "}
-                      {feedbackObj.topicWeaknesses && feedbackObj.topicWeaknesses.length > 0
-                        ? feedbackObj.topicWeaknesses.join(", ")
-                        : "None"}
-                    </p>
-                    <div className="mt-3">
-                      <strong>Next Steps:</strong>
-                      <ul className="list-disc pl-5">
-                        {feedbackObj.nextSteps && feedbackObj.nextSteps.length > 0 ? (
-                          feedbackObj.nextSteps.map((step, idx) => (
-                            <li key={idx}>
-                              <span className="font-medium">Action:</span> {step.action} <br />
-                              <span className="font-medium">Resource:</span> {step.resource}
-                            </li>
-                          ))
-                        ) : (
-                          <li>None</li>
-                        )}
-                      </ul>
-                    </div>
+              {/* Pagination with Glass Effect */}
+              {progressData.length > 0 && (
+                <div className="backdrop-blur-md bg-white/50 px-4 py-3 border-t border-gray-200/30 flex flex-col sm:flex-row items-center justify-between gap-4">
+                  <div className="text-sm text-gray-600">
+                    Showing <span className="font-medium">{indexOfFirstItem + 1}</span> to{" "}
+                    <span className="font-medium">
+                      {Math.min(indexOfLastItem, progressData.length)}
+                    </span>{" "}
+                    of <span className="font-medium">{progressData.length}</span> results
                   </div>
-                ) : (
-                  <p>No feedback available.</p>
-                )}
-                {feedbackSuccess && <p className="text-green-600 text-sm mb-2">Feedback sent!</p>}
-                <div className="flex justify-end space-x-2">
-                  <button
-                    onClick={() => setSelectedEntry(null)}
-                    className="px-3 py-1 text-sm bg-gray-200 rounded hover:bg-gray-300"
-                  >
-                    Close
-                  </button>
-                  <button
-                    onClick={sendFeedback}
-                    disabled={loadingFeedback}
-                    className={`px-4 py-1 text-sm rounded text-white ${
-                      loadingFeedback
-                        ? "bg-blue-300 cursor-not-allowed"
-                        : "bg-blue-600 hover:bg-blue-700"
-                    }`}
-                  >
-                    Send Feedback
-                  </button>
+                  
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => paginate(Math.max(1, currentPage - 1))}
+                      disabled={currentPage === 1}
+                      className={`p-2 rounded-lg ${currentPage === 1 ? "text-gray-400 cursor-not-allowed" : "text-teal-600 hover:bg-teal-50"}`}
+                    >
+                      <FiChevronLeft size={18} />
+                    </button>
+
+                    {/* Always show first page */}
+                    <button
+                      onClick={() => paginate(1)}
+                      className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                        currentPage === 1
+                          ? "bg-gradient-to-r from-red-400 to-amber-500 text-white shadow-md"
+                          : "text-gray-600 hover:bg-red-50"
+                      }`}
+                    >
+                      1
+                    </button>
+
+                    {/* Show ellipsis if current page is far from start */}
+                    {currentPage > 3 && (
+                      <span className="px-1">...</span>
+                    )}
+
+                    {/* Show pages around current page */}
+                    {Array.from({ length: Math.min(3, totalPages - 2) }, (_, i) => {
+                      let pageNum;
+                      if (currentPage <= 2) {
+                        pageNum = i + 2;
+                      } else if (currentPage >= totalPages - 1) {
+                        pageNum = totalPages - 3 + i;
+                      } else {
+                        pageNum = currentPage - 1 + i;
+                      }
+                      if (pageNum > 1 && pageNum < totalPages) {
+                        return (
+                          <button
+                            key={pageNum}
+                            onClick={() => paginate(pageNum)}
+                            className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                              currentPage === pageNum
+                                ? "bg-gradient-to-r from-teal-600 to-amber-600 text-white shadow-md"
+                                : "text-gray-600 hover:bg-teal-50"
+                            }`}
+                          >
+                            {pageNum}
+                          </button>
+                        );
+                      }
+                      return null;
+                    })}
+
+                    {/* Show ellipsis if current page is far from end */}
+                    {currentPage < totalPages - 2 && totalPages > 4 && (
+                      <span className="px-1">...</span>
+                    )}
+
+                    {/* Always show last page if there's more than one page */}
+                    {totalPages > 1 && (
+                      <button
+                        onClick={() => paginate(totalPages)}
+                        className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                          currentPage === totalPages
+                            ? "bg-gradient-to-r from-teal-600 to-amber-600 text-white shadow-md"
+                            : "text-gray-600 hover:bg-teal-50"
+                        }`}
+                      >
+                        {totalPages}
+                      </button>
+                    )}
+
+                    <button
+                      onClick={() => paginate(Math.min(totalPages, currentPage + 1))}
+                      disabled={currentPage === totalPages}
+                      className={`p-2 rounded-lg ${currentPage === totalPages ? "text-gray-400 cursor-not-allowed" : "text-teal-600 hover:bg-teal-50"}`}
+                    >
+                      <FiChevronRight size={18} />
+                    </button>
+                  </div>
                 </div>
-              </>
-            )}
+              )}
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* Feedback Modal with Glass Effect */}
+      {selectedEntry && (
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="backdrop-blur-lg bg-white/80 rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto border border-white/30">
+            <div className="sticky top-0 bg-white/70 p-4 border-b border-white/30 flex justify-between items-center backdrop-blur-sm">
+              <h3 className="text-xl font-bold text-gray-800">
+                Feedback for {selectedEntry.studentName}
+              </h3>
+              <button
+                onClick={() => setSelectedEntry(null)}
+                className="text-gray-500 hover:text-gray-700 p-1 rounded-full hover:bg-gray-100/50"
+              >
+                <FiX size={20} />
+              </button>
+            </div>
+
+            <div className="p-6">
+              {loadingFeedback && (
+                <div className="flex flex-col items-center justify-center py-8">
+                  <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-teal-500 mb-4"></div>
+                  <p className="text-gray-600">Generating personalized feedback...</p>
+                </div>
+              )}
+
+              {feedbackError && (
+                <div className="mb-4 p-4 bg-rose-50/80 rounded-lg border border-rose-100 backdrop-blur-sm">
+                  <div className="flex items-center text-rose-600">
+                    <FiAlertCircle className="mr-2" />
+                    <p>{feedbackError}</p>
+                  </div>
+                </div>
+              )}
+
+              {!loadingFeedback && !feedbackError && (
+                <>
+                  {feedbackObj ? (
+                    <div className="space-y-6">
+                      <div className="bg-blue-50/70 p-4 rounded-lg border border-blue-100/50 backdrop-blur-sm">
+                        <h4 className="font-bold text-blue-800 mb-2 flex items-center">
+                          <FiCheckCircle className="mr-2" />
+                          Overall Summary
+                        </h4>
+                        <p className="text-gray-700">
+                          {feedbackObj.overallSummary || "No summary available."}
+                        </p>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="bg-emerald-50/70 p-4 rounded-lg border border-emerald-100/50 backdrop-blur-sm">
+                          <h4 className="font-bold text-emerald-800 mb-2">Strengths</h4>
+                          {feedbackObj.topicStrengths?.length > 0 ? (
+                            <ul className="list-disc pl-5 space-y-1 text-gray-700">
+                              {feedbackObj.topicStrengths.map((strength, idx) => (
+                                <li key={idx}>{strength}</li>
+                              ))}
+                            </ul>
+                          ) : (
+                            <p className="text-gray-500">No notable strengths identified</p>
+                          )}
+                        </div>
+
+                        <div className="bg-amber-50/70 p-4 rounded-lg border border-amber-100/50 backdrop-blur-sm">
+                          <h4 className="font-bold text-amber-800 mb-2">Areas for Improvement</h4>
+                          {feedbackObj.topicWeaknesses?.length > 0 ? (
+                            <ul className="list-disc pl-5 space-y-1 text-gray-700">
+                              {feedbackObj.topicWeaknesses.map((weakness, idx) => (
+                                <li key={idx}>{weakness}</li>
+                              ))}
+                            </ul>
+                          ) : (
+                            <p className="text-gray-500">No specific weaknesses identified</p>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="bg-teal-50/70 p-4 rounded-lg border border-teal-100/50 backdrop-blur-sm">
+                        <h4 className="font-bold text-teal-800 mb-2">Recommended Next Steps</h4>
+                        {feedbackObj.nextSteps?.length > 0 ? (
+                          <ul className="space-y-3">
+                            {feedbackObj.nextSteps.map((step, idx) => (
+                              <li key={idx} className="bg-white/70 p-3 rounded border border-gray-200/30">
+                                <p className="font-medium text-gray-800">Action: {step.action}</p>
+                                {step.resource && (
+                                  <p className="text-sm text-gray-600 mt-1">
+                                    Resource:{" "}
+                                    <a
+                                      href={step.resource}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="text-teal-600 hover:underline"
+                                    >
+                                      {step.resource}
+                                    </a>
+                                  </p>
+                                )}
+                              </li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <p className="text-gray-500">No specific recommendations</p>
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 text-gray-500">
+                      No feedback content available for this submission.
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+
+            <div className="sticky bottom-0 bg-white/70 p-4 border-t border-white/30 flex justify-end space-x-3 backdrop-blur-sm">
+              <button
+                onClick={() => setSelectedEntry(null)}
+                className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100/50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={sendFeedback}
+                disabled={loadingFeedback || !feedbackObj}
+                className={`px-4 py-2 rounded-lg text-white flex items-center ${
+                  loadingFeedback || !feedbackObj
+                    ? "bg-teal-300 cursor-not-allowed"
+                    : "bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 shadow-md"
+                }`}
+              >
+                {feedbackSuccess ? (
+                  <>
+                    <FiCheckCircle className="mr-2" />
+                    Sent!
+                  </>
+                ) : (
+                  <>
+                    <FiSend className="mr-2" />
+                    Send Feedback
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </div>
       )}
