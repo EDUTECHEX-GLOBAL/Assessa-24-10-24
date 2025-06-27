@@ -55,46 +55,65 @@ export default function ProgressTracking({ onBack }) {
   };
 
   const fetchFeedback = async (entry) => {
-    setLoadingFeedback(true);
-    setFeedbackObj(null);
-    setFeedbackError(null);
-    setFeedbackSuccess(false);
-    setSelectedEntry(entry);
+  setLoadingFeedback(true);
+  setFeedbackObj(null);
+  setFeedbackError(null);
+  setFeedbackSuccess(false);
+  setSelectedEntry(entry);
 
-    try {
-      const res = await axios.post(`${API_BASE_URL}/api/feedback/send`, {
+  try {
+    const token = localStorage.getItem("token");
+
+    const res = await axios.post(
+      `${API_BASE_URL}/api/feedback/send`,
+      {
         studentId: entry.studentId,
         submissionId: entry.submissionId,
-      });
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
 
-      setFeedbackObj(res.data.feedbackText || null);
-    } catch (err) {
-      console.error("Error generating feedback:", err);
-      setFeedbackError("Failed to generate feedback.");
-    } finally {
-      setLoadingFeedback(false);
-    }
-  };
+    setFeedbackObj(res.data.feedbackText || null);
+  } catch (err) {
+    console.error("Error generating feedback:", err);
+    setFeedbackError("Failed to generate feedback.");
+  } finally {
+    setLoadingFeedback(false);
+  }
+};
+
 
   const sendFeedback = async () => {
-    try {
-      const token = localStorage.getItem("token");
-      await axios.post(
-        `${API_BASE_URL}/api/feedback/send`,
-        {
-          studentId: selectedEntry.studentId,
-          submissionId: selectedEntry.submissionId,
-        },
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-      setFeedbackSuccess(true);
-    } catch (err) {
+  try {
+    const token = localStorage.getItem("token");
+    const res = await axios.post(
+      `${API_BASE_URL}/api/feedback/save`,
+      {
+        studentId: selectedEntry.studentId,
+        submissionId: selectedEntry.submissionId,
+        feedbackText: feedbackObj,
+      },
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      }
+    );
+    setFeedbackSuccess(true);
+    setFeedbackError(null);
+  } catch (err) {
+    if (err.response?.status === 409) {
+      setFeedbackError("Feedback has already been sent for this submission.");
+    } else {
       console.error("Error sending feedback:", err);
       setFeedbackError("Failed to send feedback.");
     }
-  };
+    setFeedbackSuccess(false);
+  }
+};
+
 
   // Pagination logic
   const indexOfLastItem = currentPage * itemsPerPage;
@@ -456,35 +475,46 @@ export default function ProgressTracking({ onBack }) {
               )}
             </div>
 
-            <div className="sticky bottom-0 bg-white/70 p-4 border-t border-white/30 flex justify-end space-x-3 backdrop-blur-sm">
-              <button
-                onClick={() => setSelectedEntry(null)}
-                className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100/50 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={sendFeedback}
-                disabled={loadingFeedback || !feedbackObj}
-                className={`px-4 py-2 rounded-lg text-white flex items-center ${
-                  loadingFeedback || !feedbackObj
-                    ? "bg-teal-300 cursor-not-allowed"
-                    : "bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 shadow-md"
-                }`}
-              >
-                {feedbackSuccess ? (
-                  <>
-                    <FiCheckCircle className="mr-2" />
-                    Sent!
-                  </>
-                ) : (
-                  <>
-                    <FiSend className="mr-2" />
-                    Send Feedback
-                  </>
-                )}
-              </button>
-            </div>
+            <div className="sticky bottom-0 bg-white/70 p-4 border-t border-white/30 flex flex-col sm:flex-row sm:justify-end sm:items-center space-y-3 sm:space-y-0 sm:space-x-3 backdrop-blur-sm">
+
+  <button
+    onClick={() => setSelectedEntry(null)}
+    className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100/50 transition-colors"
+  >
+    Cancel
+  </button>
+
+  <button
+    onClick={sendFeedback}
+    disabled={loadingFeedback || !feedbackObj || feedbackSuccess}
+    className={`px-4 py-2 rounded-lg text-white flex items-center ${
+      loadingFeedback || !feedbackObj || feedbackSuccess
+        ? "bg-teal-300 cursor-not-allowed"
+        : "bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 shadow-md"
+    }`}
+  >
+    {feedbackSuccess ? (
+      <>
+        <FiCheckCircle className="mr-2" />
+        Sent!
+      </>
+    ) : (
+      <>
+        <FiSend className="mr-2" />
+        Send Feedback
+      </>
+    )}
+  </button>
+
+  {/* 🚨 Feedback Error Message */}
+  {feedbackError && (
+    <div className="mt-3 bg-red-100 text-red-700 text-sm rounded-md px-4 py-2 border border-red-300 shadow-sm w-full sm:w-auto">
+      <FiAlertCircle className="inline mr-2" />
+      {feedbackError}
+    </div>
+  )}
+</div>
+
           </div>
         </div>
       )}

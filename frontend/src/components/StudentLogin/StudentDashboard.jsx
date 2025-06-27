@@ -12,6 +12,8 @@ import { useNavigate } from "react-router-dom";
 import { toast } from 'react-toastify';
 import { useLocation } from "react-router-dom";
 import Progress from "./Progress";
+import StudentFeedback from './StudentFeedback';
+
 
 
 
@@ -213,11 +215,15 @@ export default function Dashboard() {
 
             {/* Stats Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-8 mb-8">
-              <div className="bg-gradient-to-br from-purple-300 to-purple-500 text-white shadow-md p-6 rounded-lg flex flex-col items-center justify-center transform hover:scale-[1.03] transition-transform">
-                <MdSchool className="text-white text-[40px] mb-[10px]" />
-                <p className="text-3xl font-bold">1</p>
-                <p className="text-base">Feedback Hub</p>
-              </div>
+              <div
+  onClick={() => setSelectedSection("feedback")}
+  className="cursor-pointer bg-gradient-to-br from-purple-300 to-purple-500 text-white shadow-md p-6 rounded-lg flex flex-col items-center justify-center transform hover:scale-[1.03] transition-transform"
+>
+  <MdSchool className="text-white text-[40px] mb-[10px]" />
+  <p className="text-3xl font-bold">1</p>
+  <p className="text-base">Feedback Hub</p>
+</div>
+
               <div className="bg-gradient-to-br from-teal-300 to-teal-500 text-white shadow-md p-6 rounded-lg flex flex-col items-center justify-center transform hover:scale-[1.03] transition-transform">
                 <MdMenuBook className="text-white text-[40px] mb-[10px]" />
                 <p className="text-3xl font-bold">50</p>
@@ -281,6 +287,9 @@ export default function Dashboard() {
   {selectedSection === "progress" && (
   <Progress onBack={() => setSelectedSection("home")} />
 )}
+{selectedSection === "feedback" && (
+    <StudentFeedback onBackHome={() => setSelectedSection("home")} />
+  )}
 
       </main>
     </div>

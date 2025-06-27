@@ -43,7 +43,7 @@ const LoginForm = ({ onSwitch, onForgot }) => {
       const token = data.token || data.user?.token;
 
       if (token) {
-        localStorage.setItem("token", JSON.stringify(token));
+        localStorage.setItem("token", token);
         localStorage.setItem("userInfo", JSON.stringify(data));
         setSuccess("Logged in successfully!");
 

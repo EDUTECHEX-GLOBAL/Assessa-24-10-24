@@ -1,7 +1,3 @@
-// controllers/feedbackController.js
-// ---------------------------------
-// Requires Node ≥18, Express, and @aws-sdk/client-bedrock-runtime 3.x
-
 const asyncHandler = require("express-async-handler");
 const {
   BedrockRuntimeClient,
@@ -12,7 +8,7 @@ const AssessmentSubmission = require("../models/webapp-models/assessmentSubmissi
 const AssessmentUpload = require("../models/webapp-models/assessmentuploadformModel");
 const Feedback = require("../models/webapp-models/FeedbackModel");
 
-// ─── 1. Bedrock client ────────────────────────────────────────────────────────
+// AWS Bedrock Client Setup
 const bedrock = new BedrockRuntimeClient({
   region: process.env.AWS_MODEL_REGION || "us-east-1",
   credentials: {
@@ -21,7 +17,7 @@ const bedrock = new BedrockRuntimeClient({
   },
 });
 
-// ─── 2. Claude prompt builder ─────────────────────────────────────────────────
+// Prompt builder
 function buildPrompt({ student, assessment, submission, questions, history }) {
   return `
 You are an experienced high-school teacher.
@@ -41,12 +37,6 @@ Duration: ${submission.timeTaken || "unknown"}
 ---------------
 QUESTION SET
 ---------------
-Below are the student's answers and question data.
-
-For each question, please:
-- Assign a meaningful topic (e.g., "Periodic Table", "Algebra", "Photosynthesis", etc.)
-- Use this topic classification to identify topic strengths and weaknesses
-
 ${JSON.stringify(questions, null, 2)}
 
 --------------------
@@ -57,8 +47,6 @@ ${JSON.stringify(history, null, 2)}
 -----------------
 OUTPUT FORMAT
 -----------------
-Return **exactly** this JSON schema, nothing else:
-
 {
   "overallSummary": "string",
   "topicStrengths": ["string", ...],
@@ -70,28 +58,24 @@ Return **exactly** this JSON schema, nothing else:
 `;
 }
 
-// ─── 3. Controller: generate feedback ─────────────────────────────────────────
-exports.generateFeedback = asyncHandler(async (req, res) => {
+// 1️⃣ Teacher: generate + save (used in /feedback/send)
+exports.generateAndSaveFeedback = asyncHandler(async (req, res) => {
   const { studentId, submissionId } = req.body;
 
-  const submission = await AssessmentSubmission
-    .findById(submissionId)
-    .populate("studentId", "name class");
-
-  if (!submission) {
-    res.status(404);
-    throw new Error("Submission not found");
-  }
-
-  if (submission.studentId._id.toString() !== studentId) {
-    res.status(400);
-    throw new Error("Student / submission mismatch");
-  }
+  const submission = await AssessmentSubmission.findById(submissionId).populate("studentId", "name class");
+  if (!submission) throw new Error("Submission not found");
 
   const assessment = await AssessmentUpload.findById(submission.assessmentId);
-  if (!assessment) {
-    res.status(404);
-    throw new Error("Assessment not found");
+  if (!assessment) throw new Error("Assessment not found");
+
+  // ✅ PREVENT DUPLICATE FEEDBACK
+  const existing = await Feedback.findOne({
+    studentId,
+    assessmentId: assessment._id,
+  });
+
+  if (existing) {
+    return res.status(409).json({ message: "Feedback already exists for this submission." });
   }
 
   const questions = submission.responses ?? [];
@@ -110,15 +94,8 @@ exports.generateFeedback = asyncHandler(async (req, res) => {
     percent: d.percentage,
   }));
 
-  const prompt = buildPrompt({
-    student: submission.studentId,
-    assessment,
-    submission,
-    questions,
-    history,
-  });
+  const prompt = buildPrompt({ student: submission.studentId, assessment, submission, questions, history });
 
-  // ─── ✅ CORRECT Claude 3.5-compatible body ────────────────────────────────
   const bedrockRes = await bedrock.send(
     new InvokeModelCommand({
       modelId: "anthropic.claude-3-5-sonnet-20240620-v1:0",
@@ -126,12 +103,7 @@ exports.generateFeedback = asyncHandler(async (req, res) => {
       accept: "application/json",
       body: JSON.stringify({
         anthropic_version: "bedrock-2023-05-31",
-        messages: [
-          {
-            role: "user",
-            content: prompt,
-          },
-        ],
+        messages: [{ role: "user", content: prompt }],
         max_tokens: 2048,
         temperature: 0.4,
         top_p: 0.9,
@@ -139,54 +111,122 @@ exports.generateFeedback = asyncHandler(async (req, res) => {
     })
   );
 
-  // --- Double-parse logic for Claude's response ---
   const raw = new TextDecoder().decode(bedrockRes.body);
-  console.log("🧠 Claude Raw Response:", raw); // ✅ Helpful debug
+  const parsed = JSON.parse(raw);
+  const textBlock = parsed.content?.[0]?.text ?? "{}";
+  const feedbackJSON = JSON.parse(textBlock);
 
-  let feedbackJSON;
-  try {
-    const parsedClaude = JSON.parse(raw);
-    const textBlock = parsedClaude.content?.[0]?.text ?? "{}";
-    feedbackJSON = JSON.parse(textBlock);
-  } catch (e) {
-    console.error("⚠️ Model returned non-JSON:", raw);
-    throw new Error("Model response unparsable");
-  }
-
-  // Save feedbackText as string in DB
-  const fbDoc = await Feedback.create({
+  const saved = await Feedback.create({
     studentId,
     assessmentId: assessment._id,
     topic: assessment.assessmentName,
     score: submission.score,
     total: submission.totalMarks,
     percentage: submission.percentage,
-    feedbackText: JSON.stringify(feedbackJSON), // Store as string
+    feedbackText: JSON.stringify(feedbackJSON),
   });
 
-  // Return the feedback with feedbackText as parsed object
-  const responseDoc = {
-    ...fbDoc.toObject(),
+  res.status(201).json({
+    message: "Feedback generated and saved",
     feedbackText: feedbackJSON,
-  };
-
-  res.status(201).json(responseDoc);
+    feedbackId: saved._id,
+  });
 });
 
-// ─── 4. Controller: list all feedback ────────────────────────────────────────
+// 2️⃣ Optional: only generate (used in isolated testing)
+exports.generateFeedback = asyncHandler(async (req, res) => {
+  const { studentId, submissionId } = req.body;
+
+  const submission = await AssessmentSubmission.findById(submissionId).populate("studentId", "name class");
+  if (!submission) throw new Error("Submission not found");
+
+  const assessment = await AssessmentUpload.findById(submission.assessmentId);
+  if (!assessment) throw new Error("Assessment not found");
+
+  const questions = submission.responses ?? [];
+  const history = [];
+
+  const prompt = buildPrompt({ student: submission.studentId, assessment, submission, questions, history });
+
+  const bedrockRes = await bedrock.send(
+    new InvokeModelCommand({
+      modelId: "anthropic.claude-3-5-sonnet-20240620-v1:0",
+      contentType: "application/json",
+      accept: "application/json",
+      body: JSON.stringify({
+        anthropic_version: "bedrock-2023-05-31",
+        messages: [{ role: "user", content: prompt }],
+        max_tokens: 2048,
+        temperature: 0.4,
+        top_p: 0.9,
+      }),
+    })
+  );
+
+  const raw = new TextDecoder().decode(bedrockRes.body);
+  const parsed = JSON.parse(raw);
+  const textBlock = parsed.content?.[0]?.text ?? "{}";
+  const feedbackJSON = JSON.parse(textBlock);
+
+  res.status(200).json({ feedbackText: feedbackJSON });
+});
+
+// 3️⃣ Optional: save separately (if frontend uses two-step)
+exports.saveGeneratedFeedback = asyncHandler(async (req, res) => {
+  const { studentId, submissionId, feedbackText } = req.body;
+
+  const submission = await AssessmentSubmission.findById(submissionId);
+  if (!submission) throw new Error("Submission not found");
+
+  const assessment = await AssessmentUpload.findById(submission.assessmentId);
+  if (!assessment) throw new Error("Assessment not found");
+
+  const existing = await Feedback.findOne({
+    studentId,
+    assessmentId: assessment._id,
+  });
+
+  if (existing) {
+    return res.status(409).json({ message: "Feedback already exists for this submission." });
+  }
+
+  const saved = await Feedback.create({
+    studentId,
+    assessmentId: assessment._id,
+    topic: assessment.assessmentName,
+    score: submission.score,
+    total: submission.totalMarks,
+    percentage: submission.percentage,
+    feedbackText: JSON.stringify(feedbackText),
+  });
+
+  res.status(201).json({ message: "Feedback saved", feedbackId: saved._id });
+});
+
+// 4️⃣ For students to view their feedback
+exports.getFeedbacksByStudent = asyncHandler(async (req, res) => {
+  const feedbacks = await Feedback.find({ studentId: req.user._id })
+    .sort({ createdAt: -1 })
+    .populate("assessmentId");
+
+  const parsed = feedbacks.map((fb) => ({
+    ...fb.toObject(),
+    feedbackText: JSON.parse(fb.feedbackText),
+    assessmentName: fb.assessmentId?.assessmentName || "Untitled",
+    date: fb.createdAt,
+  }));
+
+  res.json(parsed);
+});
+
+// 5️⃣ Optional: Admin / teacher can view all feedbacks
 exports.getAllFeedbacks = asyncHandler(async (_req, res) => {
   const feedbacks = await Feedback.find().populate("studentId assessmentId");
-  const parsedFeedbacks = feedbacks.map(fb => {
-    let feedbackObj;
-    try {
-      feedbackObj = JSON.parse(fb.feedbackText);
-    } catch (e) {
-      feedbackObj = null;
-    }
-    return {
-      ...fb.toObject(),
-      feedbackText: feedbackObj,
-    };
-  });
-  res.json(parsedFeedbacks);
+
+  const parsed = feedbacks.map((fb) => ({
+    ...fb.toObject(),
+    feedbackText: JSON.parse(fb.feedbackText),
+  }));
+
+  res.json(parsed);
 });

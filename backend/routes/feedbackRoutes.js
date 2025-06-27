@@ -3,13 +3,25 @@ const router = express.Router();
 
 const {
   generateFeedback,
+  saveGeneratedFeedback,
   getAllFeedbacks,
+  getFeedbacksByStudent,
+  generateAndSaveFeedback, // ✅ added
 } = require("../controllers/feedbackController");
 
-// POST to generate and save AI-based feedback
-router.post("/send", generateFeedback);
+const { protect } = require("../middlewares/authMiddleware");
 
-// GET all feedback entries
-router.get("/", getAllFeedbacks);
+// ✅ Unified endpoint for teacher dashboard (used by ProgressTracking.jsx)
+router.post("/send", protect, generateAndSaveFeedback);
+
+// Optional: Separate endpoints
+router.post("/generate", protect, generateFeedback); // generate only
+router.post("/save", protect, saveGeneratedFeedback); // save only
+
+// Student endpoint
+router.get("/student", protect, getFeedbacksByStudent);
+
+// All feedbacks (admin/debug)
+router.get("/", protect, getAllFeedbacks);
 
 module.exports = router;
