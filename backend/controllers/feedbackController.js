@@ -19,7 +19,7 @@ const bedrock = new BedrockRuntimeClient({
 
 // Prompt builder
 function buildPrompt({ student, assessment, submission, questions, history }) {
-  return `
+  const prompt = `
 You are an experienced high-school teacher.
 
 Task: Analyse the student’s latest test and return constructive, actionable feedback in JSON.
@@ -56,19 +56,28 @@ OUTPUT FORMAT
   ]
 }
 `;
+
+  console.log("📝 Prompt sent to Claude:\n", prompt);
+  return prompt;
 }
 
-// 1️⃣ Teacher: generate + save (used in /feedback/send)
+// 1️⃣ Generate + Save Feedback
 exports.generateAndSaveFeedback = asyncHandler(async (req, res) => {
   const { studentId, submissionId } = req.body;
 
+  console.log("🔍 Received Feedback Generation Request:");
+  console.log("➡️ studentId:", studentId);
+  console.log("➡️ submissionId:", submissionId);
+
   const submission = await AssessmentSubmission.findById(submissionId).populate("studentId", "name class");
-  if (!submission) throw new Error("Submission not found");
+  if (!submission) {
+    console.error("❌ Submission not found");
+    throw new Error("Submission not found");
+  }
 
   const assessment = await AssessmentUpload.findById(submission.assessmentId);
   if (!assessment) throw new Error("Assessment not found");
 
-  // ✅ PREVENT DUPLICATE FEEDBACK
   const existing = await Feedback.findOne({
     studentId,
     assessmentId: assessment._id,
@@ -78,7 +87,13 @@ exports.generateAndSaveFeedback = asyncHandler(async (req, res) => {
     return res.status(409).json({ message: "Feedback already exists for this submission." });
   }
 
-  const questions = submission.responses ?? [];
+  // ✅ Refetch the submission to ensure responses are present
+  const refreshedSubmission = await AssessmentSubmission.findById(submissionId);
+  const questions = refreshedSubmission.responses ?? [];
+
+  console.log("🧠 Student Name:", submission.studentId.name);
+  console.log("📊 Score:", submission.score, "/", submission.totalMarks);
+  console.log("📦 Refetched responses before Claude:\n", questions);
 
   const historyDocs = await AssessmentSubmission.find({
     studentId,
@@ -94,7 +109,13 @@ exports.generateAndSaveFeedback = asyncHandler(async (req, res) => {
     percent: d.percentage,
   }));
 
-  const prompt = buildPrompt({ student: submission.studentId, assessment, submission, questions, history });
+  const prompt = buildPrompt({
+    student: submission.studentId,
+    assessment,
+    submission,
+    questions,
+    history,
+  });
 
   const bedrockRes = await bedrock.send(
     new InvokeModelCommand({
@@ -112,6 +133,8 @@ exports.generateAndSaveFeedback = asyncHandler(async (req, res) => {
   );
 
   const raw = new TextDecoder().decode(bedrockRes.body);
+  console.log("🤖 Raw Claude Response:", raw);
+
   const parsed = JSON.parse(raw);
   const textBlock = parsed.content?.[0]?.text ?? "{}";
   const feedbackJSON = JSON.parse(textBlock);
@@ -133,7 +156,7 @@ exports.generateAndSaveFeedback = asyncHandler(async (req, res) => {
   });
 });
 
-// 2️⃣ Optional: only generate (used in isolated testing)
+// 2️⃣ Generate Only (for testing)
 exports.generateFeedback = asyncHandler(async (req, res) => {
   const { studentId, submissionId } = req.body;
 
@@ -143,7 +166,10 @@ exports.generateFeedback = asyncHandler(async (req, res) => {
   const assessment = await AssessmentUpload.findById(submission.assessmentId);
   if (!assessment) throw new Error("Assessment not found");
 
-  const questions = submission.responses ?? [];
+  const refreshedSubmission = await AssessmentSubmission.findById(submissionId);
+  const questions = refreshedSubmission.responses ?? [];
+  console.log("📦 Test-only: Refetched responses:", questions);
+
   const history = [];
 
   const prompt = buildPrompt({ student: submission.studentId, assessment, submission, questions, history });
@@ -171,7 +197,7 @@ exports.generateFeedback = asyncHandler(async (req, res) => {
   res.status(200).json({ feedbackText: feedbackJSON });
 });
 
-// 3️⃣ Optional: save separately (if frontend uses two-step)
+// 3️⃣ Save Only (for 2-step flows)
 exports.saveGeneratedFeedback = asyncHandler(async (req, res) => {
   const { studentId, submissionId, feedbackText } = req.body;
 
@@ -203,7 +229,7 @@ exports.saveGeneratedFeedback = asyncHandler(async (req, res) => {
   res.status(201).json({ message: "Feedback saved", feedbackId: saved._id });
 });
 
-// 4️⃣ For students to view their feedback
+// 4️⃣ Get Feedbacks for Logged-in Student
 exports.getFeedbacksByStudent = asyncHandler(async (req, res) => {
   const feedbacks = await Feedback.find({ studentId: req.user._id })
     .sort({ createdAt: -1 })
@@ -219,7 +245,7 @@ exports.getFeedbacksByStudent = asyncHandler(async (req, res) => {
   res.json(parsed);
 });
 
-// 5️⃣ Optional: Admin / teacher can view all feedbacks
+// 5️⃣ Get All Feedbacks (admin/teacher view)
 exports.getAllFeedbacks = asyncHandler(async (_req, res) => {
   const feedbacks = await Feedback.find().populate("studentId assessmentId");
 

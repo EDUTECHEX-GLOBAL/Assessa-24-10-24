@@ -340,7 +340,7 @@ export default function ProgressTracking({ onBack }) {
                         onClick={() => paginate(totalPages)}
                         className={`w-10 h-10 rounded-lg flex items-center justify-center ${
                           currentPage === totalPages
-                            ? "bg-gradient-to-r from-teal-600 to-amber-600 text-white shadow-md"
+                            ? "bg-gradient-to-r from-red-400 to-amber-500 text-white shadow-md"
                             : "text-gray-600 hover:bg-teal-50"
                         }`}
                       >
@@ -449,13 +449,17 @@ export default function ProgressTracking({ onBack }) {
                                   <p className="text-sm text-gray-600 mt-1">
                                     Resource:{" "}
                                     <a
-                                      href={step.resource}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      className="text-teal-600 hover:underline"
-                                    >
-                                      {step.resource}
-                                    </a>
+                                        href={
+                                          step.resource.startsWith("http")
+                                            ? step.resource
+                                            : `https://www.google.com/search?q=${encodeURIComponent(step.resource)}`
+                                        }
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-teal-600 hover:underline"
+                                      >
+                                        {step.resource}
+                                      </a>
                                   </p>
                                 )}
                               </li>
