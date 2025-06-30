@@ -14,7 +14,7 @@ import {
 } from "react-icons/fi";
 import { motion } from "framer-motion";
 
-const REACT_APP_API_URL = process.env.REACT_APP_API_URL || "http://localhost:5000";
+const REACT_APP_API_URL = process.env.REACT_APP_API_URL;
 
 const fadeIn = {
   hidden: { opacity: 0 },
@@ -49,23 +49,30 @@ const FeedbackCard = ({ feedback, index }) => {
   };
   
   const performanceColor = getPerformanceColor();
-  const formatURL = (url) => {
+ const formatURL = (url) => {
   if (!url) return "#";
 
   try {
-    // Ensure it starts with http/https
-    const prefixed = url.startsWith("http://") || url.startsWith("https://")
-      ? url
-      : `https://${url}`;
+    const hasProtocol = url.startsWith("http://") || url.startsWith("https://");
+    const prefixed = hasProtocol ? url : `https://${url}`;
 
-    // Use built-in URL class to sanitize and encode properly
+    // Try to parse
     const parsed = new URL(prefixed);
+
+    // If hostname contains spaces or special characters, it's likely malformed
+    const hostnameHasSpaces = /\s/.test(parsed.hostname);
+    if (hostnameHasSpaces) throw new Error("Malformed hostname");
+
     return parsed.href;
   } catch (e) {
-    console.warn("Invalid URL:", url);
-    return "#";
+    console.warn("Invalid or malformed URL. Redirecting to search:", url);
+
+    // Fallback: treat it like a search query
+    const query = encodeURIComponent(url);
+    return `https://www.google.com/search?q=${query}`;
   }
 };
+
 
   
   return (
