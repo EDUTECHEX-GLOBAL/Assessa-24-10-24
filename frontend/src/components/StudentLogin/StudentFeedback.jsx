@@ -14,7 +14,7 @@ import {
 } from "react-icons/fi";
 import { motion } from "framer-motion";
 
-const REACT_APP_API_URL = process.env.REACT_APP_API_URL;
+const REACT_APP_API_URL = process.env.REACT_APP_API_URL || "http://localhost:5000";
 
 const fadeIn = {
   hidden: { opacity: 0 },
@@ -49,26 +49,24 @@ const FeedbackCard = ({ feedback, index }) => {
   };
   
   const performanceColor = getPerformanceColor();
- const formatURL = (url) => {
-  if (!url) return "#";
+ const formatURL = (input) => {
+  if (!input || typeof input !== "string") return "#";
+
+  const trimmed = input.trim();
 
   try {
-    const hasProtocol = url.startsWith("http://") || url.startsWith("https://");
-    const prefixed = hasProtocol ? url : `https://${url}`;
-
-    // Try to parse
+    const hasProtocol = trimmed.startsWith("http://") || trimmed.startsWith("https://");
+    const prefixed = hasProtocol ? trimmed : `https://${trimmed}`;
     const parsed = new URL(prefixed);
 
-    // If hostname contains spaces or special characters, it's likely malformed
-    const hostnameHasSpaces = /\s/.test(parsed.hostname);
-    if (hostnameHasSpaces) throw new Error("Malformed hostname");
+    // Check if the hostname is valid (no spaces, no quotes, etc.)
+    const invalidHostname = /[^a-zA-Z0-9.-]/.test(parsed.hostname);
+    if (invalidHostname) throw new Error("Invalid domain");
 
     return parsed.href;
   } catch (e) {
-    console.warn("Invalid or malformed URL. Redirecting to search:", url);
-
-    // Fallback: treat it like a search query
-    const query = encodeURIComponent(url);
+    // If it's not a valid URL, treat it as a search query
+    const query = encodeURIComponent(trimmed);
     return `https://www.google.com/search?q=${query}`;
   }
 };
