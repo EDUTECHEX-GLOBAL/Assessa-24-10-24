@@ -14,7 +14,7 @@ import {
 } from "react-icons/fi";
 import { motion } from "framer-motion";
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:5000";
+const REACT_APP_API_URL = process.env.REACT_APP_API_URL || "http://localhost:5000";
 
 const fadeIn = {
   hidden: { opacity: 0 },
@@ -283,7 +283,7 @@ export default function StudentFeedback({ onBackHome }) {
       }
 
       try {
-        const res = await axios.get(`${API_BASE_URL}/api/feedback/student`, {
+        const res = await axios.get(`${REACT_APP_API_URL}/api/feedback/student`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
