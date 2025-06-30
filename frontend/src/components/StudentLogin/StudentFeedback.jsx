@@ -34,93 +34,114 @@ const stagger = {
   }
 };
 
-const FeedbackCard = ({ feedback, index }) => {
-  const [expanded, setExpanded] = useState(false);
-  
-  // Determine performance category
-  const performanceCategory = feedback.percentage >= 70 ? 'Excellent' : 
-                            feedback.percentage >= 50 ? 'Good' : 'Needs Work';
-  
-  // Get color based on performance
-  const getPerformanceColor = () => {
-    if (feedback.percentage >= 70) return 'emerald';
-    if (feedback.percentage >= 50) return 'amber';
-    return 'rose';
-  };
-  
-  const performanceColor = getPerformanceColor();
- const formatURL = (input) => {
-  if (!input || typeof input !== "string") return "#";
-
-  const trimmed = input.trim();
-
-  try {
-    const hasProtocol = trimmed.startsWith("http://") || trimmed.startsWith("https://");
-    const prefixed = hasProtocol ? trimmed : `https://${trimmed}`;
-    const parsed = new URL(prefixed);
-
-    // Check if the hostname is valid (no spaces, no quotes, etc.)
-    const invalidHostname = /[^a-zA-Z0-9.-]/.test(parsed.hostname);
-    if (invalidHostname) throw new Error("Invalid domain");
-
-    return parsed.href;
-  } catch (e) {
-    // If it's not a valid URL, treat it as a search query
-    const query = encodeURIComponent(trimmed);
-    return `https://www.google.com/search?q=${query}`;
+const colorClassMap = {
+  emerald: {
+    from300: "from-emerald-300",
+    to500: "to-emerald-500",
+    from400: "from-emerald-400",
+    to600: "to-emerald-600",
+    bg100: "bg-emerald-100",
+    text600: "text-emerald-600",
+    text800: "text-emerald-800",
+    bg50: "bg-emerald-50",
+    border100: "border-emerald-100",
+    text500: "text-emerald-500"
+  },
+  amber: {
+    from300: "from-amber-300",
+    to500: "to-amber-500",
+    from400: "from-amber-400",
+    to600: "to-amber-600",
+    bg100: "bg-amber-100",
+    text600: "text-amber-600",
+    text800: "text-amber-800",
+    bg50: "bg-amber-50",
+    border100: "border-amber-100",
+    text500: "text-amber-500"
+  },
+  rose: {
+    from300: "from-rose-300",
+    to500: "to-rose-500",
+    from400: "from-rose-400",
+    to600: "to-rose-600",
+    bg100: "bg-rose-100",
+    text600: "text-rose-600",
+    text800: "text-rose-800",
+    bg50: "bg-rose-50",
+    border100: "border-rose-100",
+    text500: "text-rose-500"
   }
 };
 
+const FeedbackCard = ({ feedback, index }) => {
+  const [expanded, setExpanded] = useState(false);
 
-  
+  const performanceCategory = feedback.percentage >= 70 ? "Excellent"
+    : feedback.percentage >= 50 ? "Good"
+    : "Needs Work";
+
+  const performanceColor = feedback.percentage >= 70 ? "emerald"
+    : feedback.percentage >= 50 ? "amber"
+    : "rose";
+
+  const cls = colorClassMap[performanceColor];
+
+  const formatURL = (input) => {
+    if (!input || typeof input !== "string") return "#";
+    const trimmed = input.trim();
+    try {
+      const hasProtocol = trimmed.startsWith("http://") || trimmed.startsWith("https://");
+      const prefixed = hasProtocol ? trimmed : `https://${trimmed}`;
+      const parsed = new URL(prefixed);
+      const invalidHostname = /[^a-zA-Z0-9.-]/.test(parsed.hostname);
+      if (invalidHostname) throw new Error("Invalid domain");
+      return parsed.href;
+    } catch (e) {
+      return `https://www.google.com/search?q=${encodeURIComponent(trimmed)}`;
+    }
+  };
+
   return (
-    <motion.div 
+    <motion.div
       initial="hidden"
       animate="visible"
       variants={fadeIn}
       transition={{ delay: index * 0.1 }}
-      className={`relative bg-white p-6 rounded-2xl shadow-lg mb-6 overflow-hidden transition-all duration-300 ${expanded ? 'ring-2 ring-indigo-100' : ''}`}
+      className={`relative bg-white p-6 rounded-2xl shadow-lg mb-6 overflow-hidden transition-all duration-300 ${expanded ? "ring-2 ring-indigo-100" : ""}`}
     >
-      {/* Performance indicator bar */}
-      <div 
-        className={`absolute top-0 left-0 h-1 w-full bg-gradient-to-r from-${performanceColor}-300 to-${performanceColor}-500`}
-      ></div>
-      
-      {/* Glow effect on hover */}
-      <div className={`absolute inset-0 rounded-2xl pointer-events-none transition-opacity opacity-0 ${expanded ? 'opacity-100' : ''} bg-gradient-to-br from-${performanceColor}-50 to-white`}></div>
-      
+      {/* Performance bar */}
+      <div className={`absolute top-0 left-0 h-1 w-full bg-gradient-to-r ${cls.from300} ${cls.to500}`}></div>
+
+      {/* Glow background */}
+      <div className={`absolute inset-0 rounded-2xl pointer-events-none transition-opacity opacity-0 ${expanded ? "opacity-100" : ""} bg-gradient-to-br ${cls.bg50} to-white`}></div>
+
       <div className="relative z-10">
-        <div 
-          className="cursor-pointer"
-          onClick={() => setExpanded(!expanded)}
-        >
+        <div className="cursor-pointer" onClick={() => setExpanded(!expanded)}>
           <div className="flex justify-between items-start">
             <div className="flex-1 min-w-0">
-              <h2 className="text-xl font-bold text-gray-800 mb-1 truncate">
-                {feedback.assessmentName}
-              </h2>
+              <h2 className="text-xl font-bold text-gray-800 mb-1 truncate">{feedback.assessmentName}</h2>
               <div className="flex items-center mb-3">
                 <div className="w-full bg-gray-100 rounded-full h-2.5 mr-3">
-                  <div 
-                    className={`h-2.5 rounded-full bg-gradient-to-r from-${performanceColor}-400 to-${performanceColor}-600`} 
+                  <div
+                    className={`h-2.5 rounded-full bg-gradient-to-r ${cls.from400} ${cls.to600}`}
                     style={{ width: `${feedback.percentage}%` }}
                   ></div>
                 </div>
-                <span className={`font-semibold text-${performanceColor}-600`}>
+                <span className={`font-semibold ${cls.text600}`}>
                   {feedback.percentage.toFixed(1)}%
                 </span>
               </div>
             </div>
-            
+
             <div className="flex flex-col items-end ml-4">
-              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-${performanceColor}-100 text-${performanceColor}-800`}>
+              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${cls.bg100} ${cls.text800}`}>
                 {performanceCategory}
               </span>
               <div className="text-sm text-gray-500 mt-2 whitespace-nowrap">
-                {new Date(feedback.date).toLocaleDateString('en-US', { 
-                  year: 'numeric', 
-                  month: 'short', 
-                  day: 'numeric' 
+                {new Date(feedback.date).toLocaleDateString("en-US", {
+                  year: "numeric",
+                  month: "short",
+                  day: "numeric"
                 })}
               </div>
             </div>
@@ -136,20 +157,20 @@ const FeedbackCard = ({ feedback, index }) => {
           >
             <div className="mb-8">
               <div className="flex items-center mb-3">
-                <div className={`p-2 rounded-lg bg-${performanceColor}-100 text-${performanceColor}-600 mr-3`}>
+                <div className={`p-2 rounded-lg ${cls.bg100} ${cls.text600} mr-3`}>
                   <FiBookOpen size={18} />
                 </div>
                 <h3 className="font-bold text-gray-800 text-lg">Summary</h3>
               </div>
-              <p className={`text-gray-700 bg-${performanceColor}-50 p-4 rounded-xl border border-${performanceColor}-100`}>
+              <p className={`text-gray-700 ${cls.bg50} p-4 rounded-xl border ${cls.border100}`}>
                 {feedback.feedbackText.overallSummary}
               </p>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-              <div className={`bg-gradient-to-br from-${performanceColor}-50 to-white p-5 rounded-2xl border border-${performanceColor}-100 shadow-sm`}>
+              <div className={`bg-gradient-to-br ${cls.bg50} to-white p-5 rounded-2xl border ${cls.border100} shadow-sm`}>
                 <div className="flex items-center mb-4">
-                  <div className={`p-2 rounded-lg bg-${performanceColor}-100 text-${performanceColor}-600 mr-3`}>
+                  <div className={`p-2 rounded-lg ${cls.bg100} ${cls.text600} mr-3`}>
                     <FiAward size={18} />
                   </div>
                   <h4 className="font-bold text-gray-800">Strengths</h4>
@@ -157,13 +178,9 @@ const FeedbackCard = ({ feedback, index }) => {
                 <ul className="space-y-3">
                   {feedback.feedbackText.topicStrengths?.length > 0 ? (
                     feedback.feedbackText.topicStrengths.map((t, i) => (
-                      <motion.li 
-                        key={i} 
-                        className="flex items-start"
-                        variants={slideUp}
-                      >
-                        <div className={`p-1 rounded-full bg-${performanceColor}-100 mr-3 mt-0.5`}>
-                          <FiStar className={`text-${performanceColor}-500`} size={14} />
+                      <motion.li key={i} className="flex items-start" variants={slideUp}>
+                        <div className={`p-1 rounded-full ${cls.bg100} mr-3 mt-0.5`}>
+                          <FiStar className={`${cls.text500}`} size={14} />
                         </div>
                         <span className="text-gray-700">{t}</span>
                       </motion.li>
@@ -174,6 +191,7 @@ const FeedbackCard = ({ feedback, index }) => {
                 </ul>
               </div>
 
+              {/* Leave this as-is (amber always for weaknesses) */}
               <div className="bg-gradient-to-br from-amber-50 to-white p-5 rounded-2xl border border-amber-100 shadow-sm">
                 <div className="flex items-center mb-4">
                   <div className="p-2 rounded-lg bg-amber-100 text-amber-600 mr-3">
@@ -184,11 +202,7 @@ const FeedbackCard = ({ feedback, index }) => {
                 <ul className="space-y-3">
                   {feedback.feedbackText.topicWeaknesses?.length > 0 ? (
                     feedback.feedbackText.topicWeaknesses.map((w, i) => (
-                      <motion.li 
-                        key={i} 
-                        className="flex items-start"
-                        variants={slideUp}
-                      >
+                      <motion.li key={i} className="flex items-start" variants={slideUp}>
                         <div className="w-6 h-6 rounded-full bg-amber-100 border border-amber-200 flex items-center justify-center mr-3 flex-shrink-0">
                           <div className="w-2 h-2 rounded-full bg-amber-500"></div>
                         </div>
@@ -202,6 +216,7 @@ const FeedbackCard = ({ feedback, index }) => {
               </div>
             </div>
 
+            {/* Next steps remains same */}
             <div className="bg-gradient-to-br from-blue-50 to-white p-5 rounded-2xl border border-blue-100 shadow-sm">
               <div className="flex items-center mb-4">
                 <div className="p-2 rounded-lg bg-blue-100 text-blue-600 mr-3">
@@ -209,17 +224,10 @@ const FeedbackCard = ({ feedback, index }) => {
                 </div>
                 <h4 className="font-bold text-gray-800">Recommended Actions</h4>
               </div>
-              <motion.ul 
-                className="space-y-4"
-                variants={stagger}
-              >
+              <motion.ul className="space-y-4" variants={stagger}>
                 {feedback.feedbackText.nextSteps?.length > 0 ? (
                   feedback.feedbackText.nextSteps.map((step, i) => (
-                    <motion.li 
-                      key={i} 
-                      className="flex items-start"
-                      variants={slideUp}
-                    >
+                    <motion.li key={i} className="flex items-start" variants={slideUp}>
                       <div className="w-6 h-6 rounded-full bg-blue-100 border border-blue-200 flex items-center justify-center mr-3 flex-shrink-0">
                         <div className="w-2 h-2 rounded-full bg-blue-500"></div>
                       </div>
@@ -227,12 +235,11 @@ const FeedbackCard = ({ feedback, index }) => {
                         <p className="text-gray-800 font-medium">{step.action}</p>
                         {step.resource && (
                           <a
-  href={formatURL(step.resource)}
-  className="inline-flex items-center text-sm text-blue-600 hover:text-blue-800 mt-1 group"
-  target="_blank"
-  rel="noreferrer"
->
-
+                            href={formatURL(step.resource)}
+                            className="inline-flex items-center text-sm text-blue-600 hover:text-blue-800 mt-1 group"
+                            target="_blank"
+                            rel="noreferrer"
+                          >
                             <span className="border-b border-transparent group-hover:border-blue-600 transition-colors">
                               View Resource
                             </span>
@@ -252,15 +259,14 @@ const FeedbackCard = ({ feedback, index }) => {
 
         <button
           onClick={() => setExpanded(!expanded)}
-          className={`mt-4 text-sm font-medium flex items-center group ${expanded ? `text-${performanceColor}-600` : 'text-indigo-600 hover:text-indigo-800'}`}
+          className={`mt-4 text-sm font-medium flex items-center group ${expanded ? cls.text600 : "text-indigo-600 hover:text-indigo-800"}`}
         >
-          {expanded ? 'Show less' : 'Show detailed feedback'}
-          <svg 
-            className={`ml-2 w-4 h-4 transition-transform ${expanded ? 'rotate-180' : ''} group-hover:translate-y-0.5`} 
-            fill="none" 
-            stroke="currentColor" 
-            viewBox="0 0 24 24" 
-            xmlns="http://www.w3.org/2000/svg"
+          {expanded ? "Show less" : "Show detailed feedback"}
+          <svg
+            className={`ml-2 w-4 h-4 transition-transform ${expanded ? "rotate-180" : ""} group-hover:translate-y-0.5`}
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
           >
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
           </svg>
