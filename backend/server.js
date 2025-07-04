@@ -55,6 +55,7 @@ const problemsolvingagentRoutes = require("./routes/problemsolvingagentRoutes");
 const assessmentuploadformRoutes = require("./routes/assessmentuploadformRoutes");
 const uploadProfilePicRoutes = require("./routes/uploadProfilePicRoutes");
 const feedbackRoutes = require("./routes/feedbackRoutes");
+const studyPlanRoutes = require("./routes/studyPlanRoutes");
 
 app.use("/api/users", userRoutes);
 app.use("/api/teachers", teacherRoutes);
@@ -69,6 +70,7 @@ app.use("/api/ai-agent", problemsolvingagentRoutes);
 app.use("/api/assessments", assessmentuploadformRoutes);
 app.use("/api/upload", require("./routes/uploadProfilePicRoutes"));
 app.use("/api/feedback", feedbackRoutes);
+app.use("/api/study-plan", studyPlanRoutes);
 
 // Serve static assets only in production
 if (process.env.NODE_ENV === "production") {

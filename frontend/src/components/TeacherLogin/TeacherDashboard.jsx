@@ -21,7 +21,7 @@ function DashboardHome({ setCurrentView, setShowUploadForm, assessmentLibraryCou
         >
           <div>
             <p className="text-3xl font-bold mb-1">{assessmentLibraryCount}</p>
-            <p>Assessment Library</p>
+            <p className="text-lg font-semibold">Assessment Library</p>
             <p className="text-xs mt-1 opacity-90">+{newThisWeekCount} new this week</p>
           </div>
           <BiBookAdd className="text-4xl opacity-80" />
@@ -33,7 +33,7 @@ function DashboardHome({ setCurrentView, setShowUploadForm, assessmentLibraryCou
         >
           <div>
             <p className="text-3xl font-bold mb-1">{uploadAssessmentsCount}</p>
-            <p>Upload Assessments</p>
+            <p className="text-lg font-semibold">Upload Assessments</p>
           </div>
           <FaFileImport className="text-4xl opacity-80" />
         </div>
@@ -41,7 +41,7 @@ function DashboardHome({ setCurrentView, setShowUploadForm, assessmentLibraryCou
         <div className="bg-gradient-to-br from-teal-300 to-green-500 text-white shadow-md p-6 h-44 rounded-lg flex items-center justify-between">
           <div>
             <p className="text-3xl font-bold mb-1">82%</p>
-            <p>Average Completion</p>
+            <p className="text-lg font-semibold">Average Completion</p>
             <p className="text-xs mt-1 opacity-90">5 students behind</p>
           </div>
           <FaChartBar className="text-4xl opacity-80" />
@@ -50,7 +50,7 @@ function DashboardHome({ setCurrentView, setShowUploadForm, assessmentLibraryCou
         <div className="bg-gradient-to-br from-orange-300 to-yellow-500 text-white shadow-md p-6 h-44 rounded-lg flex items-center justify-between">
           <div>
             <p className="text-3xl font-bold mb-1">47</p>
-            <p>Pending Feedback</p>
+            <p className="text-lg font-semibold">Pending Feedback</p>
             <p className="text-xs mt-1 opacity-90">12 high priority</p>
           </div>
           <FaComments className="text-4xl opacity-80" />
@@ -221,10 +221,13 @@ const renderContent = () => {
             <span className="text-lg font-medium">Progress Tracking</span>
           </button>
 
-          <div className="flex items-center space-x-3 py-3 px-4 rounded-lg text-gray-700">
-            <MdOutlineFeedback className="text-xl" />
-            <span className="text-lg font-medium">Feedback Hub</span>
-          </div>
+          <button 
+  onClick={() => setCurrentView("feedback")}
+  className={`flex items-center space-x-3 py-3 px-4 rounded-lg w-full text-left ${currentView === "feedback" ? "bg-blue-200/50 text-blue-800" : "text-gray-700 hover:bg-blue-200/50 hover:text-blue-800"}`}
+>
+  <MdOutlineFeedback className="text-xl" />
+  <span className="text-lg font-medium">Feedback Hub</span>
+</button>
 
           <div className="flex items-center space-x-3 py-3 px-4 rounded-lg text-gray-700">
             <BiAnalyse className="text-xl" />

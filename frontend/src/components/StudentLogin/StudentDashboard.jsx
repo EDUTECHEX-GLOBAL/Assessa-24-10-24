@@ -14,15 +14,10 @@ import { useLocation } from "react-router-dom";
 import Progress from "./Progress";
 import StudentFeedback from './StudentFeedback';
 
-
-
-
-
 // ✅ Importing the AssessmentsPage component
 import AssessmentsPage from './AssessmentsPage'; // Make sure this path is correct
 import UserProfile from './UserProfile'; // Ensure the path is correct
-
-
+import StudentStudyPlan from './StudentStudyPlan';
 
 const data = [
   { name: 'January', value: 20 },
@@ -32,8 +27,6 @@ const data = [
   { name: 'September', value: 50 },
   { name: 'December', value: 70 },
 ];
-
-
 
 export default function Dashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -61,14 +54,15 @@ export default function Dashboard() {
       navigate("/login");
     }
   };
-  
-  
 
   return (
     <div className="flex h-screen bg-gradient-to-r from-teal-400 to-purple-500">
       {/* Sidebar */}
       <aside className={`fixed md:relative z-50 bg-white text-gray-800 w-64 p-6 transition-transform ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} md:translate-x-0 shadow-xl`}>
-        <button className="absolute top-4 right-4 md:hidden text-gray-600 hover:text-teal-600 transition" onClick={() => setSidebarOpen(false)}>
+        <button 
+          className="absolute top-4 right-4 md:hidden text-gray-600 hover:text-teal-600 transition" 
+          onClick={() => setSidebarOpen(false)}
+        >
           ✖
         </button>
         <div className="flex justify-center mb-6">
@@ -78,60 +72,59 @@ export default function Dashboard() {
         {/* ✅ Updated sidebar links to buttons that control view via setSelectedSection */}
         <nav className="space-y-2">
           <div
-  onClick={() => setSelectedSection("home")}
-  className={`flex items-center space-x-2 py-3 px-4 rounded-lg transition cursor-pointer
-    ${
-      selectedSection === "home"
-        ? "bg-teal-100 text-teal-700 font-semibold"
-        : "text-gray-700 hover:bg-teal-100 hover:text-teal-600"
-    }`}
->
-  <FaHome className="text-xl" />
-  <span className="text-lg font-medium">Home</span>
-</div>
+            onClick={() => setSelectedSection("home")}
+            className={`flex items-center space-x-2 py-3 px-4 rounded-lg transition cursor-pointer
+              ${
+                selectedSection === "home"
+                  ? "bg-teal-100 text-teal-700 font-semibold"
+                  : "text-gray-700 hover:bg-teal-100 hover:text-teal-600"
+              }`}
+          >
+            <FaHome className="text-xl" />
+            <span className="text-lg font-medium">Home</span>
+          </div>
 
           <div
-  onClick={() => setSelectedSection("assessments")}
-  className={`flex items-center space-x-2 py-3 px-4 rounded-lg transition cursor-pointer
-    ${
-      selectedSection === "assessments"
-        ? "bg-teal-100 text-teal-700 font-semibold"
-        : "text-gray-700 hover:bg-teal-100 hover:text-teal-600"
-    }`}
->
-  <FaBook className="text-xl" />
-  <span className="text-lg font-medium">Assessments</span>
-</div>
+            onClick={() => setSelectedSection("assessments")}
+            className={`flex items-center space-x-2 py-3 px-4 rounded-lg transition cursor-pointer
+              ${
+                selectedSection === "assessments"
+                  ? "bg-teal-100 text-teal-700 font-semibold"
+                  : "text-gray-700 hover:bg-teal-100 hover:text-teal-600"
+              }`}
+          >
+            <FaBook className="text-xl" />
+            <span className="text-lg font-medium">Assessments</span>
+          </div>
 
           <div
-  onClick={() => setSelectedSection("progress")}
-  className={`flex items-center space-x-2 py-3 px-4 rounded-lg transition cursor-pointer ${
-    selectedSection === "progress"
-      ? "bg-teal-100 text-teal-700 font-semibold"
-      : "text-gray-700 hover:bg-teal-100 hover:text-teal-600"
-  }`}
->
-  <FaChartBar className="text-xl" />
-  <span className="text-lg font-medium">Progress</span>
-</div>
+            onClick={() => setSelectedSection("progress")}
+            className={`flex items-center space-x-2 py-3 px-4 rounded-lg transition cursor-pointer ${
+              selectedSection === "progress"
+                ? "bg-teal-100 text-teal-700 font-semibold"
+                : "text-gray-700 hover:bg-teal-100 hover:text-teal-600"
+            }`}
+          >
+            <FaChartBar className="text-xl" />
+            <span className="text-lg font-medium">Progress</span>
+          </div>
 
-          <div className="flex items-center space-x-2 py-3 px-4 rounded-lg text-gray-700 hover:bg-teal-100 hover:text-teal-600 transition cursor-pointer">
+          {/* <div className="flex items-center space-x-2 py-3 px-4 rounded-lg text-gray-700 hover:bg-teal-100 hover:text-teal-600 transition cursor-pointer">
             <FaTasks className="text-xl" />
             <span className="text-lg font-medium">Study Plan</span>
-          </div>
+          </div> */}
           <div
-  onClick={() => setSelectedSection("profile")}
-  className={`flex items-center space-x-2 py-3 px-4 rounded-lg transition cursor-pointer
-    ${
-      selectedSection === "profile"
-        ? "bg-teal-100 text-teal-700 font-semibold"
-        : "text-gray-700 hover:bg-teal-100 hover:text-teal-600"
-    }`}
->
-  <IoPersonCircleOutline className="text-xl" />
-  <span className="text-lg font-medium">My Profile</span>
-</div>
-
+            onClick={() => setSelectedSection("profile")}
+            className={`flex items-center space-x-2 py-3 px-4 rounded-lg transition cursor-pointer
+              ${
+                selectedSection === "profile"
+                  ? "bg-teal-100 text-teal-700 font-semibold"
+                  : "text-gray-700 hover:bg-teal-100 hover:text-teal-600"
+              }`}
+          >
+            <IoPersonCircleOutline className="text-xl" />
+            <span className="text-lg font-medium">My Profile</span>
+          </div>
         </nav>
 
         <div className="flex-grow"></div>
@@ -216,22 +209,26 @@ export default function Dashboard() {
             {/* Stats Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-8 mb-8">
               <div
-  onClick={() => setSelectedSection("feedback")}
-  className="cursor-pointer bg-gradient-to-br from-purple-300 to-purple-500 text-white shadow-md p-6 rounded-lg flex flex-col items-center justify-center transform hover:scale-[1.03] transition-transform"
->
-  <MdSchool className="text-white text-[40px] mb-[10px]" />
-  <p className="text-3xl font-bold">1</p>
-  <p className="text-base">Feedback Hub</p>
-</div>
-
-              <div className="bg-gradient-to-br from-teal-300 to-teal-500 text-white shadow-md p-6 rounded-lg flex flex-col items-center justify-center transform hover:scale-[1.03] transition-transform">
-                <MdMenuBook className="text-white text-[40px] mb-[10px]" />
-                <p className="text-3xl font-bold">50</p>
-                <p className="text-base">Subject Insights</p>
+                onClick={() => setSelectedSection("feedback")}
+                className="cursor-pointer bg-gradient-to-br from-purple-300 to-purple-500 text-white shadow-md p-6 rounded-lg flex flex-col items-center justify-center transform hover:scale-[1.03] transition-transform"
+              >
+                <MdSchool className="text-white text-[40px] mb-[10px]" />
+                <p className="text-3xl font-bold">1</p>
+                <p className="text-lg font-semibold">Feedback Hub</p>
               </div>
+
+              <div
+                onClick={() => setSelectedSection("studyPlan")}
+                className="cursor-pointer bg-gradient-to-br from-teal-300 to-teal-500 text-white shadow-md p-6 rounded-lg flex flex-col items-center justify-center transform hover:scale-[1.03] transition-transform"
+              >
+                <MdMenuBook className="text-white text-[40px] mb-[6px]" />
+                <p className="text-lg font-semibold">Study Plan</p>
+                <p className="text-sm text-white/90 mt-1">Your weekly plan is ready</p>
+              </div>
+
               <div className="bg-gradient-to-br from-amber-300 to-amber-500 text-white shadow-md p-6 rounded-lg flex flex-col items-center justify-center transform hover:scale-[1.03] transition-transform">
                 <FaRobot className="text-white text-[40px] mb-[10px]" />
-                <p className="text-base">Problem Solving Agent</p>
+                <p className="text-lg font-semibold">Problem Solving Agent</p>
                 <button
                   onClick={() => navigate("/problemsolving-agent")}
                   className="mt-4 px-4 py-2 bg-white text-amber-600 font-bold rounded-full hover:bg-amber-300 hover:text-white transition"
@@ -242,7 +239,7 @@ export default function Dashboard() {
               <div className="bg-gradient-to-br from-lime-300 to-lime-500 text-white shadow-md p-6 rounded-lg flex flex-col items-center justify-center transform hover:scale-[1.03] transition-transform">
                 <MdQuiz className="text-white text-[40px] mb-[10px]" />
                 <p className="text-3xl font-bold">10</p>
-                <p className="text-base">Quiz Quest</p>
+                <p className="text-lg font-semibold">Quiz Quest</p>
               </div>
             </div>
 
@@ -282,14 +279,17 @@ export default function Dashboard() {
           <AssessmentsPage onBackHome={() => setSelectedSection("home")} />
         )}
         {selectedSection === "profile" && (
-    <UserProfile onBackHome={() => setSelectedSection("home")} />
-  )}
-  {selectedSection === "progress" && (
-  <Progress onBack={() => setSelectedSection("home")} />
-)}
-{selectedSection === "feedback" && (
-    <StudentFeedback onBackHome={() => setSelectedSection("home")} />
-  )}
+          <UserProfile onBackHome={() => setSelectedSection("home")} />
+        )}
+        {selectedSection === "progress" && (
+          <Progress onBack={() => setSelectedSection("home")} />
+        )}
+        {selectedSection === "feedback" && (
+          <StudentFeedback onBackHome={() => setSelectedSection("home")} />
+        )}
+        {selectedSection === "studyPlan" && (
+          <StudentStudyPlan onBackHome={() => setSelectedSection("home")} />
+        )}
 
       </main>
     </div>
