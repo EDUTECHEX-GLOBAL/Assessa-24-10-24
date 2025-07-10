@@ -9,6 +9,9 @@ import AssessmentLibrary from "./AssessmentLibrary";
 import ProgressTracking from "./ProgressTracking";
 import TeacherProfile from './TeacherProfile';
 import "tailwindcss/tailwind.css";
+import TeacherDashboardBot from './TeacherDashboardBot';
+
+
 
 // --- DashboardHome now receives the counts as props ---
 function DashboardHome({ setCurrentView, setShowUploadForm, assessmentLibraryCount, uploadAssessmentsCount, newThisWeekCount }) {
@@ -314,6 +317,8 @@ const renderContent = () => {
         {showUploadForm && <AssessmentUploadForm onClose={() => setShowUploadForm(false)} />}
         {renderContent()}
       </main>
+      {teacherInfo?._id && <TeacherDashboardBot userId={teacherInfo._id} />}
+
     </div>
   );
 }

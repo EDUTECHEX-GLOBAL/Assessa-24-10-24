@@ -18,6 +18,7 @@ import StudentFeedback from './StudentFeedback';
 import AssessmentsPage from './AssessmentsPage'; // Make sure this path is correct
 import UserProfile from './UserProfile'; // Ensure the path is correct
 import StudentStudyPlan from './StudentStudyPlan';
+import StudentDashboardBot from './studentdashboardbot';
 
 const data = [
   { name: 'January', value: 20 },
@@ -33,12 +34,15 @@ export default function Dashboard() {
   const [username, setUsername] = useState("");
   const [selectedSection, setSelectedSection] = useState("home"); // ✅ Track selected section
   const navigate = useNavigate();
+  // ✅ Save user info and extract userId for the bot
+  const [userId, setUserId] = useState(null);
 
   useEffect(() => {
     const userInfo = JSON.parse(localStorage.getItem("userInfo"));
     console.log("User Info from localStorage:", userInfo);
     if (userInfo && userInfo.name) {
       setUsername(userInfo.name);
+      setUserId(userInfo._id); // ✅ Pass this to the AI bot
     }
   }, []);
 
@@ -292,6 +296,9 @@ export default function Dashboard() {
         )}
 
       </main>
+      {/* ✅ Chatbot Floating Button (Always visible on page) */}
+      {/* Injected OUTSIDE <main> so it overlays regardless of section */}
+      {userId && <StudentDashboardBot userId={userId} />}
     </div>
   );
 }

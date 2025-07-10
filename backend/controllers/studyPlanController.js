@@ -73,6 +73,82 @@ const validateStudent = async (studentId) => {
   return student;
 };
 
+/**
+ * Uses Claude via Bedrock to validate the student's explanation.
+ * Returns { isValid: boolean, feedback: string }
+ */
+const validateStudentSummary = async (text, question) => {
+  // Prepare the Claude prompt
+  const prompt = `
+You are a high school teacher validating a student's explanation for a given question.
+
+Question: ${question}
+
+Student's Explanation: ${text}
+
+Analyze the explanation and determine whether it correctly answers the question.
+Reply strictly in this JSON format:
+
+{
+  "isValid": true,
+  "feedback": "Explanation is correct and clear"
+}
+
+If the explanation is incorrect or off-topic:
+
+{
+  "isValid": false,
+  "feedback": "Explanation doesn't match the question"
+}
+`;
+
+  // Create Bedrock Claude model request
+  const command = new InvokeModelCommand({
+    modelId: "anthropic.claude-3-5-sonnet-20240620-v1:0",
+    contentType: "application/json",
+    accept: "application/json",
+    body: JSON.stringify({
+      anthropic_version: "bedrock-2023-05-31",
+      messages: [{ role: "user", content: prompt }],
+      max_tokens: 300,
+      temperature: 0.4,
+    }),
+  });
+
+  try {
+    // Send request to Bedrock
+    const response = await bedrock.send(command);
+    const raw = new TextDecoder().decode(response.body);
+    const parsed = JSON.parse(raw);
+    const content = parsed?.content?.[0]?.text || "{}";
+
+    const result = JSON.parse(content);
+
+    // Return formatted response
+    return {
+      isValid: !!result.isValid,
+      feedback: result.feedback || (result.isValid
+        ? "Explanation accepted."
+        : "Explanation doesn't match the question"),
+    };
+  } catch (err) {
+    console.error("Claude validation error:", err);
+    return {
+      isValid: false,
+      feedback: "AI validation failed. Please try again.",
+    };
+  }
+};
+
+const getPriorityIcon = ({ completion, marksLost, accuracy }) => {
+  if (completion >= 80 || accuracy >= 80) return "✅";       // Good performance
+  if (completion < 50 || accuracy < 60) return "⚠️";         // Needs some attention
+  if (completion === 0 && marksLost > 20) return "❗";       // Critical
+  return "📘";                                               // Default
+};
+
+
+
 const getStudyPlan = asyncHandler(async (req, res) => {
   try {
     const { studentId } = req.params;
@@ -87,6 +163,7 @@ const getStudyPlan = asyncHandler(async (req, res) => {
       map[task.taskId] = true;
       return map;
     }, {});
+    
 
     const wrongAnswers = await AssessmentSubmission.aggregate([
       { $match: { studentId: new mongoose.Types.ObjectId(studentId) } },
@@ -217,37 +294,44 @@ const getStudyPlan = asyncHandler(async (req, res) => {
         const taskIdBase = `${subject.subject}-${detectedTopic}`.replace(/\s+/g, '-').toLowerCase();
 
         const tasks = [
-          {
-            id: `${taskIdBase}-concept`,
-            type: "concept",
-            title: `Understand ${detectedTopic}`,
-            description: aiAdvice,
-            duration: 20,
-            priority: accuracy < 50,
-            isCompleted: completedTaskMap[`${taskIdBase}-concept`] || false
-          },
-          ...topic.questions.slice(0, 3).map((q, i) => ({
-            id: `${taskIdBase}-question-${i}`,
-            type: "remediation",
-            title: `Review question: ${q.questionText.substring(0, 30)}...`,
-            description: `Your answer: ${q.studentAnswer} | Correct: ${q.correctAnswer}`,
-            questionText: q.questionText,
-            studentAnswer: q.studentAnswer,
-            correctAnswer: q.correctAnswer,
-            marksLost: q.marksLost,
-            duration: 15,
-            priority: true,
-            isCompleted: completedTaskMap[`${taskIdBase}-question-${i}`] || false
-          })),
-          {
-            id: `${taskIdBase}-practice`,
-            type: "practice",
-            title: `Practice ${detectedTopic}`,
-            description: "Complete 3 new questions",
-            duration: 25,
-            isCompleted: completedTaskMap[`${taskIdBase}-practice`] || false
-          }
-        ];
+  {
+    id: `${taskIdBase}-concept`,
+    taskId: `${taskIdBase}-concept`, // ✅ Include taskId
+    type: "concept",
+    title: `Understand ${detectedTopic}`,
+    description: aiAdvice,
+    duration: 20,
+    priority: accuracy < 50,
+    isCompleted: completedTaskMap[`${taskIdBase}-concept`] || false
+  },
+  ...topic.questions.slice(0, 3).map((q, i) => {
+    const questionTaskId = `${taskIdBase}-question-${i}`;
+    return {
+      id: questionTaskId,
+      taskId: questionTaskId, // ✅ Include taskId
+      type: "remediation",
+      title: `Review question: ${q.questionText.substring(0, 30)}...`,
+      description: `Your answer: ${q.studentAnswer} | Correct: ${q.correctAnswer}`,
+      questionText: q.questionText,
+      studentAnswer: q.studentAnswer,
+      correctAnswer: q.correctAnswer,
+      marksLost: q.marksLost,
+      duration: 15,
+      priority: true,
+      isCompleted: completedTaskMap[questionTaskId] || false
+    };
+  }),
+  {
+    id: `${taskIdBase}-practice`,
+    taskId: `${taskIdBase}-practice`, // ✅ Include taskId
+    type: "practice",
+    title: `Practice ${detectedTopic}`,
+    description: "Complete 3 new questions",
+    duration: 25,
+    isCompleted: completedTaskMap[`${taskIdBase}-practice`] || false
+  }
+];
+
 
         const completedTopicTasks = tasks.filter(t => t.isCompleted);
         subjectData.completedMinutes += completedTopicTasks.reduce((sum, t) => sum + t.duration, 0);
@@ -265,16 +349,24 @@ const getStudyPlan = asyncHandler(async (req, res) => {
       studyPlan.subjects.push(subjectData);
 
       subjectData.topics.forEach(topic => {
-        const completedCount = topic.tasks.filter(t => t.isCompleted).length;
-        studyPlan.focusAreas.push({
-          subject: subject.subject,
-          topic: topic.name,
-          accuracy: topic.accuracy,
-          wrongCount: topic.wrongCount,
-          marksLost: topic.marksLost,
-          completion: Math.round((completedCount / topic.tasks.length) * 100) || 0
-        });
-      });
+  const completedCount = topic.tasks.filter(t => t.isCompleted).length;
+  const completion = Math.round((completedCount / topic.tasks.length) * 100) || 0;
+
+  studyPlan.focusAreas.push({
+    subject: subject.subject,
+    topic: topic.name,
+    accuracy: topic.accuracy,
+    wrongCount: topic.wrongCount,
+    marksLost: topic.marksLost,
+    completion,
+    icon: getPriorityIcon({
+      completion,
+      marksLost: topic.marksLost,
+      accuracy: topic.accuracy
+    }) // ✅ Assign meaningful icon based on data
+  });
+});
+
     }
 
     studyPlan.subjects.sort((a, b) => {
@@ -423,9 +515,42 @@ const getStudyProgress = asyncHandler(async (req, res) => {
   }
 });
 
+
+// Add the new validateSummary function (same implementation as before)
+const validateSummary = asyncHandler(async (req, res) => {
+  try {
+    const { text, question } = req.body;
+    
+    // Basic validation
+    if (!text || !question) {
+      return res.status(400).json({ 
+        error: "Both text and question are required" 
+      });
+    }
+
+    if (text.length < 20) {
+      return res.json({ 
+        isValid: false, 
+        feedback: "Explanation too short (min 20 characters)" 
+      });
+    }
+
+    const validation = await validateStudentSummary(text, question);
+    res.json(validation);
+  } catch (err) {
+    console.error("Summary validation failed:", err);
+    res.status(500).json({ 
+      error: "Summary validation failed",
+      isValid: false,
+      feedback: "Please try again later"
+    });
+  }
+});
+
 module.exports = {
   getStudyPlan,
   getPracticeQuestions,
   updateStudyTask,
-  getStudyProgress
+  getStudyProgress,
+  validateSummary  // Added the new function here
 };

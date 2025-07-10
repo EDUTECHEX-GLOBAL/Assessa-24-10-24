@@ -42,7 +42,12 @@ export default function ProgressTracking({ onBack }) {
       );
 
       if (Array.isArray(res.data)) {
-        setProgressData(res.data);
+        // Add feedbackSent flag to each entry if not present
+        const dataWithFeedbackStatus = res.data.map(item => ({
+          ...item,
+          feedbackSent: item.feedbackSent || false
+        }));
+        setProgressData(dataWithFeedbackStatus);
       } else {
         throw new Error("Unexpected response format");
       }
@@ -55,65 +60,78 @@ export default function ProgressTracking({ onBack }) {
   };
 
   const fetchFeedback = async (entry) => {
-  setLoadingFeedback(true);
-  setFeedbackObj(null);
-  setFeedbackError(null);
-  setFeedbackSuccess(false);
-  setSelectedEntry(entry);
+    setLoadingFeedback(true);
+    setFeedbackObj(null);
+    setFeedbackError(null);
+    setFeedbackSuccess(false);
+    setSelectedEntry(entry);
 
-  try {
-    const token = localStorage.getItem("token");
-
-    const res = await axios.post(
-      `${API_BASE_URL}/api/feedback/send`,
-      {
-        studentId: entry.studentId,
-        submissionId: entry.submissionId,
-      },
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
+    try {
+      const token = localStorage.getItem("token");
+      const res = await axios.post(
+        `${API_BASE_URL}/api/feedback/send`,
+        {
+          studentId: entry.studentId,
+          submissionId: entry.submissionId,
         },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (res.data.feedbackText) {
+        setFeedbackObj(typeof res.data.feedbackText === 'string' 
+          ? JSON.parse(res.data.feedbackText) 
+          : res.data.feedbackText);
+      } else {
+        throw new Error("No feedback content received");
       }
-    );
-
-    setFeedbackObj(res.data.feedbackText || null);
-  } catch (err) {
-    console.error("Error generating feedback:", err);
-    setFeedbackError("Failed to generate feedback.");
-  } finally {
-    setLoadingFeedback(false);
-  }
-};
-
+    } catch (err) {
+      console.error("Error generating feedback:", err);
+      setFeedbackError(err.response?.data?.message || "Failed to generate feedback.");
+    } finally {
+      setLoadingFeedback(false);
+    }
+  };
 
   const sendFeedback = async () => {
-  try {
-    const token = localStorage.getItem("token");
-    const res = await axios.post(
-      `${API_BASE_URL}/api/feedback/save`,
-      {
-        studentId: selectedEntry.studentId,
-        submissionId: selectedEntry.submissionId,
-        feedbackText: feedbackObj,
-      },
-      {
-        headers: { Authorization: `Bearer ${token}` },
+    try {
+      const token = localStorage.getItem("token");
+      await axios.post(
+        `${API_BASE_URL}/api/feedback/save`,
+        {
+          studentId: selectedEntry.studentId,
+          submissionId: selectedEntry.submissionId,
+          feedbackText: feedbackObj,
+        },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      
+      // Update the progress data to mark feedback as sent
+      setProgressData(prevData => 
+        prevData.map(item => 
+          item.submissionId === selectedEntry.submissionId 
+            ? { ...item, feedbackSent: true } 
+            : item
+        )
+      );
+      
+      setFeedbackSuccess(true);
+      setFeedbackError(null);
+    } catch (err) {
+      if (err.response?.status === 409) {
+        setFeedbackError("Feedback has already been sent for this submission.");
+      } else {
+        console.error("Error sending feedback:", err);
+        setFeedbackError("Failed to send feedback.");
       }
-    );
-    setFeedbackSuccess(true);
-    setFeedbackError(null);
-  } catch (err) {
-    if (err.response?.status === 409) {
-      setFeedbackError("Feedback has already been sent for this submission.");
-    } else {
-      console.error("Error sending feedback:", err);
-      setFeedbackError("Failed to send feedback.");
+      setFeedbackSuccess(false);
     }
-    setFeedbackSuccess(false);
-  }
-};
-
+  };
 
   // Pagination logic
   const indexOfLastItem = currentPage * itemsPerPage;
@@ -244,12 +262,18 @@ export default function ProgressTracking({ onBack }) {
                           {new Date(item.date).toLocaleDateString()}
                         </td>
                         <td className="p-4">
-                          <button
-                            onClick={() => fetchFeedback(item)}
-                            className="px-3 py-1 bg-teal-50 text-sky-600 rounded-md text-sm font-medium hover:bg-teal-100 transition-colors shadow-sm"
-                          >
-                            Give Feedback
-                          </button>
+                          {item.feedbackSent ? (
+                            <span className="px-3 py-1 bg-green-50 text-green-600 rounded-md text-sm font-medium shadow-sm">
+                              Feedback Sent
+                            </span>
+                          ) : (
+                            <button
+                              onClick={() => fetchFeedback(item)}
+                              className="px-3 py-1 bg-teal-50 text-sky-600 rounded-md text-sm font-medium hover:bg-teal-100 transition-colors shadow-sm"
+                            >
+                              Give Feedback
+                            </button>
+                          )}
                         </td>
                       </tr>
                     ))}
@@ -387,6 +411,15 @@ export default function ProgressTracking({ onBack }) {
                 </div>
               )}
 
+              {feedbackSuccess && (
+                <div className="mb-4 p-4 bg-green-50/80 rounded-lg border border-green-100 backdrop-blur-sm">
+                  <div className="flex items-center text-green-600">
+                    <FiCheckCircle className="mr-2" />
+                    <p>Feedback sent successfully!</p>
+                  </div>
+                </div>
+              )}
+
               {feedbackError && (
                 <div className="mb-4 p-4 bg-rose-50/80 rounded-lg border border-rose-100 backdrop-blur-sm">
                   <div className="flex items-center text-rose-600">
@@ -396,129 +429,119 @@ export default function ProgressTracking({ onBack }) {
                 </div>
               )}
 
-              {!loadingFeedback && !feedbackError && (
-                <>
-                  {feedbackObj ? (
-                    <div className="space-y-6">
-                      <div className="bg-blue-50/70 p-4 rounded-lg border border-blue-100/50 backdrop-blur-sm">
-                        <h4 className="font-bold text-blue-800 mb-2 flex items-center">
-                          <FiCheckCircle className="mr-2" />
-                          Overall Summary
-                        </h4>
-                        <p className="text-gray-700">
-                          {feedbackObj.overallSummary || "No summary available."}
-                        </p>
-                      </div>
+              {!loadingFeedback && !feedbackError && feedbackObj && (
+                <div className="space-y-6">
+                  <div className="bg-blue-50/70 p-4 rounded-lg border border-blue-100/50 backdrop-blur-sm">
+                    <h4 className="font-bold text-blue-800 mb-2 flex items-center">
+                      <FiCheckCircle className="mr-2" />
+                      Overall Summary
+                    </h4>
+                    <p className="text-gray-700">
+                      {feedbackObj.overallSummary || "No summary available."}
+                    </p>
+                  </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="bg-emerald-50/70 p-4 rounded-lg border border-emerald-100/50 backdrop-blur-sm">
-                          <h4 className="font-bold text-emerald-800 mb-2">Strengths</h4>
-                          {feedbackObj.topicStrengths?.length > 0 ? (
-                            <ul className="list-disc pl-5 space-y-1 text-gray-700">
-                              {feedbackObj.topicStrengths.map((strength, idx) => (
-                                <li key={idx}>{strength}</li>
-                              ))}
-                            </ul>
-                          ) : (
-                            <p className="text-gray-500">No notable strengths identified</p>
-                          )}
-                        </div>
-
-                        <div className="bg-amber-50/70 p-4 rounded-lg border border-amber-100/50 backdrop-blur-sm">
-                          <h4 className="font-bold text-amber-800 mb-2">Areas for Improvement</h4>
-                          {feedbackObj.topicWeaknesses?.length > 0 ? (
-                            <ul className="list-disc pl-5 space-y-1 text-gray-700">
-                              {feedbackObj.topicWeaknesses.map((weakness, idx) => (
-                                <li key={idx}>{weakness}</li>
-                              ))}
-                            </ul>
-                          ) : (
-                            <p className="text-gray-500">No specific weaknesses identified</p>
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="bg-teal-50/70 p-4 rounded-lg border border-teal-100/50 backdrop-blur-sm">
-                        <h4 className="font-bold text-teal-800 mb-2">Recommended Next Steps</h4>
-                        {feedbackObj.nextSteps?.length > 0 ? (
-                          <ul className="space-y-3">
-                            {feedbackObj.nextSteps.map((step, idx) => (
-                              <li key={idx} className="bg-white/70 p-3 rounded border border-gray-200/30">
-                                <p className="font-medium text-gray-800">Action: {step.action}</p>
-                                {step.resource && (
-                                  <p className="text-sm text-gray-600 mt-1">
-                                    Resource:{" "}
-                                    <a
-                                        href={
-                                          step.resource.startsWith("http")
-                                            ? step.resource
-                                            : `https://www.google.com/search?q=${encodeURIComponent(step.resource)}`
-                                        }
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="text-teal-600 hover:underline"
-                                      >
-                                        {step.resource}
-                                      </a>
-                                  </p>
-                                )}
-                              </li>
-                            ))}
-                          </ul>
-                        ) : (
-                          <p className="text-gray-500">No specific recommendations</p>
-                        )}
-                      </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="bg-emerald-50/70 p-4 rounded-lg border border-emerald-100/50 backdrop-blur-sm">
+                      <h4 className="font-bold text-emerald-800 mb-2">Strengths</h4>
+                      {feedbackObj.topicStrengths?.length > 0 ? (
+                        <ul className="list-disc pl-5 space-y-1 text-gray-700">
+                          {feedbackObj.topicStrengths.map((strength, idx) => (
+                            <li key={idx}>{strength}</li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="text-gray-500">No notable strengths identified</p>
+                      )}
                     </div>
-                  ) : (
-                    <div className="text-center py-8 text-gray-500">
-                      No feedback content available for this submission.
+
+                    <div className="bg-amber-50/70 p-4 rounded-lg border border-amber-100/50 backdrop-blur-sm">
+                      <h4 className="font-bold text-amber-800 mb-2">Areas for Improvement</h4>
+                      {feedbackObj.topicWeaknesses?.length > 0 ? (
+                        <ul className="list-disc pl-5 space-y-1 text-gray-700">
+                          {feedbackObj.topicWeaknesses.map((weakness, idx) => (
+                            <li key={idx}>{weakness}</li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="text-gray-500">No specific weaknesses identified</p>
+                      )}
                     </div>
-                  )}
-                </>
+                  </div>
+
+                  <div className="bg-teal-50/70 p-4 rounded-lg border border-teal-100/50 backdrop-blur-sm">
+                    <h4 className="font-bold text-teal-800 mb-2">Recommended Next Steps</h4>
+                    {feedbackObj.nextSteps?.length > 0 ? (
+                      <ul className="space-y-3">
+                        {feedbackObj.nextSteps.map((step, idx) => (
+                          <li key={idx} className="bg-white/70 p-3 rounded border border-gray-200/30">
+                            <p className="font-medium text-gray-800">Action: {step.action}</p>
+                            {step.resource && (
+                              <p className="text-sm text-gray-600 mt-1">
+                                Resource:{" "}
+                                <a
+                                  href={
+                                    step.resource.startsWith("http")
+                                      ? step.resource
+                                      : `https://www.google.com/search?q=${encodeURIComponent(step.resource)}`
+                                  }
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-teal-600 hover:underline"
+                                >
+                                  {step.resource}
+                                </a>
+                              </p>
+                            )}
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="text-gray-500">No specific recommendations</p>
+                    )}
+                  </div>
+                </div>
               )}
             </div>
 
             <div className="sticky bottom-0 bg-white/70 p-4 border-t border-white/30 flex flex-col sm:flex-row sm:justify-end sm:items-center space-y-3 sm:space-y-0 sm:space-x-3 backdrop-blur-sm">
+              <button
+                onClick={() => setSelectedEntry(null)}
+                className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100/50 transition-colors"
+              >
+                Cancel
+              </button>
 
-  <button
-    onClick={() => setSelectedEntry(null)}
-    className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100/50 transition-colors"
-  >
-    Cancel
-  </button>
-
-  <button
-    onClick={sendFeedback}
-    disabled={loadingFeedback || !feedbackObj || feedbackSuccess}
-    className={`px-4 py-2 rounded-lg text-white flex items-center ${
-      loadingFeedback || !feedbackObj || feedbackSuccess
-        ? "bg-teal-300 cursor-not-allowed"
-        : "bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 shadow-md"
-    }`}
-  >
-    {feedbackSuccess ? (
-      <>
-        <FiCheckCircle className="mr-2" />
-        Sent!
-      </>
-    ) : (
-      <>
-        <FiSend className="mr-2" />
-        Send Feedback
-      </>
-    )}
-  </button>
-
-  {/* 🚨 Feedback Error Message */}
-  {feedbackError && (
-    <div className="mt-3 bg-red-100 text-red-700 text-sm rounded-md px-4 py-2 border border-red-300 shadow-sm w-full sm:w-auto">
-      <FiAlertCircle className="inline mr-2" />
-      {feedbackError}
-    </div>
-  )}
-</div>
-
+              <button
+                onClick={sendFeedback}
+                disabled={loadingFeedback || !feedbackObj || feedbackSuccess}
+                className={`px-4 py-2 rounded-lg text-white flex items-center justify-center ${
+                  loadingFeedback || !feedbackObj || feedbackSuccess
+                    ? "bg-teal-300 cursor-not-allowed"
+                    : "bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 shadow-md"
+                }`}
+              >
+                {loadingFeedback ? (
+                  <>
+                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Sending...
+                  </>
+                ) : feedbackSuccess ? (
+                  <>
+                    <FiCheckCircle className="mr-2" />
+                    Sent!
+                  </>
+                ) : (
+                  <>
+                    <FiSend className="mr-2" />
+                    Send Feedback
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </div>
       )}
