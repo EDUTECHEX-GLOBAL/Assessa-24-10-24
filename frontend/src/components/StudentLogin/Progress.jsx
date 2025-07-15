@@ -38,16 +38,14 @@ const Progress = ({ onBack }) => {
     fetchProgress();
   }, [API_BASE]);
 
-  // Calculate overall progress statistics
   const averageScore = progressData.length > 0 
     ? (progressData.reduce((sum, item) => sum + item.score, 0) / progressData.length).toFixed(1)
     : 0;
-    
+
   const highestScore = progressData.length > 0
     ? Math.max(...progressData.map(item => item.score))
     : 0;
 
-  // Calculate completion rate
   const completionRate = progressData.length > 0 
     ? ((progressData.filter(item => item.percentage >= 100).length / progressData.length) * 100)
     : 0;
@@ -55,7 +53,6 @@ const Progress = ({ onBack }) => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-6">
       <div className="max-w-6xl mx-auto">
-        {/* Header Section */}
         <motion.div 
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -82,8 +79,6 @@ const Progress = ({ onBack }) => {
           </div>
         </motion.div>
 
-        {/* Rest of your component remains exactly the same */}
-        {/* Loading State */}
         {loading ? (
           <div className="flex justify-center items-center h-64">
             <motion.div 
@@ -110,6 +105,7 @@ const Progress = ({ onBack }) => {
           <>
             {/* Stats Overview */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+              {/* Total Assessments */}
               <motion.div 
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -130,12 +126,13 @@ const Progress = ({ onBack }) => {
                   </div>
                 </div>
               </motion.div>
-              
+
+              {/* Average Score */}
               <motion.div 
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 }}
-                whileHover={{ y: -5, boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.1)" }}
+                whileHover={{ y: -5 }}
                 className="bg-white p-6 rounded-xl shadow-sm hover:shadow-md transition-all border border-gray-100 relative overflow-hidden"
               >
                 <div className="absolute -right-6 -top-6 h-20 w-20 rounded-full bg-blue-100 opacity-30"></div>
@@ -151,12 +148,13 @@ const Progress = ({ onBack }) => {
                   </div>
                 </div>
               </motion.div>
-              
+
+              {/* Highest Score */}
               <motion.div 
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3 }}
-                whileHover={{ y: -5, boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.1)" }}
+                whileHover={{ y: -5 }}
                 className="bg-white p-6 rounded-xl shadow-sm hover:shadow-md transition-all border border-gray-100 relative overflow-hidden"
               >
                 <div className="absolute -right-6 -top-6 h-20 w-20 rounded-full bg-purple-100 opacity-30"></div>
@@ -172,12 +170,13 @@ const Progress = ({ onBack }) => {
                   </div>
                 </div>
               </motion.div>
-              
+
+              {/* Completion Rate */}
               <motion.div 
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.4 }}
-                whileHover={{ y: -5, boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.1)" }}
+                whileHover={{ y: -5 }}
                 className="bg-white p-6 rounded-xl shadow-sm hover:shadow-md transition-all border border-gray-100 relative overflow-hidden"
               >
                 <div className="absolute -right-6 -top-6 h-20 w-20 rounded-full bg-green-100 opacity-30"></div>
@@ -216,7 +215,7 @@ const Progress = ({ onBack }) => {
                             item.percentage >= 50 ? 'bg-blue-100 text-blue-600' :
                             'bg-yellow-100 text-yellow-600'
                           }`}>
-                            <span className="text-xl font-bold">{item.percentage}%</span>
+                            <span className="text-xl font-bold">{item.percentage.toFixed(0)}%</span>
                           </div>
                           <div>
                             <h3 className="text-xl font-bold text-gray-800">{item.assessmentTitle}</h3>
@@ -245,12 +244,12 @@ const Progress = ({ onBack }) => {
                       <div className="mt-6">
                         <div className="flex justify-between mb-2">
                           <span className="text-sm font-medium text-gray-600">Progress</span>
-                          <span className="text-sm font-medium text-gray-600">{item.percentage}% completed</span>
+                          <span className="text-sm font-medium text-gray-600">{item.percentage.toFixed(0)}% completed</span>
                         </div>
                         <div className="w-full bg-gray-200 rounded-full h-2.5 overflow-hidden">
                           <motion.div 
                             initial={{ width: 0 }}
-                            animate={{ width: `${item.percentage}%` }}
+                            animate={{ width: `${item.percentage.toFixed(0)}%` }}
                             transition={{ duration: 1, delay: index * 0.1 + 0.5 }}
                             className={`h-2.5 rounded-full ${
                               item.percentage >= 80 ? 'bg-green-500' :

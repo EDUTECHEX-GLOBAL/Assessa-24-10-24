@@ -249,6 +249,9 @@ exports.getFeedbacksByStudent = asyncHandler(async (req, res) => {
 exports.getAllFeedbacks = asyncHandler(async (_req, res) => {
   const feedbacks = await Feedback.find().populate("studentId assessmentId");
 
+  console.log("📦 All Feedbacks:", feedbacks.length); // Add this
+  console.log("🧾 Example:", feedbacks[0]); // Add this to see shape
+
   const parsed = feedbacks.map((fb) => ({
     ...fb.toObject(),
     feedbackText: JSON.parse(fb.feedbackText),
@@ -256,3 +259,4 @@ exports.getAllFeedbacks = asyncHandler(async (_req, res) => {
 
   res.json(parsed);
 });
+

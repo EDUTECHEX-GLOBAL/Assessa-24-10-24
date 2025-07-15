@@ -10,6 +10,8 @@ import ProgressTracking from "./ProgressTracking";
 import TeacherProfile from './TeacherProfile';
 import "tailwindcss/tailwind.css";
 import TeacherDashboardBot from './TeacherDashboardBot';
+import FeedbackHub from "./FeedbackHub";
+
 
 
 
@@ -104,13 +106,7 @@ function DashboardHome({ setCurrentView, setShowUploadForm, assessmentLibraryCou
   );
 }
 
-function FeedbackHub() {
-  return (
-    <div className="bg-white p-6 rounded-xl shadow-sm">
-      <h2 className="text-2xl font-semibold text-gray-800 mb-4">Assessment Feedback Hub</h2>
-    </div>
-  );
-}
+
 
 // --- Main Component ---
 export default function TeacherDashboard() {

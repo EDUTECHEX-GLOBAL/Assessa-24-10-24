@@ -342,7 +342,7 @@ export default function ProgressTracking({ onBack }) {
                             onClick={() => paginate(pageNum)}
                             className={`w-10 h-10 rounded-lg flex items-center justify-center ${
                               currentPage === pageNum
-                                ? "bg-gradient-to-r from-teal-600 to-amber-600 text-white shadow-md"
+                                ? "bg-gradient-to-r from-red-400 to-amber-500 text-white shadow-md"
                                 : "text-gray-600 hover:bg-teal-50"
                             }`}
                           >
