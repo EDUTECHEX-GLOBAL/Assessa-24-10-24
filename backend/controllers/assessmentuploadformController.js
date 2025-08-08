@@ -17,61 +17,132 @@ const uploadAssessment = asyncHandler(async (req, res) => {
     throw new Error("File is required");
   }
 
-  // Debug log user info
-  console.log("uploadAssessment req.user:", req.user);
-
-  // Verify teacher role
   if (!req.user || req.user.role !== "teacher") {
     res.status(403);
     throw new Error("Only teachers can upload assessments");
   }
 
+  // Upload to S3
   const { key } = await uploadToS3(file);
 
-  // Parse PDF to extract questions
- const questions = await parsePDFToQuestions(
-    file.buffer,
-    file.originalname 
-    );
-console.log("Parsed Questions:", questions);
+  // Parse questions from PDF
+  const questions = await parsePDFToQuestions(file.buffer);
+  if (!questions || questions.length === 0) {
+    res.status(400);
+    throw new Error("No questions extracted or generated.");
+  }
 
-if (!questions || questions.length === 0) {
-  res.status(400);
-  throw new Error("No questions extracted — please upload a valid PDF.");
-}
+  // 🆕 Create 4 difficulty versions
+  const difficulties = ["easy", "medium", "hard", "very hard"];
+  const createdAssessments = [];
 
-  const assessment = await AssessmentUpload.create({
-    teacherId: req.user._id,
-    assessmentName,
-    subject,
-    gradeLevel,
-    fileUrl: key,
-    questions,
-    timeLimit: timeLimit || 30,
-  });
+  for (const difficulty of difficulties) {
+    const assessment = await AssessmentUpload.create({
+      teacherId: req.user._id,
+      assessmentName,
+      subject,
+      gradeLevel,
+      fileUrl: key,
+      questions,
+      timeLimit: timeLimit || 30,
+      difficulty,       // ✅ new field
+      isApproved: false
+    });
+    createdAssessments.push(assessment);
+  }
 
   res.status(201).json({
-    message: "Assessment uploaded successfully",
-    assessment,
+    message: "Assessment uploaded with all difficulty levels. Pending review.",
+    assessments: createdAssessments
   });
+});
+
+//approve assessment controller
+const approveAssessment = asyncHandler(async (req, res) => {
+  const assessment = await AssessmentUpload.findById(req.params.id);
+
+  if (!assessment) {
+    res.status(404);
+    throw new Error("Assessment not found");
+  }
+
+  if (assessment.teacherId.toString() !== req.user._id.toString()) {
+    res.status(403);
+    throw new Error("Not authorized to approve this assessment");
+  }
+
+  assessment.isApproved = true;
+  await assessment.save();
+
+  res.json({ message: "Assessment approved", status: assessment.isApproved });
+});
+
+//Assessment Review controller
+const getAssessmentForReview = asyncHandler(async (req, res) => {
+  const assessment = await AssessmentUpload.findById(req.params.id);
+
+  if (!assessment) {
+    res.status(404);
+    throw new Error("Assessment not found");
+  }
+
+  if (assessment.teacherId.toString() !== req.user._id.toString()) {
+    res.status(403);
+    throw new Error("Unauthorized");
+  }
+
+  res.json(assessment);
+});
+
+//assessment update controller
+const updateAssessmentQuestions = asyncHandler(async (req, res) => {
+  const { questions } = req.body;
+  const assessment = await AssessmentUpload.findById(req.params.id);
+
+  if (!assessment) {
+    res.status(404);
+    throw new Error("Assessment not found");
+  }
+
+  if (assessment.teacherId.toString() !== req.user._id.toString()) {
+    res.status(403);
+    throw new Error("Unauthorized");
+  }
+
+  assessment.questions = questions;
+  await assessment.save();
+
+  res.json({ message: "Questions updated", assessment });
 });
 
 
 // @desc    Get assessments of logged in teacher
 // @route   GET /api/assessments/my
 // @access  Private (Teacher)
-const getMyAssessments = asyncHandler(async (req, res) => {
-  const assessments = await AssessmentUpload.find({ teacherId: req.user._id })
-    .sort({ createdAt: -1 });
+const getTeacherAssessments = asyncHandler(async (req, res) => {
+  const { status } = req.query;
+  const filter = { teacherId: req.user._id };
 
-  const assessmentsWithUrls = await Promise.all(assessments.map(async (a) => ({
-    ...a._doc,
-    signedUrl: a.fileUrl ? await getSignedUrl(a.fileUrl) : null,
-    submissionCount: await AssessmentSubmission.countDocuments({ assessmentId: a._id })
-  })));
+  // Apply status-based filtering
+  if (status === "pending") {
+    filter.isApproved = false;
+  } else if (status === "approved") {
+    filter.isApproved = true;
+  }
+
+  const assessments = await AssessmentUpload.find(filter).sort({ createdAt: -1 });
+
+  const assessmentsWithUrls = await Promise.all(
+    assessments.map(async (a) => ({
+      ...a._doc,
+      signedUrl: a.fileUrl ? await getSignedUrl(a.fileUrl) : null,
+      submissionCount: await AssessmentSubmission.countDocuments({ assessmentId: a._id }),
+    }))
+  );
 
   res.json(assessmentsWithUrls);
 });
+
 
 // @desc    Delete assessment
 // @route   DELETE /api/assessments/:id
@@ -134,7 +205,10 @@ const getAllAssessments = async (req, res) => {
       }
 
       // Use normalized class for query
-      assessmentsQuery = { gradeLevel: normalizedClass };
+      assessmentsQuery = {
+        gradeLevel: normalizedClass,
+        isApproved: true
+      };
     }
 
     // Fetch assessments
@@ -450,7 +524,10 @@ const getTeacherProgress = asyncHandler(async (req, res) => {
 
 module.exports = {
   uploadAssessment,
-  getMyAssessments,
+  approveAssessment,
+  getAssessmentForReview,
+  updateAssessmentQuestions,
+  getTeacherAssessments,
   deleteAssessment,
   getAllAssessments,
   getAssessmentForAttempt,

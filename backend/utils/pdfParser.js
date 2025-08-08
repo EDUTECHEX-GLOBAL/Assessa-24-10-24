@@ -59,7 +59,8 @@ function parseAIQuestionBlock(block) {
     questionText,
     options,
     correctAnswer,
-    marks: 1
+    marks: 1,
+    type: "mcq" // ✅ <— add this
   };
 }
 
@@ -180,6 +181,7 @@ const parseWithTraditional = async (pdfBuffer) => {
         options: q.options,
         correctAnswer: idx,
         marks: 1,
+        type: "mcq",  // ✅ Add this for PDF-extracted questions too
         fromAI: false,          // <── add this (true in the AI branch)
         // topic: detectTopic(questionText) // optional helper
       };

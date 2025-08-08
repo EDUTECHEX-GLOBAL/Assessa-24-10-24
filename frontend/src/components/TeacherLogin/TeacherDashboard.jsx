@@ -11,46 +11,73 @@ import TeacherProfile from './TeacherProfile';
 import "tailwindcss/tailwind.css";
 import TeacherDashboardBot from './TeacherDashboardBot';
 import FeedbackHub from "./FeedbackHub";
+import UploadAssessmentModal from './UploadAssessmentModal';
+import ReviewAssessmentPage from './ReviewAssessmentPage';
+
 
 
 
 
 // --- DashboardHome now receives the counts as props ---
-function DashboardHome({ setCurrentView, setShowUploadForm, assessmentLibraryCount, uploadAssessmentsCount, newThisWeekCount }) {
+function DashboardHome({ setCurrentView, setShowUploadForm, assessmentLibraryCount, uploadAssessmentsCount, newThisWeekCount, satAssessmentCount, setSelectedAssessmentId }) {
+
+  // Calculate standard assessments (assuming assessmentLibraryCount includes only standard assessments)
+  const standardAssessmentCount = assessmentLibraryCount;
+
   return (
     <>
       <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Assessment Library Card */}
         <div
           onClick={() => setCurrentView("library")}
           className="cursor-pointer hover:shadow-lg transition-all bg-gradient-to-br from-indigo-300 to-cyan-400 text-white shadow-md p-6 h-44 rounded-lg flex items-center justify-between"
         >
           <div>
-            <p className="text-3xl font-bold mb-1">{assessmentLibraryCount}</p>
-            <p className="text-lg font-semibold">Assessment Library</p>
-            <p className="text-xs mt-1 opacity-90">+{newThisWeekCount} new this week</p>
+            <p className="text-lg font-semibold mb-1">Assessment Library</p>
+            <p className="text-sm">
+              <span className="font-regular text-xs">Standard:</span> {standardAssessmentCount}
+            </p>
+            <p className="text-sm">
+              <span className="font-regular text-xs">SAT:</span> {satAssessmentCount}
+            </p>
+            <p className="text-xs mt-2 opacity-90">+{newThisWeekCount} new this week</p>
           </div>
           <BiBookAdd className="text-4xl opacity-80" />
         </div>
 
+        {/* Upload Assessments Card */}
         <div 
           className="bg-gradient-to-br from-red-300 to-pink-400 text-white shadow-md p-6 h-44 rounded-lg flex items-center justify-between cursor-pointer hover:shadow-lg transition-all"
           onClick={() => setShowUploadForm(true)}
         >
           <div>
-            <p className="text-3xl font-bold mb-1">{uploadAssessmentsCount}</p>
-            <p className="text-lg font-semibold">Upload Assessments</p>
+            <p className="text-lg font-semibold mb-1">Upload Assessments</p>
+            <p className="text-sm">
+              <span className="font-regular text-xs text-white">Standard:</span> {uploadAssessmentsCount}
+            </p>
+            <p className="text-sm">
+              <span className="font-regular text-xs text-white">SAT:</span> {satAssessmentCount}
+            </p>
           </div>
           <FaFileImport className="text-4xl opacity-80" />
         </div>
 
-        <div className="bg-gradient-to-br from-teal-300 to-green-500 text-white shadow-md p-6 h-44 rounded-lg flex items-center justify-between">
+
+        <div 
+            onClick={() => {
+              setSelectedAssessmentId("688c8ebd4cacce66b68194f2"); // <-- Replace with dynamic ID later
+              setCurrentView("review");
+            }}
+
+          className="cursor-pointer hover:shadow-lg transition-all bg-gradient-to-br from-teal-300 to-green-500 text-white shadow-md p-6 h-44 rounded-lg flex items-center justify-between"
+        >
           <div>
-            <p className="text-3xl font-bold mb-1">82%</p>
-            <p className="text-lg font-semibold">Average Completion</p>
-            <p className="text-xs mt-1 opacity-90">5 students behind</p>
+            <p className="text-lg font-semibold">Review Assessments</p>
+            <p className="text-xs mt-1 opacity-90">Teacher Review Portal</p>
           </div>
-          <FaChartBar className="text-4xl opacity-80" />
+          <FaClipboardCheck className="text-4xl opacity-80" />
         </div>
+
 
         <div className="bg-gradient-to-br from-orange-300 to-yellow-500 text-white shadow-md p-6 h-44 rounded-lg flex items-center justify-between">
           <div>
@@ -114,10 +141,13 @@ export default function TeacherDashboard() {
   const [teacherInfo, setTeacherInfo] = useState(null);
   const [currentView, setCurrentView] = useState("dashboard");
   const [showUploadForm, setShowUploadForm] = useState(false);
+  const [selectedAssessmentId, setSelectedAssessmentId] = useState(null);
+
 
   const [assessmentLibraryCount, setAssessmentLibraryCount] = useState(0);
   const [uploadAssessmentsCount, setUploadAssessmentsCount] = useState(0);
   const [newThisWeekCount, setNewThisWeekCount] = useState(0);
+  const [satAssessmentCount, setSatAssessmentCount] = useState(0); // ✅ New
 
   useEffect(() => {
     const storedInfo = localStorage.getItem("teacherInfo");
@@ -139,19 +169,24 @@ export default function TeacherDashboard() {
 
         const API_BASE_URL = process.env.REACT_APP_API_URL || "";
 
-        const [libRes, uploadRes, newRes] = await Promise.all([
+        const [libRes, uploadRes, newRes, satRes] = await Promise.all([
           fetch(`${API_BASE_URL}/api/assessments/library/count`, { method: "GET", headers }),
           fetch(`${API_BASE_URL}/api/assessments/uploaded/count`, { method: "GET", headers }),
           fetch(`${API_BASE_URL}/api/assessments/library/new-this-week/count`, { method: "GET", headers }),
+          fetch(`${API_BASE_URL}/api/sat-assessments/library/count`, { method: "GET", headers }), // 👈 SAT count
         ]);
+
+        
 
         const libData = await libRes.json();
         const uploadData = await uploadRes.json();
         const newData = await newRes.json();
+        const satData = await satRes.json();
 
         setAssessmentLibraryCount(libData.count);
         setUploadAssessmentsCount(uploadData.count);
         setNewThisWeekCount(newData.count);
+        setSatAssessmentCount(satData.count || 0); // ✅ Set SAT count
       } catch (err) {
         console.error("Failed to fetch dashboard counts", err);
       }
@@ -165,6 +200,8 @@ export default function TeacherDashboard() {
     window.location.href = "/teacher-login";
   };
 
+
+  
   // In your TeacherDashboard.jsx, update the renderContent function:
 const renderContent = () => {
   switch (currentView) {
@@ -172,14 +209,24 @@ const renderContent = () => {
       return <AssessmentLibrary onBack={() => setCurrentView("dashboard")} />;
     case "progress":
       return <ProgressTracking onBack={() => setCurrentView("dashboard")} />;
-
     case "feedback":
       return <FeedbackHub />;
     case "profile":
-      return <TeacherProfile 
-               teacherInfo={teacherInfo} 
-               onBack={() => setCurrentView("dashboard")} 
-             />;
+      return (
+        <TeacherProfile
+          teacherInfo={teacherInfo}
+          onBack={() => setCurrentView("dashboard")}
+        />
+      );
+    case "review":
+  return (
+    <ReviewAssessmentPage
+      assessmentId={selectedAssessmentId}
+      teacherInfo={teacherInfo}
+      onBack={() => setCurrentView("dashboard")}
+    />
+  );
+
     case "dashboard":
     default:
       return (
@@ -189,10 +236,13 @@ const renderContent = () => {
           assessmentLibraryCount={assessmentLibraryCount}
           uploadAssessmentsCount={uploadAssessmentsCount}
           newThisWeekCount={newThisWeekCount}
+          satAssessmentCount={satAssessmentCount}
+          setSelectedAssessmentId={setSelectedAssessmentId} // ✅ ADD THIS LINE
         />
       );
   }
 };
+
 
   return (
     <div className="flex h-screen bg-gradient-to-br from-gray-50 to-gray-100">
@@ -310,7 +360,7 @@ const renderContent = () => {
           </div>
         )}
 
-        {showUploadForm && <AssessmentUploadForm onClose={() => setShowUploadForm(false)} />}
+        {showUploadForm && <UploadAssessmentModal onClose={() => setShowUploadForm(false)} />}
         {renderContent()}
       </main>
       {teacherInfo?._id && <TeacherDashboardBot userId={teacherInfo._id} />}

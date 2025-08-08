@@ -42,8 +42,10 @@ import AssessmentLibrary from "./components/TeacherLogin/AssessmentLibrary.jsx";
 import AssessmentsPage from "./components/StudentLogin/AssessmentsPage.jsx";
 import ProtectedRoute from "./components/ProtectedRoute";
 
+// 🆕 Import for Review Page
+import ReviewAssessmentPage from "./components/TeacherLogin/ReviewAssessmentPage";
 
-// Import these for dashboard nested routes
+// Admin Dashboard Nested
 import DashboardHome from "./components/AdminPanelLogin/DashboardHome";
 import ApprovalRequests from "./components/AdminPanelLogin/ApprovalRequests";
 
@@ -109,29 +111,64 @@ function App() {
         <Route path="/study-recommendation" element={<StudyRecommendation />} />
         <Route path="/student-login" element={<StudentLogin />} />
         <Route path="/problemsolving-agent" element={<ProblemsolvingAgent />} />
-        <Route path="/assessment-library" element={<AssessmentLibrary />} />
-        <Route path="/student-dashboard" element={<StudentDashboard />} />
-        {/* <Route path="/teacher-dashboard" element={<TeacherDashboard />} /> */}
-        <Route
-  path="/teacher-dashboard"
-  element={
-    <ProtectedRoute>
-      <TeacherDashboard />
-    </ProtectedRoute>
-  }
-/>
 
+        {/* ✅ Protected Routes */}
+        <Route
+          path="/student-dashboard"
+          element={
+            <ProtectedRoute>
+              <StudentDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/assessment-library"
+          element={
+            <ProtectedRoute>
+              <AssessmentLibrary />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/assessments-page"
+          element={
+            <ProtectedRoute>
+              <AssessmentsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/teacher-dashboard"
+          element={
+            <ProtectedRoute>
+              <TeacherDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/teacher-dashboard/review/:assessmentId"
+          element={
+            <ProtectedRoute>
+              <ReviewAssessmentPage />
+            </ProtectedRoute>
+          }
+        />
 
         {/* NESTED ADMIN DASHBOARD ROUTES */}
-        <Route path="/admin-dashboard/*" element={<AdminDashboard />}>
+        <Route
+          path="/admin-dashboard/*"
+          element={
+            <ProtectedRoute>
+              <AdminDashboard />
+            </ProtectedRoute>
+          }
+        >
           <Route index element={<DashboardHome />} />
           <Route path="approvals" element={<ApprovalRequests />} />
-          {/* Add more child routes here as needed */}
         </Route>
 
         <Route path="/teacher-login" element={<TeacherLogin />} />
         <Route path="/adminpanel-login" element={<AdminPanelLogin />} />
-        <Route path="/assessments-page" element={<AssessmentsPage />} />
       </Routes>
     </BrowserRouter>
   );

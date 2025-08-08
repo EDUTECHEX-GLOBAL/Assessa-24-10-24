@@ -7,7 +7,10 @@ const upload = multer({ storage });
 const { protect } = require("../middlewares/authMiddleware");
 const {
   uploadAssessment,
-  getMyAssessments,
+  approveAssessment,
+  getAssessmentForReview,
+  updateAssessmentQuestions,
+  getTeacherAssessments,
   deleteAssessment,
   getAllAssessments,
   submitAssessment,
@@ -32,9 +35,14 @@ router.get("/library/new-this-week/count", protect, getNewThisWeekCount); // New
 
 // Teacher routes
 router.post("/upload", protect, upload.single("file"), uploadAssessment);
-router.get("/my", protect, getMyAssessments);
+router.get("/my", protect, getTeacherAssessments);
+router.get("/teacher/all", protect, getTeacherAssessments);
 router.delete("/:id", protect, deleteAssessment);
 router.get("/:id/submissions", protect, getAssessmentSubmissions); // Teacher views submissions
+// Add these at the bottom of teacher routes
+router.get("/:id/review", protect, getAssessmentForReview);        // Teacher reviews question paper
+router.put("/:id/questions", protect, updateAssessmentQuestions);  // Edit questions
+router.patch("/:id/approve", protect, approveAssessment);          // Approve assessment
 
 // Student routes
 router.get("/all", protect, getAllAssessments); // Students can view all assessments
