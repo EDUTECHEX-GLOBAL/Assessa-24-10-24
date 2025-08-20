@@ -13,12 +13,13 @@ import { toast } from 'react-toastify';
 import { useLocation } from "react-router-dom";
 import Progress from "./Progress";
 import StudentFeedback from './StudentFeedback';
-
-// ✅ Importing the AssessmentsPage component
-import AssessmentsPage from './AssessmentsPage'; // Make sure this path is correct
-import UserProfile from './UserProfile'; // Ensure the path is correct
+import AssessmentsPage from './AssessmentsPage';
+import UserProfile from './UserProfile'; // 
 import StudentStudyPlan from './StudentStudyPlan';
 import StudentDashboardBot from './studentdashboardbot';
+import { Modal, Button } from "antd";
+import SatStudentStudyPlan from "./SatStudentStudyPlan"; 
+
 
 const data = [
   { name: 'January', value: 20 },
@@ -36,6 +37,10 @@ export default function Dashboard() {
   const navigate = useNavigate();
   // ✅ Save user info and extract userId for the bot
   const [userId, setUserId] = useState(null);
+  // For study plan type selection modal
+  const [studyPlanModalVisible, setStudyPlanModalVisible] = useState(false);
+  const [selectedPlanType, setSelectedPlanType] = useState(null);
+
 
   useEffect(() => {
     const userInfo = JSON.parse(localStorage.getItem("userInfo"));
@@ -222,7 +227,7 @@ export default function Dashboard() {
               </div>
 
               <div
-                onClick={() => setSelectedSection("studyPlan")}
+                onClick={() => setStudyPlanModalVisible(true)}
                 className="cursor-pointer bg-gradient-to-br from-teal-300 to-teal-500 text-white shadow-md p-6 rounded-lg flex flex-col items-center justify-center transform hover:scale-[1.03] transition-transform"
               >
                 <MdMenuBook className="text-white text-[40px] mb-[6px]" />
@@ -291,11 +296,95 @@ export default function Dashboard() {
         {selectedSection === "feedback" && (
           <StudentFeedback onBackHome={() => setSelectedSection("home")} />
         )}
-        {selectedSection === "studyPlan" && (
+        {selectedSection === "studyPlan" && selectedPlanType === "standard" && (
           <StudentStudyPlan onBackHome={() => setSelectedSection("home")} />
         )}
+        {selectedSection === "studyPlan" && selectedPlanType === "sat" && (
+          <SatStudentStudyPlan onBackHome={() => setSelectedSection("home")} />
+        )}
+
 
       </main>
+      <Modal
+  open={studyPlanModalVisible}
+  onCancel={() => setStudyPlanModalVisible(false)}
+  footer={null}
+  className="study-plan-modal rounded-2xl"
+  width={520}
+  closable={false}
+>
+  <div className="p-6">
+    {/* Header with colorful text */}
+    <div className="text-center mb-6">
+      <h2 className="text-2xl font-bold bg-gradient-to-r from-rose-500 to-pink-500 bg-clip-text text-transparent mb-2">
+        Choose Your Study Plan
+      </h2>
+      <p className="text-gray-600">Select the type of study plan that best fits your needs</p>
+    </div>
+
+    <div className="space-y-4">
+      {/* Standard Study Plan Card with glass effect and blue border */}
+      <div 
+        className="relative p-5 rounded-xl backdrop-blur-md bg-blue-50/70 border-2 border-blue-300 cursor-pointer transition-all hover:shadow-lg"
+        onClick={() => {
+          setSelectedPlanType("standard");
+          setStudyPlanModalVisible(false);
+          setSelectedSection("studyPlan");
+        }}
+      >
+        <div className="flex items-start">
+          <div className="flex items-center justify-center w-12 h-12 rounded-lg bg-indigo-200/40 text-indigo-600 mr-4 flex-shrink-0">
+            <MdMenuBook className="text-2xl" />
+          </div>
+          <div className="flex-1">
+            <h3 className="text-lg font-semibold text-indigo-700 mb-1">Standard Study Plan</h3>
+            <p className="text-sm text-gray-600">Comprehensive curriculum-based learning with personalized recommendations</p>
+          </div>
+        </div>
+        <div className="absolute top-5 right-5">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" className="text-blue-500">
+            <path d="M9 18L15 12L9 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </div>
+      </div>
+      
+      {/* SAT Study Plan Card with glass effect and purple border */}
+      <div 
+        className="relative p-5 rounded-xl backdrop-blur-md bg-purple-50/70 border-2 border-purple-300 cursor-pointer transition-all hover:shadow-lg"
+        onClick={() => {
+          setSelectedPlanType("sat");
+          setStudyPlanModalVisible(false);
+          setSelectedSection("studyPlan");
+        }}
+      >
+        <div className="flex items-start">
+          <div className="flex items-center justify-center w-12 h-12 rounded-lg bg-purple-200/40 text-purple-600 mr-4 flex-shrink-0">
+            <MdSchool className="text-2xl" />
+          </div>
+          <div className="flex-1">
+            <h3 className="text-lg font-semibold text-purple-800 mb-1">SAT Study Plan</h3>
+            <p className="text-sm text-gray-600">Specialized preparation for SAT exams with practice tests and strategies</p>
+          </div>
+        </div>
+        <div className="absolute top-5 right-5">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" className="text-purple-500">
+            <path d="M9 18L15 12L9 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </div>
+      </div>
+    </div>
+
+    {/* Enhanced Cancel Button */}
+    <div className="mt-6 text-center">
+      <button
+        onClick={() => setStudyPlanModalVisible(false)}
+        className="px-6 py-2.5 bg-blue-100 text-blue-700 hover:bg-blue-200 font-medium rounded-lg transition-all shadow-sm hover:shadow"
+      >
+        Cancel
+      </button>
+    </div>
+  </div>
+</Modal>
       {/* ✅ Chatbot Floating Button (Always visible on page) */}
       {/* Injected OUTSIDE <main> so it overlays regardless of section */}
       {userId && <StudentDashboardBot userId={userId} />}

@@ -2,6 +2,8 @@ const SatAssessment = require("../models/webapp-models/satAssessmentModel");
 const { parseSATAssessment, parseSATAssessmentCombined } = require("../utils/satParser");
 const { uploadToS3, getSignedUrl, deleteFromS3 } = require("../config/s3Upload");
 const SatSubmission = require("../models/webapp-models/satSubmissionModel");
+const Feedback = require("../models/webapp-models/FeedbackModel");
+
 
 // Upload SAT Assessment
 exports.uploadSATAssessment = async (req, res) => {
@@ -437,5 +439,75 @@ exports.approveSATAssessment = async (req, res) => {
   } catch (err) {
     console.error("Error approving SAT assessment", err);
     res.status(500).json({ message: "Error approving SAT assessment" });
+  }
+};
+// @desc    Get SAT student progress for teacher dashboard
+// @route   GET /api/sat-assessments/teacher/student-progress
+// @access  Private (Teacher only)
+exports.getSatStudentProgress = async (req, res) => {
+  try {
+    const teacherId = req.user._id;
+
+    // All submissions for this teacher’s SAT assessments
+    const submissions = await SatSubmission.find()
+      .populate({
+        path: "assessmentId",
+        match: { teacherId },
+        select: "satTitle sectionType teacherId",
+      })
+      .populate({
+        path: "studentId",
+        select: "name class",
+      });
+
+    // Keep only this teacher’s
+    const filtered = submissions.filter((s) => s.assessmentId);
+
+    // 🔎 Build sets to query feedbacks (Feedback schema has studentId + assessmentId)
+    const studentIds = filtered.map((s) => s.studentId?._id).filter(Boolean);
+    const assessmentIds = filtered.map((s) => s.assessmentId?._id).filter(Boolean);
+
+    // Fetch all existing feedbacks that match any of these pairs
+    const existingFeedbacks = await Feedback.find({
+      studentId: { $in: studentIds },
+      assessmentId: { $in: assessmentIds },
+    }).select("studentId assessmentId");
+
+    // Fast lookup: studentId-assessmentId -> true
+    const sentSet = new Set(
+      existingFeedbacks.map(
+        (f) => `${f.studentId.toString()}-${f.assessmentId.toString()}`
+      )
+    );
+
+    const formatted = filtered.map((s) => {
+      const perc =
+        s.percentage ??
+        (s.totalMarks ? Number(((s.score / s.totalMarks) * 100).toFixed(2)) : 0);
+
+      const sentKey = `${s.studentId?._id?.toString() || ""}-${s.assessmentId?._id?.toString() || ""}`;
+      const feedbackSent = sentSet.has(sentKey);
+
+      return {
+        studentName: s.studentId?.name || "Unknown",
+        className: s.studentId?.class || "Unknown",
+        assessmentTitle: s.assessmentId?.satTitle || "Untitled",
+        sectionType: s.assessmentId?.sectionType || "General",
+        score: s.score ?? 0,
+        totalMarks: s.totalMarks ?? 0,
+        percentage: perc,
+        submittedDate: s.submittedAt || s.createdAt || null,
+        timeTaken: s.timeTaken,
+        feedbackSent,                              // ✅ reliable
+        submissionId: s._id,
+        studentId: s.studentId?._id,
+        assessmentId: s.assessmentId?._id,
+      };
+    });
+
+    res.json(formatted);
+  } catch (err) {
+    console.error("❌ Error fetching SAT student progress:", err);
+    res.status(500).json({ message: "Failed to fetch SAT student progress" });
   }
 };

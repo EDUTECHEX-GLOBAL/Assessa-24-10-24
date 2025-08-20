@@ -27,6 +27,6 @@ const satSubmissionSchema = new mongoose.Schema({
   percentage: { type: Number, required: true },
   timeTaken: { type: Number, required: true },
   submittedAt: { type: Date, default: Date.now },
-});
+}, { timestamps: true });
 
 module.exports = mongoose.model("SatSubmission", satSubmissionSchema);

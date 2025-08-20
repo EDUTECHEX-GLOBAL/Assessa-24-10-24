@@ -7,7 +7,7 @@ export default function ReviewAssessmentPage({ onBack }) {
   const [assessments, setAssessments] = useState([]);
   const [filtered, setFiltered] = useState([]);
   const [filterStatus, setFilterStatus] = useState("pending");
-  const [difficultyFilter, setDifficultyFilter] = useState(""); // For SAT difficulty filtering
+  const [difficultyFilter, setDifficultyFilter] = useState("");
   const [selected, setSelected] = useState(null);
   const [loading, setLoading] = useState(true);
   const [editingIndex, setEditingIndex] = useState(null);
@@ -32,12 +32,21 @@ export default function ReviewAssessmentPage({ onBack }) {
             : `${process.env.REACT_APP_API_URL}/api/sat-assessments/teacher/all?status=${filterStatus}`;
 
         const res = await axios.get(url, { headers });
-        setAssessments(res.data);
-        if (assessmentType === "sat" && difficultyFilter) {
-  setFiltered(res.data.filter((a) => a.difficulty === difficultyFilter));
-} else {
-  setFiltered(res.data);
-}
+        const data = res.data || [];
+
+        setAssessments(data);
+
+        if (difficultyFilter && difficultyFilter.trim() !== "") {
+          const df = difficultyFilter.trim().toLowerCase();
+          setFiltered(
+            data.filter((a) => {
+              const d = (a.difficulty || "").toString().toLowerCase();
+              return d === df;
+            })
+          );
+        } else {
+          setFiltered(data);
+        }
 
         setSelected(null);
         setEditingIndex(null);
@@ -51,6 +60,20 @@ export default function ReviewAssessmentPage({ onBack }) {
 
     fetchAssessments();
   }, [assessmentType, filterStatus, difficultyFilter]);
+
+  // Difficulty level data with colors and icons
+  const difficultyLevels = [
+    { value: "", label: "All Difficulties", color: "bg-gray-100", textColor: "text-gray-700" },
+    { value: "easy", label: "Easy", color: "bg-green-100", textColor: "text-green-700" },
+    { value: "medium", label: "Medium", color: "bg-yellow-100", textColor: "text-yellow-700" },
+    { value: "hard", label: "Hard", color: "bg-orange-100", textColor: "text-orange-700" },
+    { value: "very hard", label: "Very Hard", color: "bg-red-100", textColor: "text-red-700" },
+  ];
+
+  const getDifficultyColor = (difficulty) => {
+    const level = difficultyLevels.find(level => level.value === difficulty?.toLowerCase());
+    return level ? `${level.color} ${level.textColor}` : "bg-gray-100 text-gray-700";
+  };
 
   const applyFilter = (status) => {
     setFilterStatus(status);
@@ -167,53 +190,61 @@ export default function ReviewAssessmentPage({ onBack }) {
           </p>
         </div>
 
-        {/* Status Filter */}
-        <div className="bg-white p-3 rounded-lg shadow-sm border border-gray-200">
-          <div className="flex items-center text-gray-500 mb-1">
-            <FaFilter className="mr-2" />
-            <span className="text-sm font-medium">Filter by status</span>
+        {/* Filters Container */}
+        <div className="flex flex-col sm:flex-row gap-3">
+          {/* Status Filter */}
+          <div className="bg-white p-3 rounded-xl shadow-sm border border-gray-200">
+            <div className="flex items-center text-gray-500 mb-1">
+              <FaFilter className="mr-2" />
+              <span className="text-sm font-medium">Filter by status</span>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {["pending", "approved", "all"].map((status) => (
+                <button
+                  key={status}
+                  onClick={() => applyFilter(status)}
+                  className={`px-3 py-1 text-sm rounded-full transition-all ${
+                    filterStatus === status
+                      ? "bg-indigo-600 text-white shadow-md"
+                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  }`}
+                >
+                  {status.charAt(0).toUpperCase() + status.slice(1)}
+                </button>
+              ))}
+            </div>
           </div>
-          <div className="flex flex-wrap gap-2">
-            {["pending", "approved", "all"].map((status) => (
-              <button
-                key={status}
-                onClick={() => applyFilter(status)}
-                className={`px-3 py-1 text-sm rounded-full transition-all ${
-                  filterStatus === status
-                    ? "bg-indigo-600 text-white shadow-md"
-                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                }`}
+
+          {/* Enhanced Difficulty Filter */}
+          <div className="bg-white p-3 rounded-xl shadow-sm border border-gray-200">
+            <div className="flex items-center text-gray-500 mb-1">
+              <FaFilter className="mr-2" />
+              <span className="text-sm font-medium">Filter by difficulty</span>
+            </div>
+            <div className="relative">
+              <select
+                className="appearance-none mt-1 pl-3 pr-8 py-2 border border-gray-300 rounded-lg w-full sm:w-48 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white cursor-pointer"
+                value={difficultyFilter}
+                onChange={(e) => setDifficultyFilter(e.target.value)}
               >
-                {status.charAt(0).toUpperCase() + status.slice(1)}
-              </button>
-            ))}
+                {difficultyLevels.map((level) => (
+                  <option key={level.value} value={level.value}>
+                    {level.label}
+                  </option>
+                ))}
+              </select>
+              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
+                <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+                  <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" />
+                </svg>
+              </div>
+            </div>
           </div>
         </div>
-        {/* Difficulty Filter (only for SAT) */}
-{assessmentType === "sat" && (
-  <div className="bg-white p-3 rounded-lg shadow-sm border border-gray-200 mt-4 sm:mt-0">
-    <div className="flex items-center text-gray-500 mb-1">
-      <FaFilter className="mr-2" />
-      <span className="text-sm font-medium">Filter by difficulty</span>
-    </div>
-    <select
-      className="mt-1 px-3 py-2 border border-gray-300 rounded-lg w-full sm:w-48"
-      value={difficultyFilter}
-      onChange={(e) => setDifficultyFilter(e.target.value)}
-    >
-      <option value="">All Difficulties</option>
-      <option value="easy">Easy</option>
-      <option value="medium">Medium</option>
-      <option value="hard">Hard</option>
-      <option value="very hard">Very Hard</option>
-    </select>
-  </div>
-)}
-
       </div>
 
       {/* Assessment Type Selector */}
-      <div className="flex mb-8 bg-white p-2 rounded-xl shadow-inner border border-gray-100 w-fit">
+      <div className="flex mb-8 bg-white p-1 rounded-xl shadow-inner border border-gray-100 w-fit">
         {[
           { value: "standard", label: "Standard" },
           { value: "sat", label: "SAT" }
@@ -250,12 +281,12 @@ export default function ReviewAssessmentPage({ onBack }) {
         </div>
       )}
 
-      {/* Assessment List */}
+      {/* Enhanced Assessment Cards */}
       <motion.div
         variants={containerVariants}
         initial="hidden"
         animate="show"
-        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5"
+        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
       >
         {filtered.map((a) => (
           <motion.div
@@ -263,43 +294,49 @@ export default function ReviewAssessmentPage({ onBack }) {
             variants={itemVariants}
             whileHover={{ y: -5, boxShadow: "0 10px 25px -5px rgba(0,0,0,0.1)" }}
             onClick={() => handleSelect(a)}
-            className={`bg-white border rounded-xl p-5 cursor-pointer transition-all ${
+            className={`bg-white border rounded-xl p-5 cursor-pointer transition-all relative overflow-hidden ${
               selected?._id === a._id
                 ? "border-indigo-500 ring-2 ring-indigo-100"
                 : "border-gray-200 hover:border-indigo-300"
             }`}
           >
-            <div className="flex justify-between items-start">
-              <div>
-                <h3 className="font-semibold text-lg text-gray-900 line-clamp-1">
-                  {assessmentType === "standard" ? a.assessmentName : a.satTitle}
-                </h3>
-               <p className="text-xs text-gray-400 mt-1">
-  Difficulty: {a.difficulty?.toUpperCase() || "N/A"}
-</p>
-
-
-              </div>
-              <span
-                className={`px-2 py-1 text-xs rounded-full ${
-                  a.isApproved
-                    ? "bg-green-100 text-green-800"
-                    : "bg-yellow-100 text-yellow-800"
-                }`}
-              >
-                {a.isApproved ? "Approved" : "Pending"}
-              </span>
+            {/* Status ribbon */}
+            <div className={`absolute top-0 right-0 px-3 py-1 text-xs font-medium rounded-bl-lg ${
+              a.isApproved ? "bg-green-500 text-white" : "bg-yellow-500 text-white"
+            }`}>
+              {a.isApproved ? "Approved" : "Pending"}
             </div>
 
-            <div className="mt-4 flex justify-between items-center">
-              <span className="text-xs font-medium px-2 py-1 bg-gray-100 rounded text-gray-600">
-                {assessmentType === "standard"
-                  ? `Grade ${a.gradeLevel}`
-                  : "SAT Assessment"}
-              </span>
-              <span className="text-xs text-gray-500">
-                {a.questions.length} {a.questions.length === 1 ? "Question" : "Questions"}
-              </span>
+            <div className="flex flex-col h-full">
+              <div className="flex-grow">
+                <h3 className="font-semibold text-lg text-gray-900 line-clamp-2 mb-2">
+                  {assessmentType === "standard" ? a.assessmentName : a.satTitle}
+                </h3>
+
+                {/* Difficulty badge */}
+                {a.difficulty && (
+                  <span className={`inline-block px-2 py-1 text-xs font-medium rounded-full mb-3 ${getDifficultyColor(a.difficulty)}`}>
+                    {String(a.difficulty).toUpperCase()}
+                  </span>
+                )}
+
+                <div className="mt-2 text-sm text-gray-600 line-clamp-2">
+                  {assessmentType === "standard" ? a.subject : a.sectionType}
+                </div>
+              </div>
+
+              <div className="mt-4 flex justify-between items-center pt-3 border-t border-gray-100">
+                <span className="text-xs font-medium px-2 py-1 bg-indigo-50 text-indigo-700 rounded-full">
+                  {assessmentType === "standard"
+                    ? `Grade ${a.gradeLevel}`
+                    : "SAT Assessment"}
+                </span>
+                <div className="flex items-center">
+                  <span className="text-xs font-medium bg-gray-100 text-gray-700 px-2 py-1 rounded-full">
+                    {a.questions.length} {a.questions.length === 1 ? "Question" : "Questions"}
+                  </span>
+                </div>
+              </div>
             </div>
           </motion.div>
         ))}
@@ -323,13 +360,23 @@ export default function ReviewAssessmentPage({ onBack }) {
                       ? selected.assessmentName
                       : selected.satTitle}
                   </h2>
-                  <div className="flex gap-3 mt-2">
+                  <div className="flex flex-wrap gap-2 mt-3">
                     <span className="text-sm px-3 py-1 bg-white rounded-full shadow-sm border border-gray-200">
                       {assessmentType === "standard" ? selected.subject : selected.sectionType}
                     </span>
                     <span className="text-sm px-3 py-1 bg-white rounded-full shadow-sm border border-gray-200">
                       {selected.questions.length} Questions
                     </span>
+                    {selected.difficulty && (
+                      <span className={`text-sm px-3 py-1 rounded-full shadow-sm border ${getDifficultyColor(selected.difficulty)} border-transparent`}>
+                        Difficulty: {String(selected.difficulty).toUpperCase()}
+                      </span>
+                    )}
+                    {assessmentType === "standard" && (
+                      <span className="text-sm px-3 py-1 bg-white rounded-full shadow-sm border border-gray-200">
+                        Grade {selected.gradeLevel}
+                      </span>
+                    )}
                   </div>
                 </div>
                 <button
@@ -353,7 +400,7 @@ export default function ReviewAssessmentPage({ onBack }) {
                     animate="show"
                     exit="hidden"
                     layout
-                    className="mb-6 p-5 rounded-lg border border-gray-200 hover:border-indigo-200 transition-colors relative"
+                    className="mb-6 p-5 rounded-lg border border-gray-200 hover:border-indigo-200 transition-colors relative bg-white shadow-sm"
                   >
                     {/* Edit/Delete/Save buttons */}
                     <div className="absolute top-4 right-4 flex gap-2">
@@ -400,7 +447,7 @@ export default function ReviewAssessmentPage({ onBack }) {
                           }
                           rows={3}
                         />
-                        
+
                         {tempQuestion.options?.map((opt, j) => (
                           <div key={j} className="flex items-center gap-3">
                             <span className="text-gray-500 w-6">{String.fromCharCode(65 + j)}.</span>

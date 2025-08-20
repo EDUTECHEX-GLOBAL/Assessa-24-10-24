@@ -18,6 +18,7 @@ const {
   getMySatSubmissions,
   getMySATAssessmentsForReview,
   approveSATAssessment,
+  getSatStudentProgress,
 
 } = require("../controllers/satAssessmentController");
 
@@ -32,6 +33,10 @@ router.post("/:id/submit", protect, submitSatAssessment);
 
 // GET all SAT assessments uploaded by a teacher (review panel)
 router.get("/teacher/all", protect, getMySATAssessmentsForReview);
+
+// Teacher progress tracking for SAT
+router.get("/teacher/student-progress", protect, getSatStudentProgress);
+
 
 // PATCH approve SAT assessment
 router.patch("/:id/approve", protect, approveSATAssessment);

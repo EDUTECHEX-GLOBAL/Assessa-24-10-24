@@ -7,12 +7,15 @@ import assessalogo from "./logo.png";
 import AssessmentUploadForm from './AssessmentUploadForm';
 import AssessmentLibrary from "./AssessmentLibrary";
 import ProgressTracking from "./ProgressTracking";
+import SatProgressTracking from "./SatProgressTracking";
 import TeacherProfile from './TeacherProfile';
 import "tailwindcss/tailwind.css";
 import TeacherDashboardBot from './TeacherDashboardBot';
 import FeedbackHub from "./FeedbackHub";
 import UploadAssessmentModal from './UploadAssessmentModal';
 import ReviewAssessmentPage from './ReviewAssessmentPage';
+
+
 
 
 
@@ -147,7 +150,9 @@ export default function TeacherDashboard() {
   const [assessmentLibraryCount, setAssessmentLibraryCount] = useState(0);
   const [uploadAssessmentsCount, setUploadAssessmentsCount] = useState(0);
   const [newThisWeekCount, setNewThisWeekCount] = useState(0);
-  const [satAssessmentCount, setSatAssessmentCount] = useState(0); // ✅ New
+  const [satAssessmentCount, setSatAssessmentCount] = useState(0); 
+  const [progressMenuOpen, setProgressMenuOpen] = useState(false);
+
 
   useEffect(() => {
     const storedInfo = localStorage.getItem("teacherInfo");
@@ -207,8 +212,11 @@ const renderContent = () => {
   switch (currentView) {
     case "library":
       return <AssessmentLibrary onBack={() => setCurrentView("dashboard")} />;
-    case "progress":
-      return <ProgressTracking onBack={() => setCurrentView("dashboard")} />;
+    case "progress-standard":
+  return <ProgressTracking type="standard" onBack={() => setCurrentView("dashboard")} />;
+case "progress-sat":
+  return <SatProgressTracking onBack={() => setCurrentView("dashboard")} />;
+
     case "feedback":
       return <FeedbackHub />;
     case "profile":
@@ -254,43 +262,109 @@ const renderContent = () => {
           <img src={assessalogo} alt="Logo" className="w-32" />
         </div>
         <nav className="space-y-2">
-          <button 
-            onClick={() => setCurrentView("dashboard")}
-            className={`flex items-center space-x-3 py-3 px-4 rounded-lg w-full text-left ${currentView === "dashboard" ? "bg-blue-200/50 text-blue-800" : "text-gray-700 hover:bg-blue-200/50 hover:text-blue-800"}`}
-          >
-            <FaHome className="text-xl" />
-            <span className="text-lg font-medium">Home</span>
-          </button>
+  <button 
+    onClick={() => setCurrentView("dashboard")}
+    className={`flex items-center space-x-3 py-3 px-4 rounded-lg w-full text-left ${currentView === "dashboard" ? "bg-blue-200/50 text-blue-800" : "text-gray-700 hover:bg-blue-200/50 hover:text-blue-800"}`}
+  >
+    <FaHome className="text-xl" />
+    <span className="text-lg font-medium">Home</span>
+  </button>
 
-          <button 
-            onClick={() => setCurrentView("progress")}
-            className={`flex items-center space-x-3 py-3 px-4 rounded-lg w-full text-left ${currentView === "progress" ? "bg-blue-200/50 text-blue-800" : "text-gray-700 hover:bg-blue-200/50 hover:text-blue-800"}`}
-          >
-            <FaChartBar className="text-xl" />
-            <span className="text-lg font-medium">Progress Tracking</span>
-          </button>
+  {/* Collapsible Progress Tracking Dropdown */}
+  {/* Modern Progress Tracking Dropdown */}
+<div className="mb-2">
+  <button 
+    onClick={() => setProgressMenuOpen(!progressMenuOpen)}
+    className={`flex items-center justify-between w-full py-3 px-4 rounded-lg text-left transition-all duration-200 ${
+      progressMenuOpen 
+        ? "bg-blue-50 text-blue-800" 
+        : "text-gray-700 hover:bg-blue-50/80 hover:text-blue-800"
+    }`}
+  >
+    <div className="flex items-center space-x-3">
+      <div className={`p-1.5 rounded-lg ${
+        progressMenuOpen ? "bg-blue-100 text-blue-600" : "bg-gray-100 text-gray-600"
+      }`}>
+        <FaChartBar className="text-lg" />
+      </div>
+      <span className="text-lg font-medium">Progress Tracking</span>
+    </div>
+    <span className={`transition-transform duration-200 ${
+      progressMenuOpen ? "rotate-180 text-blue-600" : "text-gray-500"
+    }`}>
+      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+        <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+      </svg>
+    </span>
+  </button>
+  
+  {progressMenuOpen && (
+    <div className="ml-12 mt-1 space-y-2">
+      <button 
+        onClick={() => setCurrentView("progress-standard")}
+        className={`flex items-center w-full py-2.5 px-3 rounded-lg transition-all duration-150 ${
+          currentView === "progress-standard" 
+            ? "bg-blue-100/80 text-blue-800 font-medium" 
+            : "hover:bg-gray-100/50 text-gray-700 hover:text-blue-700"
+        }`}
+      >
+        <div className={`w-6 h-6 mr-2 flex items-center justify-center rounded-md ${
+          currentView === "progress-standard" 
+            ? "bg-blue-600 text-white" 
+            : "bg-gray-200 text-gray-600"
+        }`}>
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+          </svg>
+        </div>
+        <span>Standard Assessments</span>
+      </button>
+      
+      <button 
+        onClick={() => setCurrentView("progress-sat")}
+        className={`flex items-center w-full py-2.5 px-3 rounded-lg transition-all duration-150 ${
+          currentView === "progress-sat" 
+            ? "bg-blue-100/80 text-blue-800 font-medium" 
+            : "hover:bg-gray-100/50 text-gray-700 hover:text-blue-700"
+        }`}
+      >
+        <div className={`w-6 h-6 mr-2 flex items-center justify-center rounded-md ${
+          currentView === "progress-sat" 
+            ? "bg-blue-600 text-white" 
+            : "bg-gray-200 text-gray-600"
+        }`}>
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        </div>
+        <span>SAT Assessments</span>
+      </button>
+    </div>
+  )}
+</div>
 
-          <button 
-  onClick={() => setCurrentView("feedback")}
-  className={`flex items-center space-x-3 py-3 px-4 rounded-lg w-full text-left ${currentView === "feedback" ? "bg-blue-200/50 text-blue-800" : "text-gray-700 hover:bg-blue-200/50 hover:text-blue-800"}`}
->
-  <MdOutlineFeedback className="text-xl" />
-  <span className="text-lg font-medium">Feedback Hub</span>
-</button>
+  <button 
+    onClick={() => setCurrentView("feedback")}
+    className={`flex items-center space-x-3 py-3 px-4 rounded-lg w-full text-left ${currentView === "feedback" ? "bg-blue-200/50 text-blue-800" : "text-gray-700 hover:bg-blue-200/50 hover:text-blue-800"}`}
+  >
+    <MdOutlineFeedback className="text-xl" />
+    <span className="text-lg font-medium">Feedback Hub</span>
+  </button>
 
-          <div className="flex items-center space-x-3 py-3 px-4 rounded-lg text-gray-700">
-            <BiAnalyse className="text-xl" />
-            <span className="text-lg font-medium">AI Analysis</span>
-          </div>
+  <div className="flex items-center space-x-3 py-3 px-4 rounded-lg text-gray-700">
+    <BiAnalyse className="text-xl" />
+    <span className="text-lg font-medium">AI Analysis</span>
+  </div>
 
-          <button 
-            onClick={() => setCurrentView("profile")}
-            className={`flex items-center space-x-3 py-3 px-4 rounded-lg w-full text-left ${currentView === "profile" ? "bg-blue-200/50 text-blue-800" : "text-gray-700 hover:bg-blue-200/50 hover:text-blue-800"}`}
-          >
-            <IoPersonCircleOutline className="text-xl" />
-            <span className="text-lg font-medium">My Profile</span>
-          </button>
-        </nav>
+  <button 
+    onClick={() => setCurrentView("profile")}
+    className={`flex items-center space-x-3 py-3 px-4 rounded-lg w-full text-left ${currentView === "profile" ? "bg-blue-200/50 text-blue-800" : "text-gray-700 hover:bg-blue-200/50 hover:text-blue-800"}`}
+  >
+    <IoPersonCircleOutline className="text-xl" />
+    <span className="text-lg font-medium">My Profile</span>
+  </button>
+</nav>
+
 
         <div className="mt-8 border-t border-blue-200 pt-6">
           <button

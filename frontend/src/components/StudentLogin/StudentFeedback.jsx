@@ -128,7 +128,10 @@ const FeedbackCard = ({ feedback, index }) => {
                   ></div>
                 </div>
                 <span className={`font-semibold ${cls.text600}`}>
-                  {feedback.percentage.toFixed(1)}%
+                  {typeof feedback.percentage === "number"
+  ? feedback.percentage.toFixed(1) + "%"
+  : "N/A"}
+
                 </span>
               </div>
             </div>
@@ -281,6 +284,7 @@ export default function StudentFeedback({ onBackHome }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [activeFilter, setActiveFilter] = useState("all");
+  const [assessmentType, setAssessmentType] = useState("standard");
 
   useEffect(() => {
     const fetchFeedback = async () => {
@@ -294,11 +298,17 @@ export default function StudentFeedback({ onBackHome }) {
       }
 
       try {
-        const res = await axios.get(`${REACT_APP_API_URL}/api/feedback/student`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
+        const endpoint =
+  assessmentType === "sat"
+    ? `${REACT_APP_API_URL}/api/sat-feedback/student`
+    : `${REACT_APP_API_URL}/api/feedback/student`;
+
+const res = await axios.get(endpoint, {
+  headers: {
+    Authorization: `Bearer ${token}`,
+  },
+});
+
         setFeedbacks(res.data);
       } catch (err) {
         console.error("❌ Axios error:", err);
@@ -312,7 +322,7 @@ export default function StudentFeedback({ onBackHome }) {
     };
 
     fetchFeedback();
-  }, []);
+  }, [assessmentType]);
 
   // Filter feedbacks based on active filter
   const filteredFeedbacks = feedbacks.filter(fb => {
@@ -367,6 +377,31 @@ export default function StudentFeedback({ onBackHome }) {
               </div>
             </div>
           </div>
+
+          {/* SAT/Standard toggle */}
+<div className="flex space-x-2 mb-4">
+  <button
+    onClick={() => setAssessmentType("standard")}
+    className={`px-4 py-2 rounded-lg text-sm font-medium ${
+      assessmentType === "standard"
+        ? "bg-indigo-600 text-white"
+        : "bg-white text-gray-700 border border-gray-300"
+    }`}
+  >
+    Standard
+  </button>
+  <button
+    onClick={() => setAssessmentType("sat")}
+    className={`px-4 py-2 rounded-lg text-sm font-medium ${
+      assessmentType === "sat"
+        ? "bg-indigo-600 text-white"
+        : "bg-white text-gray-700 border border-gray-300"
+    }`}
+  >
+    SAT
+  </button>
+</div>
+
           
           {/* Filter tabs */}
           <div className="flex space-x-2 mb-6 overflow-x-auto pb-2">
