@@ -21,72 +21,74 @@ exports.uploadSATAssessment = async (req, res) => {
     const { key } = await uploadToS3(req.file, "sat");
     console.log("📤 S3 Upload Key:", key);
 
-    const difficulties = ["easy", "medium", "hard", "very hard"];
-    let anyAssessmentSaved = false;
-    const createdAssessments = [];
+    // ✅ Respond immediately (do NOT await generation)
+    res.status(202).json({
+      message:
+        "SAT assessment uploaded. Generating difficulty variants in the background. You’ll see them in the Review page when ready.",
+      satTitle,
+      sectionType,
+      fileKey: key,
+    });
 
-    for (const difficulty of difficulties) {
-      console.log(`🔄 Generating difficulty: ${difficulty}`);
-      let questions = [];
-      let attempts = 0;
+    // 🔥 Continue in background — non-blocking
+    (async () => {
+      const difficulties = ["easy", "medium", "hard", "very hard"];
 
-      // Retry loop
-      while (questions.length === 0 && attempts < 3) {
-        attempts++;
-        try {
-          if (sectionType === "all") {
-            questions = await parseSATAssessmentCombined(req.file.buffer, difficulty);
-          } else {
-            questions = await parseSATAssessment(req.file.buffer, sectionType, difficulty);
+      // You can flip this to Promise.allSettled if you want to generate all difficulties in parallel.
+      for (const difficulty of difficulties) {
+        console.log(`🔄 [BG] Generating difficulty: ${difficulty}`);
+        let questions = [];
+        let attempts = 0;
+
+        while (questions.length === 0 && attempts < 3) {
+          attempts++;
+          try {
+            if (sectionType === "all") {
+              questions = await parseSATAssessmentCombined(req.file.buffer, difficulty);
+            } else {
+              questions = await parseSATAssessment(req.file.buffer, sectionType, difficulty);
+            }
+          } catch (err) {
+            console.error(`❌ [BG] Error generating ${difficulty} (attempt ${attempts}):`, err.message);
           }
-        } catch (err) {
-          console.error(`❌ Error generating ${difficulty} (attempt ${attempts}):`, err.message);
+
+          if (!questions || questions.length === 0) {
+            console.warn(`⚠️ [BG] Attempt ${attempts} failed for difficulty: ${difficulty}`);
+          }
         }
 
         if (!questions || questions.length === 0) {
-          console.warn(`⚠️ Attempt ${attempts} failed for difficulty: ${difficulty}`);
+          console.error(`❌ [BG] Skipping ${difficulty} — no valid questions generated after retries`);
+          continue;
+        }
+
+        try {
+          const assessment = new SatAssessment({
+            teacherId,
+            satTitle,
+            sectionType,
+            difficulty,
+            questions,
+            fileUrl: key,
+            isApproved: false
+          });
+
+          await assessment.save();
+          console.log(`✅ [BG] Saved ${difficulty} with ${questions.length} questions`);
+        } catch (saveErr) {
+          console.error(`❌ [BG] Failed to save ${difficulty} assessment:`, saveErr.message);
         }
       }
 
-      if (!questions || questions.length === 0) {
-        console.error(`❌ Skipping ${difficulty} — no valid questions generated after retries`);
-        continue;
-      }
-
-      const assessment = new SatAssessment({
-        teacherId,
-        satTitle,
-        sectionType,
-        difficulty,
-        questions,
-        fileUrl: key,
-      });
-
-      await assessment.save();
-      createdAssessments.push({
-        id: assessment._id,
-        difficulty,
-        questionCount: questions.length,
-      });
-
-      console.log(`✅ Saved ${difficulty} with ${questions.length} questions`);
-      anyAssessmentSaved = true;
-    }
-
-    if (!anyAssessmentSaved) {
-      return res.status(422).json({
-        message: "Failed to generate questions for any difficulty level.",
-      });
-    }
-
-    res.status(201).json({
-      message: "SAT assessment uploaded and difficulty variants generated successfully.",
-      assessments: createdAssessments,
-    });
+      console.log(`🏁 [BG] Generation completed for: ${satTitle}`);
+    })().catch(e => console.error("❌ [BG] Uncaught generation error:", e));
 
   } catch (err) {
     console.error("❌ SAT upload error:", err);
-    res.status(500).json({ message: "Internal server error during SAT upload." });
+    // If an error happens before we send the response, return 500
+    if (!res.headersSent) {
+      res.status(500).json({ message: "Internal server error during SAT upload." });
+    }
   }
 };
 
@@ -113,6 +115,7 @@ exports.getMySATAssessments = async (req, res) => {
 };
 
 // ✅ Delete SAT Assessment
+// ✅ Delete SAT Assessment
 exports.deleteSATAssessment = async (req, res) => {
   try {
     const assessment = await SatAssessment.findById(req.params.id);
@@ -134,14 +137,19 @@ exports.deleteSATAssessment = async (req, res) => {
       }
     }
 
+    // ✅ Also delete all related submissions
+    await SatSubmission.deleteMany({ assessmentId: assessment._id });
+
+    // Finally delete the assessment
     await assessment.deleteOne();
 
-    res.json({ message: "SAT assessment deleted successfully", id: req.params.id });
+    res.json({ message: "SAT assessment and related submissions deleted successfully", id: req.params.id });
   } catch (err) {
     console.error("❌ Error deleting SAT assessment:", err);
     res.status(500).json({ message: "Failed to delete SAT assessment" });
   }
 };
+
 // ✅ Get SAT Assessment Count for Dashboard
 exports.getSatAssessmentCount = async (req, res) => {
   try {
@@ -156,13 +164,14 @@ exports.getSatAssessmentCount = async (req, res) => {
 // ✅ Get all SAT assessments (for students)
 exports.getAllSATAssessmentsForStudents = async (req, res) => {
   try {
-    // ✅ Step 1: Check if the user is a student
+    // ✅ Step 1: Ensure only students can access
     if (!req.user || req.user.role !== "student") {
       return res.status(403).json({ message: "Only students can access this route." });
     }
 
-    // ✅ Step 2: Fetch assessments and student submissions
-    const assessments = await SatAssessment.find().sort({ createdAt: -1 });
+    // ✅ Step 2: Fetch only APPROVED assessments
+    const assessments = await SatAssessment.find({ isApproved: true }).sort({ createdAt: -1 });
+
     const studentId = req.user._id;
     const submissions = await SatSubmission.find({ studentId });
 
@@ -186,7 +195,6 @@ exports.getAllSATAssessmentsForStudents = async (req, res) => {
       })
     );
 
-    // ✅ Step 4: Only one response should be sent
     res.json(assessmentsWithSubmission);
   } catch (err) {
     console.error("❌ Error fetching SAT assessments for students:", err);
@@ -509,5 +517,38 @@ exports.getSatStudentProgress = async (req, res) => {
   } catch (err) {
     console.error("❌ Error fetching SAT student progress:", err);
     res.status(500).json({ message: "Failed to fetch SAT student progress" });
+  }
+};
+// ✅ Get detailed SAT progress for the logged-in student
+exports.getMySatProgress = async (req, res) => {
+  try {
+    const studentId = req.user._id;
+
+  const submissions = await SatSubmission.find({ studentId })
+     .populate("assessmentId", "satTitle sectionType difficulty")
+     .populate("studentId", "name email")  // ✅ add this
+     .sort({ createdAt: -1 });
+
+
+const rows = submissions
+  .filter(s => s.assessmentId) // 🚀 ignore orphan submissions
+  .map((s) => ({
+    _id: s._id,
+    assessmentTitle: s.assessmentId?.satTitle || "Untitled",
+    sectionType: s.assessmentId?.sectionType || "Unknown",
+    difficulty: s.assessmentId?.difficulty || "—",
+    score: s.score ?? 0,
+    totalMarks: s.totalMarks ?? 0,
+    percentage: typeof s.percentage === "number" ? s.percentage : 0,
+    submittedDate: s.submittedAt || s.createdAt || null,
+    timeTaken: s.timeTaken ?? 0,
+    studentName: s.studentId?.name || "Unknown",   
+    studentEmail: s.studentId?.email || "Unknown", 
+  }));
+
+    res.json(rows);
+  } catch (err) {
+    console.error("❌ Failed to fetch student's SAT progress:", err);
+    res.status(500).json({ message: "Failed to fetch SAT progress" });
   }
 };

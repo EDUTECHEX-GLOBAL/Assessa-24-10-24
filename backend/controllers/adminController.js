@@ -100,11 +100,99 @@ const getApprovalCounts = asyncHandler(async (req, res) => {
   });
 });
 
+// Get overall dashboard stats (teachers + users)
+const getDashboardStats = asyncHandler(async (req, res) => {
+  try {
+    // Teachers
+    const totalTeachers = await Teacher.countDocuments();
+    const approvedTeachers = await Teacher.countDocuments({ status: "approved" });
+    const pendingTeachers = await Teacher.countDocuments({ status: "pending" });
+    const rejectedTeachers = await Teacher.countDocuments({ status: "rejected" });
+    const inactiveTeachers = pendingTeachers + rejectedTeachers;
+
+    // Users (students)
+    const totalUsers = await User.countDocuments();
+    const approvedUsers = await User.countDocuments({ status: "approved" });
+    const pendingUsers = await User.countDocuments({ status: "pending" });
+
+    res.json({
+      teachers: {
+        total: totalTeachers,
+        active: approvedTeachers,
+        inactive: inactiveTeachers,
+      },
+      users: {
+        total: totalUsers,
+        active: approvedUsers,
+        pending: pendingUsers,
+      }
+    });
+  } catch (error) {
+    console.error("Error fetching dashboard stats:", error);
+    res.status(500).json({ message: "Failed to fetch stats" });
+  }
+});
+
+// Get all teachers
+const getAllTeachers = asyncHandler(async (req, res) => {
+  const teachers = await Teacher.find().lean();
+  res.json(teachers);
+});
+
+// Get all students
+const getAllStudents = asyncHandler(async (req, res) => {
+  const students = await User.find().lean();
+  res.json(students);
+});
+
+// Delete teacher or student
+const deleteAccount = asyncHandler(async (req, res) => {
+  const { role } = req.body;
+
+  if (role === "teacher") {
+    await Teacher.findByIdAndDelete(req.params.id);
+    return res.json({ message: "Teacher deleted successfully" });
+  } else {
+    await User.findByIdAndDelete(req.params.id);
+    return res.json({ message: "Student deleted successfully" });
+  }
+});
+
+// Toggle access (grant/revoke after approval)
+const toggleAccess = asyncHandler(async (req, res) => {
+  const { role, action } = req.body;
+
+  let account;
+  if (role === "teacher") {
+    account = await Teacher.findById(req.params.id);
+  } else {
+    account = await User.findById(req.params.id);
+  }
+
+  if (!account) return res.status(404).json({ message: `${role} not found` });
+
+  if (action === "grant") {
+    account.status = "approved";
+    account.isAdminApproved = true;
+  } else if (action === "revoke") {
+    account.status = "inactive";
+    account.isAdminApproved = false;
+  }
+
+  await account.save();
+  res.json({ message: `${role} access ${action}ed successfully` });
+});
+
 
 module.exports = {
   authAdmin,
   getApprovalRequests,
   approveRequest,
   rejectRequest,
-  getApprovalCounts, // Add this line
+  getApprovalCounts, 
+  getDashboardStats,
+  getAllTeachers,
+  getAllStudents,
+  deleteAccount,
+  toggleAccess,
 };

@@ -12,7 +12,23 @@ export default function DashboardHome() {
     students: 0,
   });
 
+  const [stats, setStats] = useState({
+    teachers: { total: 0, active: 0, inactive: 0 },
+    users: { total: 0, active: 0, pending: 0 },
+  });
+
   useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const response = await fetch("/api/admin/dashboard/stats");
+        const data = await response.json();
+        console.log("📊 API /dashboard/stats Response:", data);
+        setStats(data); // ✅ backend already returns { teachers: {...}, users: {...} }
+      } catch (error) {
+        console.error("Error fetching dashboard stats:", error);
+      }
+    };
+
     const fetchApprovalCounts = async () => {
       try {
         const response = await fetch("/api/admin/approvals/counts");
@@ -23,7 +39,8 @@ export default function DashboardHome() {
       }
     };
 
-    fetchApprovalCounts();
+    fetchStats();          // ✅ gets teachers + users
+    fetchApprovalCounts(); // ✅ gets pending approvals
   }, []);
 
   return (
@@ -32,40 +49,50 @@ export default function DashboardHome() {
       <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Teachers Card */}
         <div className="bg-gradient-to-r from-purple-400 to-indigo-500 rounded-xl p-6 text-white shadow-lg transform hover:scale-105 transition-transform">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-lg font-bold">Teachers</h3>
-              <p className="text-2xl">25</p>
-            </div>
-            <MdAdminPanelSettings className="text-4xl opacity-75" />
-          </div>
-          <div className="mt-4">
-            <p className="text-sm">Active: 20</p>
-            <p className="text-sm">Inactive: 5</p>
-          </div>
-        </div>
+  <div className="flex items-center justify-between">
+    <div>
+      <h3 className="text-lg font-bold">Teachers</h3>
+      <p className="text-2xl">{stats?.teachers?.total ?? 0}</p>
+    </div>
+    <MdAdminPanelSettings className="text-4xl opacity-75" />
+  </div>
+  <div className="mt-4 flex justify-between text-sm">
+    <div>
+      <p>Active: {stats?.teachers?.active ?? 0}</p>
+      <p>Inactive: {stats?.teachers?.inactive ?? 0}</p>
+    </div>
+    <Link 
+      to="/admin-dashboard/teachers"
+      className="bg-white/20 hover:bg-white/30 px-3 py-1 rounded-full"
+    >
+      Manage
+    </Link>
+  </div>
+</div>
+
 
         {/* User Management Card */}
         <div className="bg-gradient-to-r from-pink-400 to-rose-500 rounded-xl p-6 text-white shadow-lg transform hover:scale-105 transition-transform">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-lg font-bold">User Management</h3>
-              <p className="text-2xl">1,234</p>
-              <p className="text-sm mt-2">Total Users</p>
+              <h3 className="text-lg font-bold">Students</h3>
+              <p className="text-2xl">{stats?.users?.total ?? 0}</p>
+              <p className="text-sm mt-2">Total Students</p>
             </div>
             <FaUsers className="text-4xl opacity-75" />
           </div>
           <div className="mt-4 flex justify-between text-sm">
             <div>
-              <p>Active: 1,100</p>
-              <p>Pending: 24</p>
+              <p>Active: {stats?.users?.active ?? 0}</p>
+              <p>Pending: {stats?.users?.pending ?? 0}</p>
             </div>
             <Link 
-              to="/admin/users" 
-              className="bg-white/20 hover:bg-white/30 px-3 py-1 rounded-full"
-            >
-              Manage
-            </Link>
+  to="/admin-dashboard/students" 
+  className="bg-white/20 hover:bg-white/30 px-3 py-1 rounded-full"
+>
+  Manage
+</Link>
+
           </div>
         </div>
 
@@ -93,20 +120,20 @@ export default function DashboardHome() {
           </div>
         </div>
 
-        {/* Pending Approvals Card - Updated */}
+        {/* Pending Approvals Card */}
         <div className="bg-gradient-to-r from-amber-400 to-orange-500 rounded-xl p-6 text-white shadow-lg transform hover:scale-105 transition-transform">
           <div className="flex items-center justify-between">
             <div>
               <h3 className="text-lg font-bold">Pending Approvals</h3>
-              <p className="text-2xl">{approvalCounts.total || "..."}</p>
+              <p className="text-2xl">{approvalCounts?.total ?? 0}</p>
               <p className="text-sm mt-2">New requests</p>
             </div>
             <FaUserClock className="text-4xl opacity-75" />
           </div>
           <div className="mt-4 flex justify-between text-sm">
             <div>
-              <p>Teachers: {approvalCounts.teachers || 0}</p>
-              <p>Students: {approvalCounts.students || 0}</p>
+              <p>Teachers: {approvalCounts?.teachers ?? 0}</p>
+              <p>Students: {approvalCounts?.students ?? 0}</p>
             </div>
             <Link 
               to="/admin-dashboard/approvals" 

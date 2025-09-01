@@ -41,6 +41,8 @@ import ProblemsolvingAgent from "./components/StudentLogin/ProblemsolvingAgent.j
 import AssessmentLibrary from "./components/TeacherLogin/AssessmentLibrary.jsx";
 import AssessmentsPage from "./components/StudentLogin/AssessmentsPage.jsx";
 import ProtectedRoute from "./components/ProtectedRoute";
+import TeacherManagement from "./components/AdminPanelLogin/TeacherManagement";
+import StudentManagement from "./components/AdminPanelLogin/StudentManagement";
 
 // 🆕 Import for Review Page
 import ReviewAssessmentPage from "./components/TeacherLogin/ReviewAssessmentPage";
@@ -156,16 +158,19 @@ function App() {
 
         {/* NESTED ADMIN DASHBOARD ROUTES */}
         <Route
-          path="/admin-dashboard/*"
-          element={
-            <ProtectedRoute>
-              <AdminDashboard />
-            </ProtectedRoute>
-          }
-        >
-          <Route index element={<DashboardHome />} />
-          <Route path="approvals" element={<ApprovalRequests />} />
-        </Route>
+  path="/admin-dashboard/*"
+  element={
+    <ProtectedRoute>
+      <AdminDashboard />
+    </ProtectedRoute>
+  }
+>
+  <Route index element={<DashboardHome />} />
+  <Route path="approvals" element={<ApprovalRequests />} />
+  <Route path="teachers" element={<TeacherManagement />} />
+  <Route path="students" element={<StudentManagement />} />
+</Route>
+
 
         <Route path="/teacher-login" element={<TeacherLogin />} />
         <Route path="/adminpanel-login" element={<AdminPanelLogin />} />

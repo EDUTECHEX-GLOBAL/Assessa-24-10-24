@@ -35,43 +35,44 @@ const stagger = {
 };
 
 const colorClassMap = {
-  emerald: {
-    from300: "from-emerald-300",
-    to500: "to-emerald-500",
-    from400: "from-emerald-400",
-    to600: "to-emerald-600",
-    bg100: "bg-emerald-100",
-    text600: "text-emerald-600",
-    text800: "text-emerald-800",
-    bg50: "bg-emerald-50",
-    border100: "border-emerald-100",
-    text500: "text-emerald-500"
+  indigo: {
+    from300: "from-indigo-300",
+    to500: "to-indigo-500",
+    from400: "from-indigo-400",
+    to600: "to-indigo-600",
+    bg100: "bg-indigo-100",
+    text600: "text-indigo-600",
+    text800: "text-indigo-800",
+    bg50: "bg-indigo-50",
+    border100: "border-indigo-100",
+    text500: "text-indigo-500"
   },
-  amber: {
-    from300: "from-amber-300",
-    to500: "to-amber-500",
-    from400: "from-amber-400",
-    to600: "to-amber-600",
-    bg100: "bg-amber-100",
-    text600: "text-amber-600",
-    text800: "text-amber-800",
-    bg50: "bg-amber-50",
-    border100: "border-amber-100",
-    text500: "text-amber-500"
+  violet: {
+    from300: "from-violet-300",
+    to500: "to-violet-500",
+    from400: "from-violet-400",
+    to600: "to-violet-600",
+    bg100: "bg-violet-100",
+    text600: "text-violet-600",
+    text800: "text-violet-800",
+    bg50: "bg-violet-50",
+    border100: "border-violet-100",
+    text500: "text-violet-500"
   },
-  rose: {
-    from300: "from-rose-300",
-    to500: "to-rose-500",
-    from400: "from-rose-400",
-    to600: "to-rose-600",
-    bg100: "bg-rose-100",
-    text600: "text-rose-600",
-    text800: "text-rose-800",
-    bg50: "bg-rose-50",
-    border100: "border-rose-100",
-    text500: "text-rose-500"
+  fuchsia: {
+    from300: "from-fuchsia-300",
+    to500: "to-fuchsia-500",
+    from400: "from-fuchsia-400",
+    to600: "to-fuchsia-600",
+    bg100: "bg-fuchsia-100",
+    text600: "text-fuchsia-600",
+    text800: "text-fuchsia-800",
+    bg50: "bg-fuchsia-50",
+    border100: "border-fuchsia-100",
+    text500: "text-fuchsia-500"
   }
 };
+
 
 const FeedbackCard = ({ feedback, index }) => {
   const [expanded, setExpanded] = useState(false);
@@ -80,9 +81,10 @@ const FeedbackCard = ({ feedback, index }) => {
     : feedback.percentage >= 50 ? "Good"
     : "Needs Work";
 
-  const performanceColor = feedback.percentage >= 70 ? "emerald"
-    : feedback.percentage >= 50 ? "amber"
-    : "rose";
+  const performanceColor = feedback.percentage >= 70 ? "indigo"
+  : feedback.percentage >= 50 ? "violet"
+  : "fuchsia";
+
 
   const cls = colorClassMap[performanceColor];
 
@@ -195,13 +197,14 @@ const FeedbackCard = ({ feedback, index }) => {
               </div>
 
               {/* Leave this as-is (amber always for weaknesses) */}
-              <div className="bg-gradient-to-br from-amber-50 to-white p-5 rounded-2xl border border-amber-100 shadow-sm">
-                <div className="flex items-center mb-4">
-                  <div className="p-2 rounded-lg bg-amber-100 text-amber-600 mr-3">
-                    <FiAlertTriangle size={18} />
-                  </div>
-                  <h4 className="font-bold text-gray-800">Areas for Improvement</h4>
-                </div>
+              <div className="bg-gradient-to-br from-fuchsia-50 to-white p-5 rounded-2xl border border-fuchsia-100 shadow-sm">
+  <div className="flex items-center mb-4">
+    <div className="p-2 rounded-lg bg-fuchsia-100 text-fuchsia-600 mr-3">
+      <FiAlertTriangle size={18} />
+    </div>
+    <h4 className="font-bold text-gray-800">Areas for Improvement</h4>
+  </div>
+
                 <ul className="space-y-3">
                   {feedback.feedbackText.topicWeaknesses?.length > 0 ? (
                     feedback.feedbackText.topicWeaknesses.map((w, i) => (
@@ -279,12 +282,12 @@ const FeedbackCard = ({ feedback, index }) => {
   );
 };
 
-export default function StudentFeedback({ onBackHome }) {
+export default function SatStudentFeedback({ onBackHome }) {
   const [feedbacks, setFeedbacks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [activeFilter, setActiveFilter] = useState("all");
-  const assessmentType = "standard";
+  const assessmentType = "sat";
 
 
   useEffect(() => {
@@ -353,7 +356,7 @@ const res = await axios.get(endpoint, {
           
           <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 mb-8">
             <div>
-              <h1 className="text-3xl md:text-3xl font-bold text-purple-600 mb-2">Feedback Hub</h1>
+              <h1 className="text-3xl md:text-3xl font-bold text-orange-500 mb-2">SAT Feedback Hub</h1>
               <p className="text-lg text-gray-600 max-w-2xl">
                 Review your performance, strengths, and personalized improvement suggestions
               </p>

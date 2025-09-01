@@ -1,4 +1,4 @@
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom"; // ✅ add useNavigate
 import { FaHome, FaUsers, FaSignOutAlt, FaClipboardList } from 'react-icons/fa';
 import { MdAdminPanelSettings, MdAssignment } from 'react-icons/md';
 import assessalogo from "./logo.png";
@@ -19,7 +19,7 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen }) {
         <NavItem icon={MdAssignment} label="Assessments" path="/assessments" />
       </nav>
       <div className="mt-8 border-t border-blue-200 pt-6">
-        <NavItem icon={FaSignOutAlt} label="Logout" path="#" isLogout />
+        <NavItem icon={FaSignOutAlt} label="Logout" isLogout />
       </div>
     </aside>
   );
@@ -27,13 +27,30 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen }) {
 
 function NavItem({ icon: Icon, label, path, isLogout }) {
   const location = useLocation();
+  const navigate = useNavigate(); // ✅ for redirect
   const isActive = location.pathname === path;
+
+  const handleLogout = () => {
+    localStorage.removeItem("adminToken"); // ✅ clear stored token
+    navigate("/adminpanel-login"); // ✅ redirect to login
+  };
+
+  if (isLogout) {
+    return (
+      <button
+        onClick={handleLogout}
+        className="w-full flex items-center space-x-3 py-3 px-4 rounded-lg text-red-500 hover:bg-red-100 transition-all group"
+      >
+        <Icon className="text-xl" />
+        <span className="text-lg font-medium">{label}</span>
+      </button>
+    );
+  }
 
   return (
     <Link 
       to={path} 
       className={`flex items-center space-x-3 py-3 px-4 rounded-lg ${
-        isLogout ? "text-red-500 hover:bg-red-100" : 
         isActive ? "bg-blue-200/50 text-blue-800" : "text-gray-700 hover:bg-blue-200/50 hover:text-blue-800"
       } transition-all group`}
     >

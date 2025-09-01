@@ -17,40 +17,42 @@ export default function TeacherDashboardBot({ userId }) {
   const [lastSentAt, setLastSentAt] = useState(0); // 🕐 Cooldown tracking
 
   const sendQuery = async () => {
-    const now = Date.now();
-    if (loading || !query.trim()) return;
+  const now = Date.now();
+  if (loading || !query.trim()) return;
 
-    // ⏱ Prevent spam within 5 seconds
-    if (now - lastSentAt < 5000) {
-      alert("⏳ Please wait a few seconds before asking again.");
-      return;
-    }
+  // ⏱ Prevent spam within 5 seconds
+  if (now - lastSentAt < 5000) {
+    alert("⏳ Please wait a few seconds before asking again.");
+    return;
+  }
 
-    setLastSentAt(now);
-    const newMessages = [...messages, { role: "user", text: query }];
-    setMessages(newMessages);
-    setLoading(true);
+  setLastSentAt(now);
 
-    try {
-      const res = await axios.post("http://localhost:5000/api/chat/teacher", {
-        userId,
-        query,
-      });
-      const reply = res.data.reply;
-      setMessages([...newMessages, { role: "bot", text: reply }]);
-    } catch (error) {
-      setMessages([
-        ...newMessages,
-        {
-          role: "bot",
-          text: "❌ Sorry, I encountered an error. Please try again later.",
-        },
-      ]);
-    } finally {
-      setQuery("");
-      setLoading(false);
-    }
-  };
+  const newMessages = [...messages, { role: "user", text: query }];
+  setMessages(newMessages);
+  setQuery(""); // <-- clear input immediately after sending
+  setLoading(true);
+
+  try {
+    const res = await axios.post("http://localhost:5000/api/chat/teacher", {
+      userId,
+      query,
+    });
+    const reply = res.data.reply;
+    setMessages([...newMessages, { role: "bot", text: reply }]);
+  } catch (error) {
+    setMessages([
+      ...newMessages,
+      {
+        role: "bot",
+        text: "❌ Sorry, I encountered an error. Please try again later.",
+      },
+    ]);
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   useEffect(() => {
     const chatContainer = document.querySelector(".chat-messages");

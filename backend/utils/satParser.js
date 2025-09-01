@@ -22,49 +22,35 @@ const bedrockClient = new BedrockRuntimeClient({
  * - Page breaks
  */
 function detectSections(fullText) {
+  const normalized = fullText.replace(/\s+/g, ' ').toLowerCase();
+
   const sections = {
-    reading: { start: -1, end: -1, content: '' },
-    writing: { start: -1, end: -1, content: '' },
-    math_no_calc: { start: -1, end: -1, content: '' },
-    math_calc: { start: -1, end: -1, content: '' }
+    reading: { start: 0, end: -1, content: '', header: '' },
+    writing: { start: -1, end: -1, content: '', header: '' },
+    math_no_calc: { start: -1, end: -1, content: '', header: '' },
+    math_calc: { start: -1, end: -1, content: '', header: '' }
   };
 
-  // Enhanced patterns that exactly match your PDF's format
-  const sectionPatterns = [
-    {
-      type: 'reading',
-      regex: /SAT\s*-\s*Reading\s*&\s*Writing\s*Section[\s\S]*?Time:\s*\d+\s*Minutes\s*\|\s*\d+\s*Questions/gi
-    },
-    {
-      type: 'math_no_calc',
-      regex: /SAT\s*–\s*Math\s*Section\s*\(\s*No\s*Calculator\s*\)[\s\S]*?Time:\s*\d+\s*Minutes\s*\|\s*\d+\s*Questions/gi
-    },
-    {
-      type: 'math_calc',
-      regex: /SAT\s*-\s*Math\s*Section\s*\(\s*With\s*Calculator\s*\)[\s\S]*?Time:\s*\d+\s*Minutes\s*\|\s*\d+\s*Questions/gi
-    }
+  // SUPER LOOSE regex for SAT sections
+  const keywords = [
+    { type: 'reading', regex: /\breading\b|reading\s*&\s*writing/gi },
+    { type: 'writing', regex: /\bwriting\b/gi },
+    { type: 'math_no_calc', regex: /math[\s\-_]*(test)?[\s\-_]*(no[\s\-_]*calc(ulator)?)/gi },
+    { type: 'math_calc', regex: /math[\s\-_]*(test)?[\s\-_]*(with[\s\-_]*calc(ulator)?|calc(ulator)?)/gi }
   ];
 
-  // Find all section markers
   const markers = [];
-  sectionPatterns.forEach(pattern => {
+  keywords.forEach(({ type, regex }) => {
     let match;
-    while ((match = pattern.regex.exec(fullText)) !== null) {
-      markers.push({
-        type: pattern.type,
-        index: match.index,
-        length: match[0].length,
-        header: match[0]
-      });
+    while ((match = regex.exec(normalized)) !== null) {
+      markers.push({ type, index: match.index, length: match[0].length, header: match[0] });
     }
   });
 
-  // Sort by position and determine section boundaries
   markers.sort((a, b) => a.index - b.index);
-  
+
   markers.forEach((marker, i) => {
     const nextMarker = i < markers.length - 1 ? markers[i + 1] : null;
-    
     sections[marker.type] = {
       start: marker.index,
       end: nextMarker ? nextMarker.index : fullText.length,
@@ -76,20 +62,27 @@ function detectSections(fullText) {
     };
   });
 
-  // Writing shares content with reading section
-  if (sections.reading.start !== -1) {
-    sections.writing = { ...sections.reading };
-  }
+  // 🔑 Force-fallback: if any section not found → use full PDF
+  Object.keys(sections).forEach(type => {
+    if (sections[type].start === -1) {
+      sections[type] = {
+        start: 0,
+        end: fullText.length,
+        content: fullText.trim(),
+        header: 'Full PDF (fallback)'
+      };
+    }
+  });
 
-  // Debug log to verify section detection
-  console.log('Detected sections:');
+  console.log('Detected sections (lenient):');
   Object.entries(sections).forEach(([type, { start, header }]) => {
-    console.log(`${type}: ${start !== -1 ? 'Found' : 'Not found'}`, 
-                header ? `(Header: ${header.substring(0, 50)}...)` : '');
+    console.log(`${type}: ${header ? header : 'Fallback (full PDF)'}`);
   });
 
   return sections;
 }
+
+
 
 // ==================== QUESTION PARSING ====================
 
@@ -261,14 +254,14 @@ function parseMathQuestions(sectionText, sectionType) {
 
 async function generateAIQuestions(originalQuestions, sectionType, difficulty = 'medium') {
   const isMath = sectionType.includes('math');
-  const questionCount = isMath ? 8 : 10;
+  const questionCount = isMath ? 20 : 25;
 
   // Build a prompt that *requires* the model to output a "Passage:" section for reading/writing
   const prompt = isMath ? `
 You are an expert SAT Math test writer. Generate ${questionCount} NEW ${difficulty} difficulty math questions for the section "${sectionType.replace('_',' ')}".
 - Include roughly 6 MCQs and 2 grid-in where appropriate.
 - Base the style on these examples (do not copy them verbatim):
-${originalQuestions.slice(0, 3).map(q => q.questionText).join('\n')}
+${originalQuestions.slice(0, 2).map(q => (q.questionText || '').slice(0, 140)).join('\n')}
 
 Output format (strict):
 1. Question text?
@@ -308,8 +301,8 @@ Return only the blocks exactly in the format above.
       modelId: 'mistral.mistral-large-2402-v1:0',
       body: JSON.stringify({
         prompt,
-        max_tokens: 8192,
-        temperature: 0.7
+        max_tokens: 2048,
+        temperature: 0.6
       })
     }));
 
@@ -436,9 +429,10 @@ async function parseSATAssessment(pdfBuffer, sectionType, difficulty = 'medium')
     const sections = detectSections(data.text);
 
     if (!sections[sectionType] || sections[sectionType].start === -1) {
-      console.warn(`⚠️ Section not found: ${sectionType}`);
-      return [];
+      console.warn(`⚠️ Section not found: ${sectionType}. Using full PDF as fallback.`);
+      sections[sectionType] = { start: 0, end: data.text.length, content: data.text, header: 'Full PDF (fallback)' };
     }
+
 
     let originalQuestions = [];
     if (sectionType === 'reading' || sectionType === 'writing') {
@@ -464,24 +458,38 @@ async function parseSATAssessmentCombined(pdfBuffer, difficulty = 'medium') {
   try {
     const data = await pdf(pdfBuffer);
     const sections = detectSections(data.text);
-    let allQuestions = [];
 
-    for (const sectionType of ['reading', 'writing', 'math_no_calc', 'math_calc']) {
-      if (sections[sectionType].start === -1) continue;
+    const sectionTypes = ['reading', 'writing', 'math_no_calc', 'math_calc'];
 
+    // Build work items first (sync, fast)
+    const workItems = sectionTypes.map((sectionType) => {
       let originalQuestions = [];
       if (sectionType === 'reading' || sectionType === 'writing') {
         originalQuestions = parseReadingWritingQuestions(sections[sectionType].content);
       } else {
         originalQuestions = parseMathQuestions(sections[sectionType].content, sectionType);
       }
+      return { sectionType, originalQuestions };
+    });
 
-      // Regardless of whether originalQuestions exist, ask the AI to generate for that section & difficulty
-      const aiQuestions = await generateAIQuestions(originalQuestions, sectionType, difficulty);
-      if (aiQuestions && aiQuestions.length > 0) {
-        allQuestions = allQuestions.concat(aiQuestions);
+    // 🔁 Run AI generation for all sections in parallel to reduce wall time
+    const results = await Promise.allSettled(
+      workItems.map(({ sectionType, originalQuestions }) =>
+        generateAIQuestions(originalQuestions, sectionType, difficulty)
+      )
+    );
+
+    // Flatten successful results
+    let allQuestions = [];
+    results.forEach((res, idx) => {
+      const sec = workItems[idx].sectionType;
+      if (res.status === 'fulfilled' && Array.isArray(res.value) && res.value.length > 0) {
+        console.log(`✅ Generated ${res.value.length} questions for ${sec} (${difficulty})`);
+        allQuestions = allQuestions.concat(res.value);
+      } else {
+        console.warn(`⚠️ No questions generated for ${sec} (${difficulty})`);
       }
-    }
+    });
 
     console.log(`✅ Generated ${allQuestions.length} total questions (combined) for difficulty: ${difficulty}`);
     return allQuestions;
@@ -490,6 +498,8 @@ async function parseSATAssessmentCombined(pdfBuffer, difficulty = 'medium') {
     return [];
   }
 }
+
+
 
 module.exports = {
   parseSATAssessment,
