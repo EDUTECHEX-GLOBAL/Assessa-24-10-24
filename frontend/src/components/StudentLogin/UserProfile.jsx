@@ -52,15 +52,16 @@ const UserProfile = ({ user, onBackHome }) => { // Added onBackHome prop
           }
         );
         setFormData({
-          name: data.name || '',
-          email: data.email || '',
-          pic: data.pic || '',
-          class: data.class || '',
-          mobile: data.mobile || '',
-          bio: data.bio || '',
-          city: data.city || '',
-          country: data.country || ''
-        });
+  name: data.name || '',
+  email: data.email || '',
+  pic: data.pic || 'https://icon-library.com/images/anonymous-avatar-icon/anonymous-avatar-icon-25.jpg',
+  class: data.class || '',
+  mobile: data.mobile || '',
+  bio: data.bio || '',
+  city: data.city || '',
+  country: data.country || ''
+});
+
       } catch (error) {
         toast.error('Failed to load profile data');
         if (error.response?.status === 401) {
@@ -103,7 +104,11 @@ const UserProfile = ({ user, onBackHome }) => { // Added onBackHome prop
           }
         }
       );
-      setFormData(prev => ({ ...prev, pic: data.url }));
+      setFormData(prev => ({
+  ...prev,
+  pic: data.url || 'https://icon-library.com/images/anonymous-avatar-icon/anonymous-avatar-icon-25.jpg'
+}));
+
       toast.success('Profile picture updated!');
     } catch (error) {
       toast.error(error.response?.data?.message || 'Failed to upload image');
@@ -169,10 +174,11 @@ const UserProfile = ({ user, onBackHome }) => { // Added onBackHome prop
                   <div className="bg-white rounded-full p-1">
                     <div className="w-24 h-24 md:w-28 md:h-28 rounded-full overflow-hidden border-4 border-white">
                       <img
-                        src={formData.pic || user?.pic || 'https://icon-library.com/images/anonymous-avatar-icon/anonymous-avatar-icon-25.jpg'}
-                        alt="Profile"
-                        className="w-full h-full object-cover"
-                      />
+  src={formData.pic}
+  alt="Profile"
+  className="w-full h-full object-cover"
+/>
+
                     </div>
                   </div>
                 </div>

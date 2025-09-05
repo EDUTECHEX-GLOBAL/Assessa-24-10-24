@@ -200,7 +200,7 @@ async def generate_assessment(req: AssessmentRequest):
         parsed = json.loads(response)
         
         # If parsing succeeds, return the cleaned response
-        return {"questions": json.dumps(parsed)}
+        return {"questions": parsed}
     except json.JSONDecodeError as e:
         print(f"Failed to parse generated questions: {e}")
         # If parsing fails, try to extract JSON from the response
@@ -211,7 +211,7 @@ async def generate_assessment(req: AssessmentRequest):
             if json_start != -1 and json_end != -1:
                 json_str = response[json_start:json_end]
                 parsed = json.loads(json_str)
-                return {"questions": json.dumps(parsed)}
+                return {"questions": parsed}
         except Exception as e:
             print(f"Failed to extract JSON from response: {e}")
         
@@ -219,11 +219,12 @@ async def generate_assessment(req: AssessmentRequest):
         return {
             "error": "Failed to generate valid JSON format questions",
             "raw_response": response,
-            "questions": json.dumps([{
-                "question": "Error: Could not generate questions in required format",
-                "options": ["Check the topic and try again", "Contact support", "Try a different topic", "Verify your input"],
-                "answer": "A"
-            }])
+            "questions": [{
+    "question": "Error: Could not generate questions in required format",
+    "options": ["Check the topic and try again", "Contact support", "Try a different topic", "Verify your input"],
+    "answer": "A"
+}]
+
         }
 
 @app.post("/evaluate-score")

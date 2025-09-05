@@ -265,22 +265,54 @@ const prepareAnswersPayload = () => {
       )}
 
       <div className="mt-4 flex justify-center space-x-2">
-        {parsedQuestions.map((_, index) => (
+  {(() => {
+    const visibleCount = 5;
+    const start = Math.floor(currentQuestion / visibleCount) * visibleCount;
+    const end = Math.min(start + visibleCount, parsedQuestions.length);
+
+    return (
+      <>
+        {start > 0 && (
           <button
-            key={index}
-            onClick={() => setCurrentQuestion(index)}
-            className={`w-8 h-8 rounded-full flex items-center justify-center ${
-              currentQuestion === index
-                ? "bg-indigo-500 text-white"
-                : selectedAnswers[index] !== undefined
-                ? "bg-indigo-100 text-indigo-600"
-                : "bg-gray-100 text-gray-600"
-            } transition-colors`}
+            onClick={() => setCurrentQuestion(start - 1)}
+            className="w-8 h-8 rounded-full bg-gray-200 hover:bg-gray-300"
           >
-            {index + 1}
+            ←
           </button>
-        ))}
-      </div>
+        )}
+
+        {parsedQuestions.slice(start, end).map((_, index) => {
+          const questionIndex = start + index;
+          return (
+            <button
+              key={questionIndex}
+              onClick={() => setCurrentQuestion(questionIndex)}
+              className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                currentQuestion === questionIndex
+                  ? "bg-indigo-500 text-white"
+                  : selectedAnswers[questionIndex] !== undefined
+                  ? "bg-indigo-100 text-indigo-600"
+                  : "bg-gray-100 text-gray-600"
+              }`}
+            >
+              {questionIndex + 1}
+            </button>
+          );
+        })}
+
+        {end < parsedQuestions.length && (
+          <button
+            onClick={() => setCurrentQuestion(end)}
+            className="w-8 h-8 rounded-full bg-gray-200 hover:bg-gray-300"
+          >
+            →
+          </button>
+        )}
+      </>
+    );
+  })()}
+</div>
+
     </div>
   );
 };

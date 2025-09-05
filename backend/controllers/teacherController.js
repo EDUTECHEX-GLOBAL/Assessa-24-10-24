@@ -2,6 +2,8 @@ const asyncHandler = require("express-async-handler");
 const bcrypt = require("bcryptjs");
 const Teacher = require("../models/webapp-models/teacherModel");
 const generateToken = require("../utils/generateToken");
+const sendEmail = require("../utils/mailer");
+
 const registerTeacher = asyncHandler(async (req, res) => {
   const { name, email, password, pic } = req.body;
 
@@ -24,6 +26,9 @@ const registerTeacher = asyncHandler(async (req, res) => {
   });
 
   if (teacher) {
+    // Notify admin about new teacher signup
+    await sendEmail.sendAdminTeacherSignupEmail(teacher.name, teacher.email);
+
     res.status(201).json({
       message: "Registered successfully. Awaiting admin approval.",
     });

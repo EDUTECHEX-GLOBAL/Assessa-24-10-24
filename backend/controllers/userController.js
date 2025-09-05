@@ -5,6 +5,8 @@ const nodemailer = require("nodemailer");
 const Userwebapp = require("../models/webapp-models/userModel");
 const generateToken = require("../utils/generateToken");
 const { getSignedUrl } = require("../config/s3Upload");
+const sendEmail = require("../utils/mailer");
+
 
 // Register User
 const registerUser = asyncHandler(async (req, res) => {
@@ -34,6 +36,8 @@ const registerUser = asyncHandler(async (req, res) => {
   });
 
   if (user) {
+    // Notify admin about new student signup
+    await sendEmail.sendAdminStudentSignupEmail(user.name, user.email);
     res.status(201).json({
       _id: user._id,
       name: user.name,

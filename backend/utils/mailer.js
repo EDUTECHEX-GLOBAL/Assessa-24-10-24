@@ -1,10 +1,16 @@
 const nodemailer = require("nodemailer");
 
+// Pick correct dashboard URL based on environment
+const dashboardUrl =
+  process.env.NODE_ENV === "production"
+    ? process.env.DASHBOARD_URL_PROD
+    : process.env.DASHBOARD_URL_LOCAL;
+
 const transporter = nodemailer.createTransport({
   service: "gmail",
   auth: {
-    user: process.env.EMAIL,
-    pass: process.env.EMAIL_PASSWORD,
+    user: process.env.EMAIL,           // ✅ Use EMAIL instead of EMAIL
+    pass: process.env.EMAIL_PASSWORD,  // ✅ Use EMAIL_PASSWORD
   },
 });
 
@@ -52,6 +58,50 @@ sendEmail.sendRejectionEmail = async (to, name, reason) => {
     });
   } catch (error) {
     console.error("Error sending rejection email: ", error);
+    throw error;
+  }
+};
+
+// Notify admin when a new student signs up
+sendEmail.sendAdminStudentSignupEmail = async (name, email) => {
+  try {
+    await transporter.sendMail({
+      from: process.env.EMAIL,       // ✅ send from Admin
+      to: process.env.EMAIL,         // ✅ send to Admin
+      subject: "New Student Signup Pending Approval",
+      text: `A new student has signed up:\n\nName: ${name}\nEmail: ${email}\n\nReview this request: ${dashboardUrl}/admin-dashboard/approvals`,
+      html: `
+        <h2>New Student Registration</h2>
+        <p><strong>Name:</strong> ${name}</p>
+        <p><strong>Email:</strong> ${email}</p>
+        <p>This student is waiting for your approval.</p>
+        <p><a href="${dashboardUrl}/adminpanel-login">Review in Dashboard</a></p>
+      `
+    });
+  } catch (error) {
+    console.error("Error sending student signup notification:", error);
+    throw error;
+  }
+};
+
+// Notify admin when a new teacher signs up
+sendEmail.sendAdminTeacherSignupEmail = async (name, email) => {
+  try {
+    await transporter.sendMail({
+      from: process.env.EMAIL,       // ✅ send from Admin
+      to: process.env.EMAIL,         // ✅ send to Admin
+      subject: "New Teacher Signup Pending Approval",
+      text: `A new teacher has signed up:\n\nName: ${name}\nEmail: ${email}\n\nReview this request: ${dashboardUrl}/admin-dashboard/approvals`,
+      html: `
+        <h2>New Teacher Registration</h2>
+        <p><strong>Name:</strong> ${name}</p>
+        <p><strong>Email:</strong> ${email}</p>
+        <p>This teacher is waiting for your approval.</p>
+        <p><a href="${dashboardUrl}/adminpanel-login">Review in Dashboard</a></p>
+      `
+    });
+  } catch (error) {
+    console.error("Error sending teacher signup notification:", error);
     throw error;
   }
 };

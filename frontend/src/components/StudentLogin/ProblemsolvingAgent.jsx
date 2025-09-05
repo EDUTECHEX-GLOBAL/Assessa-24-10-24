@@ -71,14 +71,28 @@ const ProblemsolvingAgent = () => {
   };
 
   const handleGenerateSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setError("");
-    setGeneratedQuestions(null);
-    setParsedQuestions([]);
-    setSelectedAnswers({});
-    setSubmitted(false);
-    setScore(0);
+  e.preventDefault();
+
+  // 🔴 Validation: block request if any field is empty
+  if (
+    !numQuestions?.toString().trim() ||
+    !curriculum?.trim() ||
+    !grade?.toString().trim() ||
+    !subject?.trim() ||
+    !topic?.trim()
+  ) {
+    alert("⚠️ Please fill all fields before generating assessment");
+    return;
+  }
+
+  setLoading(true);
+  setError("");
+  setGeneratedQuestions(null);
+  setParsedQuestions([]);
+  setSelectedAnswers({});
+  setSubmitted(false);
+  setScore(0);
+
 
     try {
       const res = await aiAgentAPI.post("/generate-assessment", {
@@ -161,7 +175,12 @@ const ProblemsolvingAgent = () => {
       </button>
 
       {/* Sidebar */}
-      <div className={`${sidebarOpen ? "w-72 translate-x-0" : "-translate-x-full md:translate-x-0"} bg-white/80 backdrop-blur-lg shadow-lg transition-all duration-300 fixed md:relative z-20 h-full border-r border-gray-200/50`}>
+      <div
+  className={`${sidebarOpen ? "w-72" : "w-0"} 
+    bg-white/80 backdrop-blur-lg shadow-lg transition-all duration-300 
+    relative z-20 h-full border-r border-gray-200/50 overflow-hidden`}
+>
+
         <div className="p-4 border-b border-gray-200/50 flex justify-between items-center">
           <h2 className="text-lg font-bold flex items-center text-indigo-600">
             <FaClock className="mr-2"/> Recent Chats
@@ -192,7 +211,8 @@ const ProblemsolvingAgent = () => {
       </div>
 
       {/* Main area */}
-      <div className={`flex-1 flex flex-col transition-all duration-300 ${sidebarOpen ? 'ml-0 md:ml-72' : 'ml-0'} h-full`}>
+      <div className="flex-1 flex flex-col transition-all duration-300 h-full">
+
         {/* Header */}
         <header className="bg-white/80 backdrop-blur-lg shadow-sm p-4 flex justify-between items-center sticky top-0 z-10 border-b border-gray-200/50">
           <div className="flex items-center space-x-4">
@@ -395,20 +415,23 @@ const ProblemsolvingAgent = () => {
               >
                 {loading? <FaSpinner className="animate-spin mr-1 md:mr-2"/> : <FaPaperPlane className="mr-1 md:mr-2"/>} Generate MCQs
               </button>
+              </form>
 
               {generatedQuestions && (
-                <MCQAssessment
-                  loading={loading}
-                  generatedQuestions={generatedQuestions}
-                  parsedQuestions={parsedQuestions}
-                  selectedAnswers={selectedAnswers}
-                  submitted={submitted}
-                  score={score}
-                  onAnswerSelect={handleAnswerSelect}
-                  onSubmitAssessment={handleSubmitAssessment}
-                />
-              )}
-            </form>
+  <div className="max-w-2xl mx-auto bg-white/90 p-6 rounded-xl shadow-sm border border-gray-200/50 mt-6">
+    <MCQAssessment
+      loading={loading}
+      generatedQuestions={generatedQuestions}
+      parsedQuestions={parsedQuestions}
+      selectedAnswers={selectedAnswers}
+      submitted={submitted}
+      score={score}
+      onAnswerSelect={handleAnswerSelect}
+      onSubmitAssessment={handleSubmitAssessment}
+    />
+  </div>
+)}
+
           </main>
         )}
 
