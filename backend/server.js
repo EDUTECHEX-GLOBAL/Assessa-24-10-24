@@ -61,6 +61,8 @@ const satStudyPlanRoutes = require("./routes/satStudyPlanRoutes");
 const studentChatRoutes = require("./routes/chatbotroutes");
 const teacherChatbotRoutes = require("./routes/teacherChatbotRoutes");
 const satAssessmentRoutes = require("./routes/satAssessmentRoutes");
+const generatedAssessmentCountRoutes = require("./routes/generatedAssessmentCountRoutes");
+
 
 
 app.use("/api/users", userRoutes);
@@ -82,6 +84,8 @@ app.use("/api/sat-studyplan", satStudyPlanRoutes); // <-- mount here
 app.use("/api/chat", studentChatRoutes);
 app.use("/api/chat", teacherChatbotRoutes);
 app.use("/api/sat-assessments",satAssessmentRoutes);
+app.use("/api/generated-assessments", generatedAssessmentCountRoutes);
+
 
 // Serve static assets only in production
 if (process.env.NODE_ENV === "production") {

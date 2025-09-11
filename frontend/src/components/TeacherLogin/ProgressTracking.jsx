@@ -97,41 +97,56 @@ export default function ProgressTracking({ onBack }) {
   };
 
   const sendFeedback = async () => {
-    try {
-      const token = localStorage.getItem("token");
-      await axios.post(
-        `${API_BASE_URL}/api/feedback/save`,
-        {
-          studentId: selectedEntry.studentId,
-          submissionId: selectedEntry.submissionId,
-          feedbackText: feedbackObj,
-        },
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-      
-      // Update the progress data to mark feedback as sent
-      setProgressData(prevData => 
-        prevData.map(item => 
-          item.submissionId === selectedEntry.submissionId 
-            ? { ...item, feedbackSent: true } 
+  try {
+    const token = localStorage.getItem("token");
+    await axios.post(
+      `${API_BASE_URL}/api/feedback/send`,
+      {
+        studentId: selectedEntry.studentId,
+        submissionId: selectedEntry.submissionId,
+      },
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+
+    // ✅ update state on success
+    setProgressData((prev) =>
+      prev.map((item) =>
+        item.submissionId === selectedEntry.submissionId
+          ? { ...item, feedbackSent: true }
+          : item
+      )
+    );
+
+    setSelectedEntry((prev) =>
+      prev ? { ...prev, feedbackSent: true } : prev
+    );
+
+    setFeedbackSuccess("Feedback sent successfully ✅");
+    setFeedbackError(null);
+  } catch (err) {
+    if (err.response?.status === 409) {
+      // ✅ Already submitted → treat as success
+      setProgressData((prev) =>
+        prev.map((item) =>
+          item.submissionId === selectedEntry.submissionId
+            ? { ...item, feedbackSent: true }
             : item
         )
       );
-      
-      setFeedbackSuccess(true);
+
+      setSelectedEntry((prev) =>
+        prev ? { ...prev, feedbackSent: true } : prev
+      );
+
+      setFeedbackSuccess("Feedback already submitted ✅");
       setFeedbackError(null);
-    } catch (err) {
-      if (err.response?.status === 409) {
-        setFeedbackError("Feedback has already been sent for this submission.");
-      } else {
-        console.error("Error sending feedback:", err);
-        setFeedbackError("Failed to send feedback.");
-      }
-      setFeedbackSuccess(false);
+    } else {
+      console.error("Error sending feedback:", err);
+      setFeedbackError("Something went wrong ❌");
+      setFeedbackSuccess(null);
     }
-  };
+  }
+};
 
   // Pagination logic
   const indexOfLastItem = currentPage * itemsPerPage;

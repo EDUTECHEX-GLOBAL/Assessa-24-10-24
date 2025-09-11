@@ -17,7 +17,7 @@ const questionSchema = new mongoose.Schema({
 const assessmentSchema = new mongoose.Schema({
   teacherId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "Userwebapp",
+    ref: "Teacher",
     required: true
   },
   assessmentName: { type: String, required: true },
@@ -26,12 +26,26 @@ const assessmentSchema = new mongoose.Schema({
   fileUrl: { type: String },
   questions: [questionSchema],
   difficulty: { 
-  type: String,
-  enum: ["easy", "medium", "hard", "very hard"],
-  required: true
+    type: String,
+    enum: ["easy", "medium", "hard", "very hard"],
+    required: true
   },
   timeLimit: { type: Number, default: 30 },
   isApproved: { type: Boolean, default: false },
+
+  // 🆕 ENHANCEMENTS
+  status: {
+    type: String,
+    enum: ["draft", "published", "archived"],
+    default: "draft"
+  },
+  tags: [{ type: String }], // e.g., ["algebra", "geometry"]
+  estimatedTime: { type: Number }, // minutes
+  rating: {
+    average: { type: Number, default: 0 },
+    count: { type: Number, default: 0 }
+  },
+
   createdAt: { type: Date, default: Date.now }
 });
 

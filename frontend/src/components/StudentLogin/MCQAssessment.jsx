@@ -86,17 +86,30 @@ const prepareAnswersPayload = () => {
   }
 
   if (parsedQuestions.length === 0) {
-    return (
-      <div className="bg-white/90 p-6 rounded-xl shadow-sm border border-gray-200/50 mt-6">
-        <h3 className="text-lg font-semibold text-gray-700 mb-4">
-          Generated Questions
-        </h3>
-        <div className="prose prose-sm max-w-none">
-          <ReactMarkdown>{generatedQuestions}</ReactMarkdown>
-        </div>
+  return (
+    <div className="bg-white/90 p-6 rounded-xl shadow-sm border border-gray-200/50 mt-6">
+      <h3 className="text-lg font-semibold text-gray-700 mb-4">
+        Generated Questions
+      </h3>
+      <div className="prose prose-sm max-w-none">
+        {generatedQuestions ? (
+          // only pass a string into ReactMarkdown
+          typeof generatedQuestions === "string" ? (
+            <ReactMarkdown>{generatedQuestions}</ReactMarkdown>
+          ) : (
+            // fallback: show pretty-printed JSON if it's an object/array
+            <pre className="bg-gray-100 p-4 rounded text-xs overflow-x-auto">
+              {JSON.stringify(generatedQuestions, null, 2)}
+            </pre>
+          )
+        ) : (
+          <p className="text-gray-500">No questions generated yet.</p>
+        )}
       </div>
-    );
-  }
+    </div>
+  );
+}
+
 
   if (showResults) {
     return (

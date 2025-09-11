@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { FaUsers, FaClipboardList, FaUserClock } from 'react-icons/fa';
+import { FaUsers, FaClipboardList, FaUserClock, FaTimes, FaBook, FaRocket } from 'react-icons/fa';
 import { MdAdminPanelSettings, MdAssignment } from 'react-icons/md';
 import { CircularProgressbar, buildStyles } from 'react-circular-progressbar';
 import 'react-circular-progressbar/dist/styles.css';
@@ -17,13 +17,15 @@ export default function DashboardHome() {
     users: { total: 0, active: 0, pending: 0 },
   });
 
+  const [showModal, setShowModal] = useState(false);
+
   useEffect(() => {
     const fetchStats = async () => {
       try {
         const response = await fetch("/api/admin/dashboard/stats");
         const data = await response.json();
         console.log("📊 API /dashboard/stats Response:", data);
-        setStats(data); // ✅ backend already returns { teachers: {...}, users: {...} }
+        setStats(data);
       } catch (error) {
         console.error("Error fetching dashboard stats:", error);
       }
@@ -39,60 +41,50 @@ export default function DashboardHome() {
       }
     };
 
-    fetchStats();          // ✅ gets teachers + users
-    fetchApprovalCounts(); // ✅ gets pending approvals
+    fetchStats();
+    fetchApprovalCounts();
   }, []);
 
   return (
     <>
       {/* Stats Cards */}
       <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Teachers Card */}
-        <div className="bg-gradient-to-r from-purple-400 to-indigo-500 rounded-xl p-6 text-white shadow-lg transform hover:scale-105 transition-transform">
-  <div className="flex items-center justify-between">
-    <div>
-      <h3 className="text-lg font-bold">Teachers</h3>
-      <p className="text-2xl">{stats?.teachers?.total ?? 0}</p>
-    </div>
-    <MdAdminPanelSettings className="text-4xl opacity-75" />
-  </div>
-  <div className="mt-4 flex justify-between text-sm">
-    <div>
-      <p>Active: {stats?.teachers?.active ?? 0}</p>
-      <p>Inactive: {stats?.teachers?.inactive ?? 0}</p>
-    </div>
-    <Link 
-      to="/admin-dashboard/teachers"
-      className="bg-white/20 hover:bg-white/30 px-3 py-1 rounded-full"
-    >
-      Manage
-    </Link>
-  </div>
-</div>
+        
+        {/* Generated Assessments Card */}
+        <div
+          className="bg-gradient-to-r from-purple-400 to-indigo-500 rounded-xl p-6 text-white shadow-lg transform hover:scale-105 transition-transform cursor-pointer"
+          onClick={() => setShowModal(true)}
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-bold">Generated Assessments</h3>
+              <p className="text-2xl">{stats?.teachers?.assessmentsGenerated ?? 0}</p>
+            </div>
+            <MdAdminPanelSettings className="text-4xl opacity-75" />
+          </div>
+          <div className="mt-4 flex justify-between text-sm">
+            <div>
+              <p>Active Teachers: {stats?.teachers?.active ?? 0}</p>
+              <p>Inactive Teachers: {stats?.teachers?.inactive ?? 0}</p>
+            </div>
+          </div>
+        </div>
 
-
-        {/* User Management Card */}
+        {/* Student Attempts Card */}
         <div className="bg-gradient-to-r from-pink-400 to-rose-500 rounded-xl p-6 text-white shadow-lg transform hover:scale-105 transition-transform">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-lg font-bold">Students</h3>
-              <p className="text-2xl">{stats?.users?.total ?? 0}</p>
-              <p className="text-sm mt-2">Total Students</p>
+              <h3 className="text-lg font-bold">Student Attempts</h3>
+              <p className="text-2xl">{stats?.users?.attempts ?? 0}</p>
+              <p className="text-sm mt-2">Total attempts across all students</p>
             </div>
             <FaUsers className="text-4xl opacity-75" />
           </div>
           <div className="mt-4 flex justify-between text-sm">
             <div>
-              <p>Active: {stats?.users?.active ?? 0}</p>
-              <p>Pending: {stats?.users?.pending ?? 0}</p>
+              <p>Active Students: {stats?.users?.active ?? 0}</p>
+              <p>Pending Students: {stats?.users?.pending ?? 0}</p>
             </div>
-            <Link 
-  to="/admin-dashboard/students" 
-  className="bg-white/20 hover:bg-white/30 px-3 py-1 rounded-full"
->
-  Manage
-</Link>
-
           </div>
         </div>
 
@@ -218,6 +210,101 @@ export default function DashboardHome() {
           </div>
         </div>
       </section>
+
+      {/* 👇 Modal */}
+      {showModal && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-60 backdrop-blur-sm z-50 p-4">
+          <div className="relative bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden">
+            {/* Modal Header */}
+            <div className="bg-gradient-to-r from-purple-500 to-indigo-600 p-6 text-white">
+              <div className="flex justify-between items-center">
+                <h2 className="text-2xl font-bold">Assessment Types</h2>
+                <button 
+                  onClick={() => setShowModal(false)}
+                  className="text-white hover:bg-white/20 p-1 rounded-full transition-colors"
+                >
+                  <FaTimes className="text-lg" />
+                </button>
+              </div>
+              <p className="mt-2 opacity-90">Select the type of assessments you want to view</p>
+            </div>
+            
+            {/* Modal Body */}
+            <div className="p-6">
+              <div className="grid grid-cols-1 gap-4">
+                 {/* SAT Assessment Option */}
+                <Link
+                  to="/admin-dashboard/sat-generated-assessments"
+                  className="flex items-center p-4 border border-gray-200 rounded-xl hover:border-indigo-400 hover:shadow-md transition-all group"
+                  onClick={() => setShowModal(false)}
+                >
+                  <div className="flex-shrink-0 w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center mr-4 group-hover:bg-indigo-200 transition-colors">
+                    <FaRocket className="text-xl text-indigo-600" />
+                  </div>
+                  <div className="flex-grow">
+                    <h3 className="font-semibold text-gray-800">SAT Assessments</h3>
+                    <p className="text-sm text-gray-500 mt-1">Access specialized SAT preparation tests</p>
+                  </div>
+                  <div className="text-indigo-600 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                </Link>
+                {/* Standard Assessment Option */}
+                <Link
+                  to="/admin-dashboard/standard-generated-assessments"
+                  className="flex items-center p-4 border border-gray-200 rounded-xl hover:border-purple-400 hover:shadow-md transition-all group"
+                  onClick={() => setShowModal(false)}
+                >
+                  <div className="flex-shrink-0 w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mr-4 group-hover:bg-purple-200 transition-colors">
+                    <FaBook className="text-xl text-purple-600" />
+                  </div>
+                  <div className="flex-grow">
+                    <h3 className="font-semibold text-gray-800">Standard Assessments</h3>
+                    <p className="text-sm text-gray-500 mt-1">View and manage regular curriculum assessments</p>
+                  </div>
+                  <div className="text-purple-600 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                </Link>
+                
+                {/* SAT Assessment Option */}
+                {/* <Link
+                  to="/admin-dashboard/sat-generated-assessments"
+                  className="flex items-center p-4 border border-gray-200 rounded-xl hover:border-indigo-400 hover:shadow-md transition-all group"
+                  onClick={() => setShowModal(false)}
+                >
+                  <div className="flex-shrink-0 w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center mr-4 group-hover:bg-indigo-200 transition-colors">
+                    <FaRocket className="text-xl text-indigo-600" />
+                  </div>
+                  <div className="flex-grow">
+                    <h3 className="font-semibold text-gray-800">SAT Assessments</h3>
+                    <p className="text-sm text-gray-500 mt-1">Access specialized SAT preparation tests</p>
+                  </div>
+                  <div className="text-indigo-600 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                </Link> */}
+              </div>
+            </div>
+            
+            {/* Modal Footer */}
+            <div className="bg-gray-50 px-6 py-4 border-t border-gray-200">
+              <button
+                onClick={() => setShowModal(false)}
+                className="w-full py-3 px-4 text-gray-700 hover:bg-gray-100 rounded-lg font-medium transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

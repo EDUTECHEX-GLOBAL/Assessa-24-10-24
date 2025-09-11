@@ -1,12 +1,12 @@
 const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
-const crypto = require("crypto");
 
 const teacherSchema = new mongoose.Schema(
   {
     name: {
       type: String,
       required: true,
+      trim: true,
     },
     email: {
       type: String,
@@ -25,15 +25,24 @@ const teacherSchema = new mongoose.Schema(
     },
     role: {
       type: String,
-      default: "teacher", // Always teacher for this model
+      default: "teacher", // Always teacher
     },
     status: {
       type: String,
-      enum: ["pending", "approved", "rejected"],
+      enum: ["pending", "approved", "rejected", "inactive"],
       default: "pending", // Await admin approval
     },
     rejectionReason: {
       type: String,
+    },
+    // ✅ New fields
+    className: {
+      type: String,
+      default: "", // optional, teacher can fill in later
+    },
+    selectedSubjects: {
+      type: [String],
+      default: [], // Array of subject names
     },
     resetPasswordToken: {
       type: String,

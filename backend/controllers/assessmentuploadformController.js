@@ -4,6 +4,7 @@ const AssessmentSubmission = require('../models/webapp-models/assessmentSubmissi
 const User = require("../models/webapp-models/userModel");
 const { uploadToS3, getSignedUrl, deleteFromS3 } = require("../config/s3Upload");
 const { parsePDFToQuestions } = require('../utils/pdfParser');
+const Feedback = require("../models/webapp-models/FeedbackModel");
 
 // @desc    Upload assessment and parse questions
 // @route   POST /api/assessments/upload
@@ -467,22 +468,32 @@ const getStudentProgressForTeacher = asyncHandler(async (req, res) => {
     .sort({ submittedAt: -1 });
 
   // Step 3: Structure the response
- const progressData = submissions.map((s) => ({
-  submissionId: s._id,                             // ✅ REQUIRED for feedback
-  studentId: s.studentId?._id,                     // ✅ REQUIRED for feedback
-  studentName: s.studentId?.name || "Unknown",
-  studentClass: s.studentId?.class || "N/A",
-  assessmentTitle: assessmentMap[s.assessmentId.toString()]?.assessmentTitle || "Untitled",
-  score: s.score,
-  totalMarks: s.totalMarks,
-  percentage: s.percentage,
-  date: s.submittedAt || s.createdAt,
-  timeTaken: s.timeTaken || null
-}));
+const progressData = await Promise.all(
+  submissions.map(async (s) => {
+    // 🔑 check if feedback exists for this student + assessment
+    const feedback = await Feedback.findOne({
+      studentId: s.studentId?._id,
+      assessmentId: s.assessmentId,
+    });
 
+    return {
+      submissionId: s._id,
+      studentId: s.studentId?._id,
+      studentName: s.studentId?.name || "Unknown",
+      studentClass: s.studentId?.class || "N/A",
+      assessmentTitle:
+        assessmentMap[s.assessmentId.toString()]?.assessmentTitle || "Untitled",
+      score: s.score,
+      totalMarks: s.totalMarks,
+      percentage: s.percentage,
+      date: s.submittedAt || s.createdAt,
+      timeTaken: s.timeTaken || null,
+      feedbackSent: !!feedback, // ✅ NEW FLAG
+    };
+  })
+);
 
-
-  res.json(progressData);
+res.json(progressData);
 });
 
 // @desc    Get progress summary for logged-in teacher

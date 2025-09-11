@@ -2,7 +2,8 @@ const SatAssessment = require("../models/webapp-models/satAssessmentModel");
 const { parseSATAssessment, parseSATAssessmentCombined } = require("../utils/satParser");
 const { uploadToS3, getSignedUrl, deleteFromS3 } = require("../config/s3Upload");
 const SatSubmission = require("../models/webapp-models/satSubmissionModel");
-const Feedback = require("../models/webapp-models/FeedbackModel");
+const SatFeedback = require("../models/webapp-models/satFeedbackModel");
+
 
 
 // Upload SAT Assessment
@@ -475,11 +476,12 @@ exports.getSatStudentProgress = async (req, res) => {
     const studentIds = filtered.map((s) => s.studentId?._id).filter(Boolean);
     const assessmentIds = filtered.map((s) => s.assessmentId?._id).filter(Boolean);
 
-    // Fetch all existing feedbacks that match any of these pairs
-    const existingFeedbacks = await Feedback.find({
+    // ✅ Fetch SAT-specific feedbacks instead of generic feedback
+    const existingFeedbacks = await SatFeedback.find({
       studentId: { $in: studentIds },
       assessmentId: { $in: assessmentIds },
     }).select("studentId assessmentId");
+
 
     // Fast lookup: studentId-assessmentId -> true
     const sentSet = new Set(

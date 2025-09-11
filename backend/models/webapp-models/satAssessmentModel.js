@@ -10,14 +10,14 @@ const satQuestionSchema = new mongoose.Schema({
   passage: { type: String },
   options: [{ type: String }],
   correctAnswer: { 
-    type: mongoose.Schema.Types.Mixed, // Can be String or Number
+    type: mongoose.Schema.Types.Mixed, // String or Number
     required: true,
     validate: {
       validator: function(value) {
         if (this.type === 'mcq') {
           return Number.isInteger(value) && value >= 0 && value < this.options.length;
         }
-        return true; // No validation for grid_in type
+        return true;
       },
       message: 'MCQ correctAnswer must be a valid option index'
     }
@@ -29,7 +29,7 @@ const satQuestionSchema = new mongoose.Schema({
 const satAssessmentSchema = new mongoose.Schema({
   teacherId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "Userwebapp",
+    ref: "Teacher",
     required: true,
   },
   satTitle: { type: String, required: true },
@@ -39,18 +39,30 @@ const satAssessmentSchema = new mongoose.Schema({
     required: true,
   },
   difficulty: {
-  type: String,
-  enum: ['easy', 'medium', 'hard', 'very hard'],
-  required: true
-},
-
+    type: String,
+    enum: ['easy', 'medium', 'hard', 'very hard'],
+    required: true
+  },
   questions: [satQuestionSchema],
   fileUrl: { type: String },
-  isApproved: { type: Boolean, default: false }, // ✅ NEW FIELD
+  isApproved: { type: Boolean, default: false },
+
+  // 🆕 ENHANCEMENTS
+  status: {
+    type: String,
+    enum: ["draft", "published", "archived"],
+    default: "draft"
+  },
+  tags: [{ type: String }], // e.g., ["SAT Math", "Critical Reading"]
+  estimatedTime: { type: Number }, // minutes
+  rating: {
+    average: { type: Number, default: 0 },
+    count: { type: Number, default: 0 }
+  },
+
   createdAt: { type: Date, default: Date.now },
 });
 
-// Add validation for existing assessments
 satAssessmentSchema.pre('save', function(next) {
   this.questions.forEach((question, index) => {
     if (question.type === 'mcq') {

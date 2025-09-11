@@ -50,6 +50,9 @@ import ReviewAssessmentPage from "./components/TeacherLogin/ReviewAssessmentPage
 // Admin Dashboard Nested
 import DashboardHome from "./components/AdminPanelLogin/DashboardHome";
 import ApprovalRequests from "./components/AdminPanelLogin/ApprovalRequests";
+import StandardGeneratedAssessmentsPage from "./components/AdminPanelLogin/StandardGeneratedAssessmentsPage";
+import SatGeneratedAssessmentsPage from "./components/AdminPanelLogin/SatGeneratedAssessmentsPage";
+
 
 function App() {
   const { assessaData, reloadData } = useSelector((state) => state.root);
@@ -114,11 +117,11 @@ function App() {
         <Route path="/student-login" element={<StudentLogin />} />
         <Route path="/problemsolving-agent" element={<ProblemsolvingAgent />} />
 
-        {/* ✅ Protected Routes */}
+        {/* ✅ Protected Routes with roles */}
         <Route
           path="/student-dashboard"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute role="student">
               <StudentDashboard />
             </ProtectedRoute>
           }
@@ -126,7 +129,7 @@ function App() {
         <Route
           path="/assessment-library"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute role="teacher">
               <AssessmentLibrary />
             </ProtectedRoute>
           }
@@ -134,7 +137,7 @@ function App() {
         <Route
           path="/assessments-page"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute role="student">
               <AssessmentsPage />
             </ProtectedRoute>
           }
@@ -142,7 +145,7 @@ function App() {
         <Route
           path="/teacher-dashboard"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute role="teacher">
               <TeacherDashboard />
             </ProtectedRoute>
           }
@@ -150,7 +153,7 @@ function App() {
         <Route
           path="/teacher-dashboard/review/:assessmentId"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute role="teacher">
               <ReviewAssessmentPage />
             </ProtectedRoute>
           }
@@ -158,20 +161,22 @@ function App() {
 
         {/* NESTED ADMIN DASHBOARD ROUTES */}
         <Route
-  path="/admin-dashboard/*"
-  element={
-    <ProtectedRoute>
-      <AdminDashboard />
-    </ProtectedRoute>
-  }
->
-  <Route index element={<DashboardHome />} />
-  <Route path="approvals" element={<ApprovalRequests />} />
-  <Route path="teachers" element={<TeacherManagement />} />
-  <Route path="students" element={<StudentManagement />} />
-</Route>
+          path="/admin-dashboard/*"
+          element={
+            <ProtectedRoute role="admin">
+              <AdminDashboard />
+            </ProtectedRoute>
+          }
+        >
+          <Route index element={<DashboardHome />} />
+          <Route path="approvals" element={<ApprovalRequests />} />
+          <Route path="teachers" element={<TeacherManagement />} />
+          <Route path="students" element={<StudentManagement />} />
+          <Route path="standard-generated-assessments" element={<StandardGeneratedAssessmentsPage />} />
+          <Route path="sat-generated-assessments" element={<SatGeneratedAssessmentsPage />} />
+        </Route>
 
-
+        {/* Login Pages */}
         <Route path="/teacher-login" element={<TeacherLogin />} />
         <Route path="/adminpanel-login" element={<AdminPanelLogin />} />
       </Routes>

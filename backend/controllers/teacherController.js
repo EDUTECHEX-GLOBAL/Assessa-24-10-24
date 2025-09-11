@@ -2,8 +2,12 @@ const asyncHandler = require("express-async-handler");
 const bcrypt = require("bcryptjs");
 const Teacher = require("../models/webapp-models/teacherModel");
 const generateToken = require("../utils/generateToken");
+const { getSignedUrl } = require("../config/s3Upload");
 const sendEmail = require("../utils/mailer");
 
+// ============================
+// REGISTER
+// ============================
 const registerTeacher = asyncHandler(async (req, res) => {
   const { name, email, password, pic } = req.body;
 
@@ -20,13 +24,13 @@ const registerTeacher = asyncHandler(async (req, res) => {
     name,
     email,
     password,
-    pic,
-    role: "teacher", // Add role
-    status: "pending", // Awaiting admin approval
+    pic, // S3 key (if uploaded before register) OR default
+    role: "teacher",
+    status: "pending",
   });
 
   if (teacher) {
-    // Notify admin about new teacher signup
+    // notify admin
     await sendEmail.sendAdminTeacherSignupEmail(teacher.name, teacher.email);
 
     res.status(201).json({
@@ -37,7 +41,12 @@ const registerTeacher = asyncHandler(async (req, res) => {
   }
 });
 
-
+// ============================
+// LOGIN
+// ============================
+// ============================
+// LOGIN
+// ============================
 const authTeacher = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
 
@@ -55,12 +64,26 @@ const authTeacher = asyncHandler(async (req, res) => {
     return res.status(403).json({ message: "Your registration has been rejected." });
   }
 
+  if (teacher.status === "inactive") {
+    return res.status(403).json({ message: "Your account has been revoked by the admin." });
+  }
+
   if (await teacher.matchPassword(password)) {
+    // ✅ FIX: return signed URL if stored as S3 key
+    let signedPicUrl = null;
+    if (teacher.pic && !teacher.pic.startsWith("http")) {
+      signedPicUrl = getSignedUrl(teacher.pic);
+    } else {
+      signedPicUrl = teacher.pic;
+    }
+
     res.json({
       _id: teacher._id,
       name: teacher.name,
       email: teacher.email,
-      pic: teacher.pic,
+      pic: signedPicUrl, // <-- always usable URL
+      role: teacher.role,
+      status: teacher.status,
       token: generateToken(teacher._id),
     });
   } else {
@@ -68,25 +91,83 @@ const authTeacher = asyncHandler(async (req, res) => {
   }
 });
 
+// ============================
+// GET PROFILE (with signed pic URL)
+// ============================
+const getTeacherProfile = asyncHandler(async (req, res) => {
+  const teacher = await Teacher.findById(req.user._id).select("-password");
 
-const updateTeacherProfile = asyncHandler(async (req, res) => {
-  const teacher = await Teacher.findById(req.user._id);
-  if (teacher) {
-    teacher.name = req.body.name || teacher.name;
-    teacher.email = req.body.email || teacher.email;
-    if (req.body.password) {
-      teacher.password = await bcrypt.hash(req.body.password, 10);
-    }
-    const updatedTeacher = await teacher.save();
-    res.json({
-      _id: updatedTeacher._id,
-      name: updatedTeacher.name,
-      email: updatedTeacher.email,
-      token: generateToken(updatedTeacher._id),
-    });
-  } else {
-    res.status(404).json({ message: "Teacher Not Found!" });
+  if (!teacher) {
+    return res.status(404).json({ message: "Teacher not found" });
   }
+
+  let signedPicUrl = null;
+  if (teacher.pic && !teacher.pic.startsWith("http")) {
+    // it's an S3 key, generate signed URL
+    signedPicUrl = getSignedUrl(teacher.pic);
+  } else {
+    signedPicUrl = teacher.pic; // already a URL (default or external)
+  }
+
+  res.json({
+    _id: teacher._id,
+    name: teacher.name,
+    email: teacher.email,
+    role: teacher.role,
+    status: teacher.status,
+    pic: signedPicUrl,
+    className: teacher.className || "",
+    selectedSubjects: teacher.selectedSubjects || [],
+    createdAt: teacher.createdAt,
+    updatedAt: teacher.updatedAt,
+  });
 });
 
-module.exports = { registerTeacher, authTeacher, updateTeacherProfile };
+// ============================
+// UPDATE PROFILE
+// ============================
+const updateTeacherProfile = asyncHandler(async (req, res) => {
+  const teacher = await Teacher.findById(req.user._id);
+
+  if (!teacher) {
+    return res.status(404).json({ message: "Teacher Not Found!" });
+  }
+
+  teacher.name = req.body.name || teacher.name;
+  teacher.email = req.body.email || teacher.email;
+  teacher.pic = req.body.pic || teacher.pic;
+  teacher.className = req.body.className || teacher.className;
+  teacher.selectedSubjects = req.body.selectedSubjects || teacher.selectedSubjects;
+
+  if (req.body.password) {
+    teacher.password = await bcrypt.hash(req.body.password, 10);
+  }
+
+  const updatedTeacher = await teacher.save();
+
+  let signedPicUrl = null;
+  if (updatedTeacher.pic && !updatedTeacher.pic.startsWith("http")) {
+    signedPicUrl = getSignedUrl(updatedTeacher.pic);
+  } else {
+    signedPicUrl = updatedTeacher.pic;
+  }
+
+  res.json({
+    _id: updatedTeacher._id,
+    name: updatedTeacher.name,
+    email: updatedTeacher.email,
+    role: updatedTeacher.role,
+    status: updatedTeacher.status,
+    pic: signedPicUrl,
+    className: updatedTeacher.className || "",
+    selectedSubjects: updatedTeacher.selectedSubjects || [],
+    token: generateToken(updatedTeacher._id),
+  });
+});
+
+module.exports = {
+  registerTeacher,
+  authTeacher,
+  getTeacherProfile,
+  updateTeacherProfile,
+};

@@ -93,30 +93,88 @@ const ProblemsolvingAgent = () => {
   setSubmitted(false);
   setScore(0);
 
+  try {
+    const res = await aiAgentAPI.post("/generate-assessment", {
+      num_questions: numQuestions,
+      curriculum,
+      grade,
+      subject,
+      topic
+    });
 
-    try {
-      const res = await aiAgentAPI.post("/generate-assessment", {
-        num_questions: numQuestions,
-        curriculum,
-        grade,
-        subject,
-        topic
-      });
-      setGeneratedQuestions(res.data.questions);
-      
+    // Normalize backend response into two guaranteed shapes:
+    // - parsedQuestions: Array of question objects (if available)
+    // - generatedQuestions: A string (JSON pretty-printed) used for preview/markdown
+    let questions = res?.data?.questions;
+
+    // Case A: backend already returned an array
+    if (Array.isArray(questions)) {
+      setParsedQuestions(questions);
+      setGeneratedQuestions(JSON.stringify(questions, null, 2)); // string for markdown/preview
+    } 
+    // Case B: backend returned a string (maybe JSON string or text with JSON inside)
+    else if (typeof questions === "string") {
+      // try straightforward parse
       try {
-        const parsed = JSON.parse(res.data.questions);
-        setParsedQuestions(parsed);
+        const parsed = JSON.parse(questions);
+        if (Array.isArray(parsed)) {
+          setParsedQuestions(parsed);
+          setGeneratedQuestions(JSON.stringify(parsed, null, 2));
+        } else {
+          // parsed to something else (keep string for preview)
+          setGeneratedQuestions(questions);
+        }
       } catch (err) {
-        console.error("Failed to parse questions:", err);
+        // If JSON.parse fails, attempt to extract JSON array substring (robust fallback)
+        console.warn("Attempting to extract JSON substring from questions string:", err);
+        const start = questions.indexOf('[');
+        const end = questions.lastIndexOf(']') + 1;
+        if (start !== -1 && end !== 0) {
+          try {
+            const jsonSubstring = questions.slice(start, end);
+            const parsed = JSON.parse(jsonSubstring);
+            if (Array.isArray(parsed)) {
+              setParsedQuestions(parsed);
+              setGeneratedQuestions(JSON.stringify(parsed, null, 2));
+            } else {
+              setGeneratedQuestions(questions);
+            }
+          } catch (err2) {
+            console.error("Failed to parse JSON substring:", err2);
+            setGeneratedQuestions(questions);
+          }
+        } else {
+          // no JSON array found — keep the raw string for preview
+          setGeneratedQuestions(questions);
+        }
       }
-    } catch (err) {
-      console.error(err);
-      setError("Failed to generate assessment. Please try again.");
-    } finally {
-      setLoading(false);
+    } 
+    // Case C: unexpected type (object but not array) — stringify and attempt parse
+    else if (questions && typeof questions === "object") {
+      try {
+        const jsonStr = JSON.stringify(questions);
+        const parsed = JSON.parse(jsonStr);
+        if (Array.isArray(parsed)) {
+          setParsedQuestions(parsed);
+        }
+        setGeneratedQuestions(JSON.stringify(parsed, null, 2));
+      } catch (err) {
+        console.error("Unhandled questions format:", err);
+        setGeneratedQuestions(String(questions));
+      }
+    } 
+    // No questions field
+    else {
+      setError("No questions returned from backend.");
     }
-  };
+  } catch (err) {
+    console.error(err);
+    setError("Failed to generate assessment. Please try again.");
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   const handleEvaluateSubmit = async (e) => {
     e.preventDefault();

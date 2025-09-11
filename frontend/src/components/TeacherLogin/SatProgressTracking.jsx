@@ -158,10 +158,8 @@ export default function SatProgressTracking({ onBack }) {
       setFeedbackSuccess(false);
     }, 1200);
   } catch (err) {
-    setFeedbackSuccess(false);
     if (err.response?.status === 409) {
-      setFeedbackError("Feedback already exists for this submission.");
-      // reflect in the table too
+      // ✅ Treat conflict as success since feedback was already submitted
       setProgressData((prev) =>
         prev.map((it) =>
           it.submissionId === selectedEntry.submissionId
@@ -169,9 +167,9 @@ export default function SatProgressTracking({ onBack }) {
             : it
         )
       );
+      setFeedbackSuccess(true);
     } else {
-      console.error("Error sending SAT feedback:", err);
-      setFeedbackError("Failed to send SAT feedback.");
+      setFeedbackError("Failed to send feedback. Please try again.");
     }
   }
 };

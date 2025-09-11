@@ -62,9 +62,11 @@ const authUser = asyncHandler(async (req, res) => {
     if (user.status === "rejected") {
       return res.status(403).json({ message: "Your registration has been rejected." });
     }
-
     if (user.status === "pending" || !user.isAdminApproved) {
       return res.status(403).json({ message: "Your account is pending admin approval." });
+    }
+    if (user.status === "inactive") {
+      return res.status(403).json({ message: "Your account has been deactivated by admin." });
     }
 
     res.json({

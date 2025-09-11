@@ -5,7 +5,7 @@ const subjectsList = ["Math", "Science", "English", "History", "Geography", "Com
 const loadProfileData = () => {
   const savedData = localStorage.getItem('teacherProfile');
   const defaultData = {
-    profilePic: null,
+    pic: null,
     fullName: "Chaitanya",
     email: "chaitanya@gmail.com",
     role: "Teacher",
@@ -22,7 +22,11 @@ const loadProfileData = () => {
 
 export default function TeacherProfile({ teacherInfo, onBack }) {
   const [isEditing, setIsEditing] = useState(false);
-  const [profilePic, setProfilePic] = useState(teacherInfo?.profilePic || loadProfileData().profilePic);
+  // prefer teacherInfo.pic (server/localStorage), fallback to older profilePic key and then defaults
+  const [profilePic, setProfilePic] = useState(
+  teacherInfo?.pic || loadProfileData().pic || "/default-profile.png"
+  );
+
   const [fullName, setFullName] = useState(teacherInfo?.name || loadProfileData().fullName);
   const [email, setEmail] = useState(teacherInfo?.email || loadProfileData().email);
   const [role, setRole] = useState(teacherInfo?.role || loadProfileData().role);
@@ -32,16 +36,28 @@ export default function TeacherProfile({ teacherInfo, onBack }) {
   );
 
   useEffect(() => {
-    const profileData = {
-      profilePic,
-      fullName,
-      email,
-      role,
-      className,
-      selectedSubjects
-    };
-    localStorage.setItem('teacherProfile', JSON.stringify(profileData));
-  }, [profilePic, fullName, email, role, className, selectedSubjects]);
+  const profileData = {
+    pic: profilePic,
+    fullName,
+    email,
+    role,
+    className,
+    selectedSubjects
+  };
+  localStorage.setItem('teacherProfile', JSON.stringify(profileData));
+
+  // keep teacherInfo.pic in localStorage in sync (if teacherInfo exists in props)
+  if (teacherInfo) {
+    try {
+      const updatedTeacherInfo = { ...teacherInfo, pic: profilePic };
+      localStorage.setItem('teacherInfo', JSON.stringify(updatedTeacherInfo));
+    } catch (e) {
+      // ignore serialization errors
+      console.warn('Failed to sync teacherInfo.pic to localStorage', e);
+    }
+  }
+}, [profilePic, fullName, email, role, className, selectedSubjects, teacherInfo]);
+
 
   const handleSubjectChange = (subject) => {
     setSelectedSubjects((prev) =>
@@ -59,7 +75,7 @@ export default function TeacherProfile({ teacherInfo, onBack }) {
 
       // Save immediately to localStorage
       const profileData = {
-        profilePic: newPic,
+        pic: newPic,
         fullName,
         email,
         role,
@@ -75,16 +91,17 @@ export default function TeacherProfile({ teacherInfo, onBack }) {
 
   const handleSave = () => {
     setIsEditing(false);
-    if (teacherInfo) {
-      const updatedInfo = {
-        ...teacherInfo,
-        name: fullName,
-        email: email,
-        role: role,
-        profilePic: profilePic
-      };
-      localStorage.setItem('teacherInfo', JSON.stringify(updatedInfo));
-    }
+   if (teacherInfo) {
+    const updatedInfo = {
+      ...teacherInfo,
+      name: fullName,
+      email,
+      role,
+      pic: profilePic // store as `pic` to match server / other parts
+    };
+    localStorage.setItem('teacherInfo', JSON.stringify(updatedInfo));
+   }
+
   };
 
   return (
@@ -114,6 +131,7 @@ export default function TeacherProfile({ teacherInfo, onBack }) {
                         alt="Profile"
                         className="w-full h-full object-cover"
                       />
+
                     </div>
                   </div>
                 </div>
