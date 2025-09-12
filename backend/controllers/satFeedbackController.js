@@ -327,6 +327,50 @@ const getFeedbacksByStudent = asyncHandler(async (req, res) => {
   res.json(parsed);
 });
 
+// Get all SAT feedbacks (teacher/admin)
+const getAllFeedbacks = asyncHandler(async (req, res) => {
+  const feedbacks = await SatFeedback.find({ assessmentType: "sat" })
+    .populate("studentId", "name email")
+    .populate("assessmentId", "satTitle sectionType")
+    .populate("submissionId", "score totalMarks percentage submittedAt")
+    .sort({ createdAt: -1 });
+
+  const parsed = feedbacks.map((fb) => {
+    const submission = fb.submissionId || {};
+
+    // Percentage calculation
+    const rawPercent =
+      typeof submission.percentage === "number"
+        ? submission.percentage
+        : (typeof submission.score === "number" &&
+           typeof submission.totalMarks === "number" &&
+           submission.totalMarks > 0)
+        ? (submission.score / submission.totalMarks) * 100
+        : 0;
+
+    const percentage = Number(rawPercent.toFixed(1));
+
+    return {
+      _id: fb._id,
+      studentId: fb.studentId, // populated object
+      assessmentId: fb.assessmentId, // populated object
+      submissionId: fb.submissionId?._id,
+      score: submission.score ?? null,
+      total: submission.totalMarks ?? null,
+      percentage,
+      createdAt: fb.createdAt,
+      feedbackText: (() => {
+        try {
+          return JSON.parse(fb.feedbackText);
+        } catch {
+          return fb.feedbackText;
+        }
+      })(),
+    };
+  });
+
+  res.json(parsed);
+});
 
 
 module.exports = {
@@ -334,4 +378,5 @@ module.exports = {
   saveGeneratedFeedback,
   generateAndSaveFeedback,
   getFeedbacksByStudent,
+  getAllFeedbacks,
 };

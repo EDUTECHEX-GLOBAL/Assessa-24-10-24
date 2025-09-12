@@ -1,5 +1,6 @@
+// TeacherDashboard.jsx (updated)
 import { useState, useEffect } from "react";
-import { FaHome, FaSignOutAlt, FaBars, FaSearch, FaFileUpload, FaChartBar, FaUserGraduate, FaClipboardCheck, FaComments, FaFileImport } from 'react-icons/fa';
+import { FaHome, FaSignOutAlt, FaBars, FaSearch, FaFileUpload, FaChartBar, FaUserGraduate, FaClipboardCheck, FaComments, FaFileImport, } from 'react-icons/fa';
 import { IoPersonCircleOutline } from 'react-icons/io5';
 import { MdOutlineAutoAwesome, MdOutlineFeedback } from 'react-icons/md';
 import { BiAnalyse, BiBookAdd } from 'react-icons/bi';
@@ -12,14 +13,10 @@ import TeacherProfile from './TeacherProfile';
 import "tailwindcss/tailwind.css";
 import TeacherDashboardBot from './TeacherDashboardBot';
 import FeedbackHub from "./FeedbackHub";
+import SatFeedbackHub from "./SatFeedbackHub"; // <-- NEW
 import UploadAssessmentModal from './UploadAssessmentModal';
 import ReviewAssessmentPage from './ReviewAssessmentPage';
-
-
-
-
-
-
+import { FiBookOpen } from 'react-icons/fi';
 
 // --- DashboardHome now receives the counts as props ---
 function DashboardHome({ setCurrentView, setShowUploadForm, assessmentLibraryCount, uploadAssessmentsCount, newThisWeekCount, satAssessmentCount, setSelectedAssessmentId }) {
@@ -68,7 +65,7 @@ function DashboardHome({ setCurrentView, setShowUploadForm, assessmentLibraryCou
 
         <div 
             onClick={() => {
-              setSelectedAssessmentId("688c8ebd4cacce66b68194f2"); // <-- Replace with dynamic ID later
+              setSelectedAssessmentId("688c8ebd4cacce66b68194f2"); // placeholder
               setCurrentView("review");
             }}
 
@@ -152,6 +149,7 @@ export default function TeacherDashboard() {
   const [newThisWeekCount, setNewThisWeekCount] = useState(0);
   const [satAssessmentCount, setSatAssessmentCount] = useState(0); 
   const [progressMenuOpen, setProgressMenuOpen] = useState(false);
+  const [feedbackMenuOpen, setFeedbackMenuOpen] = useState(false); // <-- NEW
 
 
   useEffect(() => {
@@ -181,8 +179,6 @@ export default function TeacherDashboard() {
           fetch(`${API_BASE_URL}/api/sat-assessments/library/count`, { method: "GET", headers }), // 👈 SAT count
         ]);
 
-        
-
         const libData = await libRes.json();
         const uploadData = await uploadRes.json();
         const newData = await newRes.json();
@@ -191,7 +187,7 @@ export default function TeacherDashboard() {
         setAssessmentLibraryCount(libData.count);
         setUploadAssessmentsCount(uploadData.count);
         setNewThisWeekCount(newData.count);
-        setSatAssessmentCount(satData.count || 0); // ✅ Set SAT count
+        setSatAssessmentCount(satData.count || 0);
       } catch (err) {
         console.error("Failed to fetch dashboard counts", err);
       }
@@ -207,49 +203,49 @@ export default function TeacherDashboard() {
 
 
   
-  // In your TeacherDashboard.jsx, update the renderContent function:
-const renderContent = () => {
-  switch (currentView) {
-    case "library":
-      return <AssessmentLibrary onBack={() => setCurrentView("dashboard")} />;
-    case "progress-standard":
-  return <ProgressTracking type="standard" onBack={() => setCurrentView("dashboard")} />;
-case "progress-sat":
-  return <SatProgressTracking onBack={() => setCurrentView("dashboard")} />;
-
-    case "feedback":
-      return <FeedbackHub />;
-    case "profile":
-      return (
-        <TeacherProfile
-          teacherInfo={teacherInfo}
-          onBack={() => setCurrentView("dashboard")}
-        />
-      );
-    case "review":
-  return (
-    <ReviewAssessmentPage
-      assessmentId={selectedAssessmentId}
-      teacherInfo={teacherInfo}
-      onBack={() => setCurrentView("dashboard")}
-    />
-  );
-
-    case "dashboard":
-    default:
-      return (
-        <DashboardHome
-          setCurrentView={setCurrentView}
-          setShowUploadForm={setShowUploadForm}
-          assessmentLibraryCount={assessmentLibraryCount}
-          uploadAssessmentsCount={uploadAssessmentsCount}
-          newThisWeekCount={newThisWeekCount}
-          satAssessmentCount={satAssessmentCount}
-          setSelectedAssessmentId={setSelectedAssessmentId} // ✅ ADD THIS LINE
-        />
-      );
-  }
-};
+  // Render content based on currentView:
+  const renderContent = () => {
+    switch (currentView) {
+      case "library":
+        return <AssessmentLibrary onBack={() => setCurrentView("dashboard")} />;
+      case "progress-standard":
+        return <ProgressTracking type="standard" onBack={() => setCurrentView("dashboard")} />;
+      case "progress-sat":
+        return <SatProgressTracking onBack={() => setCurrentView("dashboard")} />;
+      case "feedback-standard": // teacher view for standard feedbacks
+        return <FeedbackHub onBack={() => setCurrentView("dashboard")} />;
+      case "feedback-sat": // teacher view for SAT feedbacks
+        return <SatFeedbackHub onBack={() => setCurrentView("dashboard")} />;
+      case "profile":
+        return (
+          <TeacherProfile
+            teacherInfo={teacherInfo}
+            onBack={() => setCurrentView("dashboard")}
+          />
+        );
+      case "review":
+        return (
+          <ReviewAssessmentPage
+            assessmentId={selectedAssessmentId}
+            teacherInfo={teacherInfo}
+            onBack={() => setCurrentView("dashboard")}
+          />
+        );
+      case "dashboard":
+      default:
+        return (
+          <DashboardHome
+            setCurrentView={setCurrentView}
+            setShowUploadForm={setShowUploadForm}
+            assessmentLibraryCount={assessmentLibraryCount}
+            uploadAssessmentsCount={uploadAssessmentsCount}
+            newThisWeekCount={newThisWeekCount}
+            satAssessmentCount={satAssessmentCount}
+            setSelectedAssessmentId={setSelectedAssessmentId}
+          />
+        );
+    }
+  };
 
 
   return (
@@ -271,7 +267,6 @@ case "progress-sat":
   </button>
 
   {/* Collapsible Progress Tracking Dropdown */}
-  {/* Modern Progress Tracking Dropdown */}
 <div className="mb-2">
   <button 
     onClick={() => setProgressMenuOpen(!progressMenuOpen)}
@@ -343,13 +338,55 @@ case "progress-sat":
   )}
 </div>
 
-  <button 
-    onClick={() => setCurrentView("feedback")}
-    className={`flex items-center space-x-3 py-3 px-4 rounded-lg w-full text-left ${currentView === "feedback" ? "bg-blue-200/50 text-blue-800" : "text-gray-700 hover:bg-blue-200/50 hover:text-blue-800"}`}
-  >
-    <MdOutlineFeedback className="text-xl" />
-    <span className="text-lg font-medium">Feedback Hub</span>
-  </button>
+  {/* Feedback Hub Dropdown */}
+  <div className="mb-2">
+    <button
+      onClick={() => setFeedbackMenuOpen(!feedbackMenuOpen)}
+      className={`flex items-center justify-between w-full py-3 px-4 rounded-lg text-left transition-all duration-200 ${
+        feedbackMenuOpen ? "bg-blue-50 text-blue-800" : "text-gray-700 hover:bg-blue-50/80 hover:text-blue-800"
+      }`}
+    >
+      <div className="flex items-center space-x-3">
+        <div className={`p-1.5 rounded-lg ${feedbackMenuOpen ? "bg-blue-100 text-blue-600" : "bg-gray-100 text-gray-600"}`}>
+          <MdOutlineFeedback className="text-lg" />
+        </div>
+        <span className="text-lg font-medium">Feedback Hub</span>
+      </div>
+      <span className={`transition-transform duration-200 ${feedbackMenuOpen ? "rotate-180 text-blue-600" : "text-gray-500"}`}>
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+          <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+        </svg>
+      </span>
+    </button>
+
+    {feedbackMenuOpen && (
+      <div className="ml-12 mt-1 space-y-2">
+        <button
+          onClick={() => setCurrentView("feedback-standard")}
+          className={`flex items-center w-full py-2.5 px-3 rounded-lg transition-all duration-150 ${
+            currentView === "feedback-standard" ? "bg-blue-100/80 text-blue-800 font-medium" : "hover:bg-gray-100/50 text-gray-700 hover:text-blue-700"
+          }`}
+        >
+          <div className={`w-6 h-6 mr-2 flex items-center justify-center rounded-md ${currentView === "feedback-standard" ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-600"}`}>
+            <FiBookOpen size={14} />
+          </div>
+          <span>Standard Feedbacks</span>
+        </button>
+
+        <button
+          onClick={() => setCurrentView("feedback-sat")}
+          className={`flex items-center w-full py-2.5 px-3 rounded-lg transition-all duration-150 ${
+            currentView === "feedback-sat" ? "bg-blue-100/80 text-blue-800 font-medium" : "hover:bg-gray-100/50 text-gray-700 hover:text-blue-700"
+          }`}
+        >
+          <div className={`w-6 h-6 mr-2 flex items-center justify-center rounded-md ${currentView === "feedback-sat" ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-600"}`}>
+            <FiBookOpen size={14} />
+          </div>
+          <span>SAT Feedbacks</span>
+        </button>
+      </div>
+    )}
+  </div>
 
   <div className="flex items-center space-x-3 py-3 px-4 rounded-lg text-gray-700">
     <BiAnalyse className="text-xl" />

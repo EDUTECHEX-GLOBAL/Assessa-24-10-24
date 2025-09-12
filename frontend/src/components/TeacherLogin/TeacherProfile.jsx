@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from "react";
+import axios from "axios";
+
 
 const subjectsList = ["Math", "Science", "English", "History", "Geography", "Computer Science"];
 
@@ -65,44 +67,87 @@ export default function TeacherProfile({ teacherInfo, onBack }) {
     );
   };
 
-  const handleImageUpload = (e) => {
+  const handleImageUpload = async (e) => {
   const file = e.target.files[0];
-  if (file) {
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const newPic = reader.result;
-      setProfilePic(newPic);
+  if (!file) return;
 
-      // Save immediately to localStorage
-      const profileData = {
-        pic: newPic,
-        fullName,
-        email,
-        role,
-        className,
-        selectedSubjects
-      };
-      localStorage.setItem('teacherProfile', JSON.stringify(profileData));
-    };
-    reader.readAsDataURL(file);
+  const teacherInfo = JSON.parse(localStorage.getItem("teacherInfo"));
+  if (!teacherInfo?.token) return;
+
+  const formData = new FormData();
+  formData.append("pic", file);
+
+  try {
+    const { data } = await axios.post(
+      `${process.env.REACT_APP_API_URL}/api/teachers/upload-pic`,
+      formData,
+      {
+        headers: {
+          Authorization: `Bearer ${teacherInfo.token}`,
+          "Content-Type": "multipart/form-data",
+        },
+      }
+    );
+
+    // ✅ Save the signed URL for immediate display
+    setProfilePic(data.url);
+
+    // ✅ Persist the KEY in DB by calling update profile
+    const { data: updated } = await axios.put(
+      `${process.env.REACT_APP_API_URL}/api/teachers/profile`,
+      { pic: data.key }, // only send key to backend
+      {
+        headers: { Authorization: `Bearer ${teacherInfo.token}` },
+      }
+    );
+
+    // ✅ Update localStorage with backend response (which includes fresh signed URL)
+    localStorage.setItem("teacherInfo", JSON.stringify(updated));
+    localStorage.setItem("teacherProfile", JSON.stringify(updated));
+  } catch (err) {
+    console.error("Failed to upload profile picture:", err);
   }
 };
 
 
-  const handleSave = () => {
-    setIsEditing(false);
-   if (teacherInfo) {
-    const updatedInfo = {
-      ...teacherInfo,
-      name: fullName,
-      email,
-      role,
-      pic: profilePic // store as `pic` to match server / other parts
-    };
-    localStorage.setItem('teacherInfo', JSON.stringify(updatedInfo));
-   }
 
-  };
+  const handleSave = async () => {
+  try {
+    setIsEditing(false);
+
+    const teacherInfo = JSON.parse(localStorage.getItem("teacherInfo"));
+    if (!teacherInfo?.token) return;
+
+    const { data } = await axios.put(
+      `${process.env.REACT_APP_API_URL}/api/teachers/profile`,
+      {
+        name: fullName,
+        email,
+        role,
+        className,
+        selectedSubjects,
+      },
+      {
+        headers: { Authorization: `Bearer ${teacherInfo.token}` },
+      }
+    );
+
+    // Update localStorage with fresh data from backend
+    localStorage.setItem("teacherInfo", JSON.stringify(data));
+    localStorage.setItem("teacherProfile", JSON.stringify(data));
+
+    // Update state
+    setProfilePic(data.pic || "/default-profile.png");
+    setFullName(data.name || "");
+    setEmail(data.email || "");
+    setRole(data.role || "Teacher");
+    setClassName(data.className || "");
+    setSelectedSubjects(data.selectedSubjects || []);
+  } catch (err) {
+    console.error("Failed to update teacher profile:", err);
+  }
+};
+
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-8 px-4">
