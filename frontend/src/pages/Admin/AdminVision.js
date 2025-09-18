@@ -1,9 +1,6 @@
-// src/components/AdminVision.js
 import React, { useState, useEffect, useCallback } from "react";
 import { Modal, Form, Input, Button, message, List, Skeleton } from "antd";
 import axios from "axios";
-import firebase from "firebase/compat/app";
-import "firebase/compat/storage";
 
 const { TextArea } = Input;
 
@@ -15,56 +12,62 @@ const AdminVision = () => {
     data: null,
   });
   const [form] = Form.useForm();
-  const [imgUrl, setImgUrl] = useState("");
-  const [previewUrl, setPreviewUrl] = useState("");
+  const [imgUrl, setImgUrl] = useState(""); // stores S3 key
+  const [previewUrl, setPreviewUrl] = useState(""); // stores signed URL for preview
   const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     fetchassessaData();
   }, []);
 
-  const handleFileUpload = (event) => {
+  // ✅ Upload file to backend (S3)
+  const handleFileUpload = async (event) => {
     const selectedFile = event.target.files[0];
-    if (selectedFile) {
-      // Set uploading state to true to show loader
-      setUploading(true);
+    if (!selectedFile) {
+      console.log("No file selected");
+      return;
+    }
 
-      // Set the preview URL for instant feedback
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setPreviewUrl(reader.result);
-      };
-      reader.readAsDataURL(selectedFile);
+    setUploading(true);
 
-      // Upload to Firebase
-      const storageRef = firebase.storage().ref();
-      const fileRef = storageRef.child(selectedFile.name);
-      fileRef
-        .put(selectedFile)
-        .then((snapshot) => {
-          return snapshot.ref.getDownloadURL();
-        })
-        .then((downloadURL) => {
-          console.log(downloadURL);
-          setImgUrl(downloadURL);
-          setUploading(false); // Set uploading state to false after successful upload
-        })
-        .catch((error) => {
-          console.error("Error uploading file:", error);
-          setUploading(false); // Set uploading state to false on error
-          // Handle error as needed (e.g., show error message)
-        });
-    } else {
-      console.log("No file selected, so select one");
+    // preview file locally
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setPreviewUrl(reader.result);
+    };
+    reader.readAsDataURL(selectedFile);
+
+    try {
+      const formData = new FormData();
+      formData.append("file", selectedFile);
+      formData.append("folder", "vision"); // store in S3/vision
+
+      const res = await axios.post("/api/skillnaav/upload", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+
+      if (res.data.success) {
+        setImgUrl(res.data.key); // S3 key for saving to DB
+        setPreviewUrl(res.data.url); // Signed URL for preview
+      } else {
+        message.error("Upload failed");
+      }
+    } catch (error) {
+      console.error("Upload error:", error);
+      message.error("Error uploading file");
+    } finally {
+      setUploading(false);
     }
   };
 
+  // ✅ Fetch data from backend
   const fetchassessaData = useCallback(async () => {
     try {
       const response = await axios.get("/api/skillnaav/get-skillnaav-data");
       setassessaData(response.data);
+
       if (response.data.visionhead && response.data.visionhead.length > 0) {
-        setImgUrl(response.data.visionhead[0].visionImg || "");
+        setImgUrl(response.data.visionhead[0].visionImgKey || "");
         setPreviewUrl(response.data.visionhead[0].visionImg || "");
       }
     } catch (error) {
@@ -72,6 +75,7 @@ const AdminVision = () => {
     }
   }, []);
 
+  // ✅ Save changes
   const handleFinish = useCallback(
     async (values) => {
       try {
@@ -82,7 +86,7 @@ const AdminVision = () => {
             `/api/skillnaav/update-visionhead/${_id}`,
             {
               ...values,
-              visionImg: imgUrl, // Include uploaded image URL in update
+              visionImg: imgUrl, // save S3 key, not URL
             }
           );
         } else if (modalData.type === "editPoint") {
@@ -93,10 +97,7 @@ const AdminVision = () => {
             values
           );
         } else if (modalData.type === "addPoint") {
-          response = await axios.post("/api/skillnaav/add-visionpoint", {
-            ...values,
-            visionImg: imgUrl, // Include uploaded image URL in creation
-          });
+          response = await axios.post("/api/skillnaav/add-visionpoint", values);
         }
 
         if (response.data.success) {
@@ -139,7 +140,7 @@ const AdminVision = () => {
       setModalData({ isVisible: true, type, data });
       if (data) {
         form.setFieldsValue(data);
-        setImgUrl(data.visionImg || "");
+        setImgUrl(data.visionImgKey || "");
         setPreviewUrl(data.visionImg || "");
       }
     },
@@ -169,12 +170,12 @@ const AdminVision = () => {
             <p className="text-lg mb-2 font-semibold">Sub Heading:</p>
             <p className="mb-2">{visionhead[0]?.visionsub}</p>
           </div>
-          {imgUrl && (
+          {previewUrl && (
             <div className="mb-4">
               <p className="text-lg mb-2 font-semibold">Image:</p>
               <img
-                src={imgUrl}
-                alt="Vision Image"
+                src={previewUrl}
+                alt="Vision"
                 className="max-w-full h-auto rounded"
                 style={{ maxHeight: "400px", objectFit: "cover" }}
               />
@@ -290,7 +291,7 @@ const AdminVision = () => {
                 ) : previewUrl ? (
                   <img
                     src={previewUrl}
-                    alt="Vision Image"
+                    alt="Vision"
                     className="max-w-full h-auto rounded mt-2"
                     style={{ maxHeight: "200px", objectFit: "cover" }}
                   />

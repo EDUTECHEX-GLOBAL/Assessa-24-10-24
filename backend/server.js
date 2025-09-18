@@ -48,9 +48,7 @@ const teacherRoutes = require("./routes/teacherRoutes");
 const adminRoutes = require("./routes/adminRoutes");
 const forgotPasswordRoutes = require("./routes/student_forgotpassword_routes");
 const teacherForgotPasswordRoutes = require("./routes/teacher_forgotpassword_routes");
-const internRoutes = require("./routes/webapp-routes/internshipPostRoutes");
 const skillnaavRoute = require("./routes/skillnaavRoute");
-const applicationRoutes = require("./routes/webapp-routes/applicationRoutes");
 const problemsolvingagentRoutes = require("./routes/problemsolvingagentRoutes");
 const assessmentuploadformRoutes = require("./routes/assessmentuploadformRoutes");
 const uploadProfilePicRoutes = require("./routes/uploadProfilePicRoutes");
@@ -62,6 +60,8 @@ const studentChatRoutes = require("./routes/chatbotroutes");
 const teacherChatbotRoutes = require("./routes/teacherChatbotRoutes");
 const satAssessmentRoutes = require("./routes/satAssessmentRoutes");
 const generatedAssessmentCountRoutes = require("./routes/generatedAssessmentCountRoutes");
+const studentAttemptedAssessmentsRoutes = require("./routes/studentAttemptedAssessmentsRoutes");
+
 
 
 
@@ -70,8 +70,6 @@ app.use("/api/teachers", teacherRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/forgot-password", forgotPasswordRoutes);
 app.use("/api/teacher/forgot-password", teacherForgotPasswordRoutes);
-app.use("/api/interns", internRoutes);
-app.use("/api/applications", applicationRoutes);
 app.use("/api/skillnaav", skillnaavRoute);
 app.use("/api/contact", skillnaavRoute);
 app.use("/api/ai-agent", problemsolvingagentRoutes);
@@ -85,6 +83,8 @@ app.use("/api/chat", studentChatRoutes);
 app.use("/api/chat", teacherChatbotRoutes);
 app.use("/api/sat-assessments",satAssessmentRoutes);
 app.use("/api/generated-assessments", generatedAssessmentCountRoutes);
+app.use("/api/attempts", studentAttemptedAssessmentsRoutes);
+
 
 
 // Serve static assets only in production

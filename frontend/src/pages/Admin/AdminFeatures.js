@@ -1,8 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { Modal, Form, Input, Button, message, Skeleton } from "antd";
 import axios from "axios";
-import firebase from "firebase/compat/app";
-import "firebase/compat/storage";
 
 const { TextArea } = Input;
 
@@ -13,9 +11,11 @@ function AdminFeatures() {
   const [selectedFeature, setSelectedFeature] = useState(null);
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(true);
-  const [imageUrl, setImageUrl] = useState("");
-  const [previewImageUrl, setPreviewImageUrl] = useState("");
-  const [uploadingImage, setUploadingImage] = useState(false); // State to manage image upload loading
+
+  // S3 state
+  const [imgKey, setImgKey] = useState(null);
+  const [previewUrl, setPreviewUrl] = useState("");
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   useEffect(() => {
     fetchassessaData();
@@ -33,20 +33,30 @@ function AdminFeatures() {
     }
   }, []);
 
-  const handleFileUpload = (event) => {
+  // Upload image to backend -> S3
+  const handleFileUpload = async (event) => {
     const selectedFile = event.target.files[0];
-    if (selectedFile) {
-      setUploadingImage(true); // Set uploading image state to true
-      const storageRef = firebase.storage().ref();
-      const fileRef = storageRef.child(selectedFile.name);
+    if (!selectedFile) return;
 
-      fileRef.put(selectedFile).then((snapshot) => {
-        snapshot.ref.getDownloadURL().then((downloadURL) => {
-          setImageUrl(downloadURL);
-          setPreviewImageUrl(downloadURL);
-          setUploadingImage(false); // Set uploading image state to false after upload completes
-        });
+    setUploadingImage(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", selectedFile);
+      formData.append("folder", "features");
+
+      const uploadRes = await axios.post("/api/skillnaav/upload", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
       });
+
+      const { key, url } = uploadRes.data;
+      setImgKey(key); // For DB
+      setPreviewUrl(url); // For preview
+      message.success("Image uploaded successfully");
+    } catch (err) {
+      console.error("Image upload error:", err);
+      message.error("Failed to upload image");
+    } finally {
+      setUploadingImage(false);
     }
   };
 
@@ -55,26 +65,27 @@ function AdminFeatures() {
       setLoading(true);
       const payload = {
         ...values,
-        featureImg: imageUrl,
+        featureImg: imgKey ? imgKey : selectedFeature?.featureImg || "",
       };
+
       const response = await axios.put(
         `/api/skillnaav/update-feature/${selectedFeature._id}`,
         payload
       );
+
       if (response.data.success) {
         message.success(response.data.message);
         setShowEditModal(false);
         fetchassessaData();
         form.resetFields();
-        setImageUrl("");
-        setPreviewImageUrl(""); // Clear preview image after successful update
+        setImgKey(null);
+        setPreviewUrl("");
       } else {
         message.error(response.data.message || "Failed to update feature.");
       }
     } catch (error) {
       message.error(
-        "Error updating feature: " +
-          (error.message || "Unknown error occurred.")
+        "Error updating feature: " + (error.message || "Unknown error occurred.")
       );
     } finally {
       setLoading(false);
@@ -84,15 +95,19 @@ function AdminFeatures() {
   const onFinishAdd = async (values) => {
     try {
       setLoading(true);
-      const payload = { ...values, featureImg: imageUrl };
+      const payload = {
+        ...values,
+        featureImg: imgKey ? imgKey : "",
+      };
+
       const response = await axios.post("/api/skillnaav/add-feature", payload);
       if (response.data.success) {
         message.success(response.data.message);
         setShowAddModal(false);
         fetchassessaData();
         form.resetFields();
-        setImageUrl("");
-        setPreviewImageUrl(""); // Clear preview image after successful addition
+        setImgKey(null);
+        setPreviewUrl("");
       } else {
         message.error(response.data.message || "Failed to add feature.");
       }
@@ -129,8 +144,8 @@ function AdminFeatures() {
 
   const handleEdit = (feature) => {
     setSelectedFeature(feature);
-    setImageUrl(feature.featureImg);
-    setPreviewImageUrl(feature.featureImg);
+    setImgKey(null); // new upload will override
+    setPreviewUrl(feature.featureImg || "");
     form.setFieldsValue(feature);
     setShowEditModal(true);
   };
@@ -138,8 +153,8 @@ function AdminFeatures() {
   const handleAdd = () => {
     form.resetFields();
     setSelectedFeature(null);
-    setImageUrl("");
-    setPreviewImageUrl("");
+    setImgKey(null);
+    setPreviewUrl("");
     setShowAddModal(true);
   };
 
@@ -194,7 +209,7 @@ function AdminFeatures() {
               <div className="mb-4">
                 <img
                   src={feat.featureImg}
-                  alt="Feature Image"
+                  alt="Feature"
                   style={{ maxWidth: "100%", maxHeight: "200px" }}
                 />
               </div>
@@ -220,14 +235,15 @@ function AdminFeatures() {
         ))}
       </div>
 
+      {/* Edit Modal */}
       <Modal
-        visible={showEditModal}
+        open={showEditModal}
         title="Edit Feature"
         onCancel={() => {
           setShowEditModal(false);
           form.resetFields();
-          setImageUrl("");
-          setPreviewImageUrl("");
+          setImgKey(null);
+          setPreviewUrl("");
         }}
         footer={null}
       >
@@ -242,9 +258,7 @@ function AdminFeatures() {
           <Form.Item
             name="featuredesc"
             label="Feature Description"
-            rules={[
-              { required: true, message: "Please enter feature description" },
-            ]}
+            rules={[{ required: true, message: "Please enter feature description" }]}
           >
             <TextArea rows={4} />
           </Form.Item>
@@ -283,20 +297,17 @@ function AdminFeatures() {
           >
             <TextArea rows={2} />
           </Form.Item>
+
           <input type="file" onChange={handleFileUpload} />
-          {uploadingImage ? (
-            <div className="mt-2 flex items-center">
-              <Skeleton.Avatar active size="small" />
-              <Skeleton.Button active style={{ marginLeft: 10, width: 150 }} />
-            </div>
-          ) : previewImageUrl ? (
+          {uploadingImage && <Skeleton.Image style={{ width: "100%" }} />}
+          {previewUrl && !uploadingImage && (
             <img
-              src={previewImageUrl}
+              src={previewUrl}
               alt="Preview"
-              className="max-w-full h-auto rounded mt-2"
-              style={{ maxHeight: "200px", objectFit: "cover" }}
+              style={{ maxWidth: "100%", maxHeight: "200px", marginTop: "8px" }}
             />
-          ) : null}
+          )}
+
           <Form.Item style={{ marginTop: "16px" }}>
             <Button
               type="primary"
@@ -310,14 +321,15 @@ function AdminFeatures() {
         </Form>
       </Modal>
 
+      {/* Add Modal */}
       <Modal
-        visible={showAddModal}
+        open={showAddModal}
         title="Add New Feature"
         onCancel={() => {
           setShowAddModal(false);
           form.resetFields();
-          setImageUrl("");
-          setPreviewImageUrl("");
+          setImgKey(null);
+          setPreviewUrl("");
         }}
         footer={null}
       >
@@ -332,9 +344,7 @@ function AdminFeatures() {
           <Form.Item
             name="featuredesc"
             label="Feature Description"
-            rules={[
-              { required: true, message: "Please enter feature description" },
-            ]}
+            rules={[{ required: true, message: "Please enter feature description" }]}
           >
             <TextArea rows={4} />
           </Form.Item>
@@ -373,15 +383,17 @@ function AdminFeatures() {
           >
             <TextArea rows={2} />
           </Form.Item>
+
           <input type="file" onChange={handleFileUpload} />
           {uploadingImage && <Skeleton.Image style={{ width: "100%" }} />}
-          {previewImageUrl && !uploadingImage && (
+          {previewUrl && !uploadingImage && (
             <img
-              src={previewImageUrl}
+              src={previewUrl}
               alt="Preview"
-              style={{ maxWidth: "100%", maxHeight: "200px" }}
+              style={{ maxWidth: "100%", maxHeight: "200px", marginTop: "8px" }}
             />
           )}
+
           <Form.Item style={{ marginTop: "16px" }}>
             <Button
               type="primary"

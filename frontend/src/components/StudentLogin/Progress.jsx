@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { motion } from 'framer-motion';
+import { generateStandardScorecardPDF } from "./StandardScorecardPDF";
+
 
 const Progress = ({ onBack }) => {
   const [progressData, setProgressData] = useState([]);
@@ -259,6 +261,16 @@ const Progress = ({ onBack }) => {
                           ></motion.div>
                         </div>
                       </div>
+                      {/* Download Scorecard Button */}
+<div className="mt-4 flex justify-end">
+  <button
+    onClick={() => generateStandardScorecardPDF(item)}
+    className="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 text-sm"
+  >
+    Download Scorecard
+  </button>
+</div>
+
                     </div>
                   </motion.div>
                 ))

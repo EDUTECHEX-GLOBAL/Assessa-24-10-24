@@ -1,20 +1,27 @@
+// backend/utils/mailer.js
 const nodemailer = require("nodemailer");
+const fs = require("fs");
+const path = require("path");
 
 // Pick correct dashboard URL based on environment
 const dashboardUrl =
   process.env.NODE_ENV === "production"
     ? process.env.DASHBOARD_URL_PROD
-    : process.env.DASHBOARD_URL_LOCAL;
+    : process.env.DASHBOARD_URL_LOCAL || "http://localhost:3000";
 
 const transporter = nodemailer.createTransport({
   service: "gmail",
   auth: {
-    user: process.env.EMAIL,           // ✅ Use EMAIL instead of EMAIL
-    pass: process.env.EMAIL_PASSWORD,  // ✅ Use EMAIL_PASSWORD
+    user: process.env.EMAIL,
+    pass: process.env.EMAIL_PASSWORD,
   },
 });
 
-// 1. Keep your original OTP function as the default export
+// Path to logo (inline in email)
+const logoPath = path.join(__dirname, "assessalogo.png");
+const logoExists = fs.existsSync(logoPath);
+
+// Default basic email sender (OTP etc.)
 const sendEmail = async (to, subject, text) => {
   try {
     const info = await transporter.sendMail({
@@ -31,19 +38,18 @@ const sendEmail = async (to, subject, text) => {
   }
 };
 
-// 2. Add new functions for approval/rejection
+// Other existing helpers
 sendEmail.sendApprovalEmail = async (to, name, role) => {
   try {
     await transporter.sendMail({
       from: process.env.EMAIL,
       to,
       subject: "Your Account Has Been Approved",
-      text: `Dear ${name},\nYour ${role} account has been approved.`,
-      html: `<p>Dear ${name},<br>Your ${role} account has been approved.</p>`
+      html: `<p>Dear ${name},<br>Your ${role} account has been approved.</p>`,
     });
-  } catch (error) {
-    console.error("Error sending approval email: ", error);
-    throw error;
+  } catch (err) {
+    console.error("Error sending approval email:", err);
+    throw err;
   }
 };
 
@@ -53,57 +59,131 @@ sendEmail.sendRejectionEmail = async (to, name, reason) => {
       from: process.env.EMAIL,
       to,
       subject: "Your Account Request Has Been Rejected",
-      text: `Dear ${name},\nYour account was rejected. Reason: ${reason}`,
-      html: `<p>Dear ${name},<br>Your account was rejected.<br>Reason: ${reason}</p>`
+      html: `<p>Dear ${name},<br>Your account was rejected.<br>Reason: ${reason}</p>`,
     });
-  } catch (error) {
-    console.error("Error sending rejection email: ", error);
-    throw error;
+  } catch (err) {
+    console.error("Error sending rejection email:", err);
+    throw err;
   }
 };
 
-// Notify admin when a new student signs up
 sendEmail.sendAdminStudentSignupEmail = async (name, email) => {
   try {
     await transporter.sendMail({
-      from: process.env.EMAIL,       // ✅ send from Admin
-      to: process.env.EMAIL,         // ✅ send to Admin
+      from: process.env.EMAIL,
+      to: process.env.EMAIL,
       subject: "New Student Signup Pending Approval",
-      text: `A new student has signed up:\n\nName: ${name}\nEmail: ${email}\n\nReview this request: ${dashboardUrl}/admin-dashboard/approvals`,
       html: `
         <h2>New Student Registration</h2>
         <p><strong>Name:</strong> ${name}</p>
         <p><strong>Email:</strong> ${email}</p>
         <p>This student is waiting for your approval.</p>
         <p><a href="${dashboardUrl}/adminpanel-login">Review in Dashboard</a></p>
-      `
+      `,
     });
-  } catch (error) {
-    console.error("Error sending student signup notification:", error);
-    throw error;
+  } catch (err) {
+    console.error("Error sending student signup notification:", err);
+    throw err;
   }
 };
 
-// Notify admin when a new teacher signs up
 sendEmail.sendAdminTeacherSignupEmail = async (name, email) => {
   try {
     await transporter.sendMail({
-      from: process.env.EMAIL,       // ✅ send from Admin
-      to: process.env.EMAIL,         // ✅ send to Admin
+      from: process.env.EMAIL,
+      to: process.env.EMAIL,
       subject: "New Teacher Signup Pending Approval",
-      text: `A new teacher has signed up:\n\nName: ${name}\nEmail: ${email}\n\nReview this request: ${dashboardUrl}/admin-dashboard/approvals`,
       html: `
         <h2>New Teacher Registration</h2>
         <p><strong>Name:</strong> ${name}</p>
         <p><strong>Email:</strong> ${email}</p>
         <p>This teacher is waiting for your approval.</p>
         <p><a href="${dashboardUrl}/adminpanel-login">Review in Dashboard</a></p>
-      `
+      `,
     });
+  } catch (err) {
+    console.error("Error sending teacher signup notification:", err);
+    throw err;
+  }
+};
+
+// ==============================
+// Score Report Email (inline logo + attachment)
+// ==============================
+sendEmail.sendScoreReportEmail = async (to, studentName, pdfBuffer, type = "standard") => {
+  try {
+    const subject =
+      type === "sat"
+        ? "🎓 Your SAT Score Report is Ready | Assessa"
+        : "📊 Your Assessment Score Report is Ready | Assessa";
+
+    // Use inline logo via cid if logo exists; otherwise omit image tag
+    const logoImgTag = logoExists
+      ? `<img src="cid:assessa_logo" alt="Assessa" style="width:120px; display:block; margin: 0 auto 12px;" />`
+      : "";
+
+    const htmlMessage = `
+      <div style="font-family: Arial, Helvetica, sans-serif; max-width: 640px; margin: 20px auto; border:1px solid #e6e6e6; border-radius:8px; padding:24px;">
+        <div style="text-align:center;">
+          ${logoImgTag}
+          <h2 style="color:#004D4D; font-weight:700; margin: 6px 0 10px;">${type === "sat" ? "SAT Score Report" : "Assessment Report"}</h2>
+        </div>
+
+        <p style="color:#333; line-height:1.5;">Dear <strong>${studentName || "Student"}</strong>,</p>
+
+        <p style="color:#333; line-height:1.5;">
+          Attached you’ll find your <strong>${type.toUpperCase()}</strong> score report generated by Assessa. 
+          The attached PDF contains a clear summary of your performance and a detailed breakdown.
+        </p>
+
+        <p style="margin-top:18px; color:#004D4D; font-weight:700;">
+          Keep practicing — your growth is our mission! 🚀
+        </p>
+
+        <div style="text-align:center; margin-top:20px;">
+          <a href="${dashboardUrl}/student-dashboard" style="background:#004D4D; color:#ffffff; padding:10px 18px; border-radius:6px; text-decoration:none; display:inline-block;">View Dashboard</a>
+        </div>
+
+        <hr style="margin:22px 0; border:none; border-top:1px solid #eee;" />
+
+        <p style="font-size:12px; color:#777; text-align:center; margin:0;">
+          Assessa | Smart Assessment Platform<br/>
+          Need help? Contact <a href="mailto:support@assessaai.com">support@assessaai.com</a>
+        </p>
+      </div>
+    `;
+
+    // Build attachments: PDF + optional inline logo
+    const attachments = [
+      {
+        filename: `${type === "sat" ? "SAT_Score_Report" : "Assessment_Score_Report"}_${Date.now()}.pdf`,
+        content: pdfBuffer,
+        contentType: "application/pdf",
+      },
+    ];
+
+    if (logoExists) {
+      attachments.push({
+        filename: "assessalogo.png",
+        path: logoPath,
+        cid: "assessa_logo",
+      });
+    }
+
+    await transporter.sendMail({
+      from: process.env.EMAIL,
+      to,
+      subject,
+      html: htmlMessage,
+      attachments,
+    });
+
+    console.log(`📧 Score report (${type}) sent to ${to}`);
   } catch (error) {
-    console.error("Error sending teacher signup notification:", error);
+    console.error("❌ Error sending score report email:", error);
+    // bubble up so callers can log, but don't crash the whole flow
     throw error;
   }
 };
 
-module.exports = sendEmail; // Maintains backward compatibility
+module.exports = sendEmail;

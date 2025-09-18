@@ -17,7 +17,9 @@ export default function DashboardHome() {
     users: { total: 0, active: 0, pending: 0 },
   });
 
+  // showModal (boolean) + modalType ('generated' | 'attempts')
   const [showModal, setShowModal] = useState(false);
+  const [modalType, setModalType] = useState("generated");
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -45,6 +47,12 @@ export default function DashboardHome() {
     fetchApprovalCounts();
   }, []);
 
+  // helper to open modal for specific context
+  const openModal = (type = "generated") => {
+    setModalType(type);
+    setShowModal(true);
+  };
+
   return (
     <>
       {/* Stats Cards */}
@@ -53,7 +61,7 @@ export default function DashboardHome() {
         {/* Generated Assessments Card */}
         <div
           className="bg-gradient-to-r from-purple-400 to-indigo-500 rounded-xl p-6 text-white shadow-lg transform hover:scale-105 transition-transform cursor-pointer"
-          onClick={() => setShowModal(true)}
+          onClick={() => openModal("generated")}
         >
           <div className="flex items-center justify-between">
             <div>
@@ -71,7 +79,10 @@ export default function DashboardHome() {
         </div>
 
         {/* Student Attempts Card */}
-        <div className="bg-gradient-to-r from-pink-400 to-rose-500 rounded-xl p-6 text-white shadow-lg transform hover:scale-105 transition-transform">
+        <div
+          className="bg-gradient-to-r from-pink-400 to-rose-500 rounded-xl p-6 text-white shadow-lg transform hover:scale-105 transition-transform cursor-pointer"
+          onClick={() => openModal("attempts")}
+        >
           <div className="flex items-center justify-between">
             <div>
               <h3 className="text-lg font-bold">Student Attempts</h3>
@@ -211,14 +222,22 @@ export default function DashboardHome() {
         </div>
       </section>
 
-      {/* 👇 Modal */}
+      {/* 👇 Modal (shared for both Generated Assessments and Student Attempts) */}
       {showModal && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-60 backdrop-blur-sm z-50 p-4">
           <div className="relative bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden">
             {/* Modal Header */}
-            <div className="bg-gradient-to-r from-purple-500 to-indigo-600 p-6 text-white">
+            <div
+              className={
+                modalType === "generated"
+                  ? "bg-gradient-to-r from-purple-500 to-indigo-600 p-6 text-white"
+                  : "bg-gradient-to-r from-pink-500 to-rose-600 p-6 text-white"
+              }
+            >
               <div className="flex justify-between items-center">
-                <h2 className="text-2xl font-bold">Assessment Types</h2>
+                <h2 className="text-2xl font-bold">
+                  {modalType === "generated" ? "Assessment Types" : "Student Attempts"}
+                </h2>
                 <button 
                   onClick={() => setShowModal(false)}
                   className="text-white hover:bg-white/20 p-1 rounded-full transition-colors"
@@ -226,70 +245,101 @@ export default function DashboardHome() {
                   <FaTimes className="text-lg" />
                 </button>
               </div>
-              <p className="mt-2 opacity-90">Select the type of assessments you want to view</p>
+              <p className="mt-2 opacity-90">
+                {modalType === "generated"
+                  ? "Select the type of assessments you want to view"
+                  : "Select which attempted assessments you want to view"}
+              </p>
             </div>
             
             {/* Modal Body */}
             <div className="p-6">
               <div className="grid grid-cols-1 gap-4">
-                 {/* SAT Assessment Option */}
-                <Link
-                  to="/admin-dashboard/sat-generated-assessments"
-                  className="flex items-center p-4 border border-gray-200 rounded-xl hover:border-indigo-400 hover:shadow-md transition-all group"
-                  onClick={() => setShowModal(false)}
-                >
-                  <div className="flex-shrink-0 w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center mr-4 group-hover:bg-indigo-200 transition-colors">
-                    <FaRocket className="text-xl text-indigo-600" />
-                  </div>
-                  <div className="flex-grow">
-                    <h3 className="font-semibold text-gray-800">SAT Assessments</h3>
-                    <p className="text-sm text-gray-500 mt-1">Access specialized SAT preparation tests</p>
-                  </div>
-                  <div className="text-indigo-600 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
-                    </svg>
-                  </div>
-                </Link>
-                {/* Standard Assessment Option */}
-                <Link
-                  to="/admin-dashboard/standard-generated-assessments"
-                  className="flex items-center p-4 border border-gray-200 rounded-xl hover:border-purple-400 hover:shadow-md transition-all group"
-                  onClick={() => setShowModal(false)}
-                >
-                  <div className="flex-shrink-0 w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mr-4 group-hover:bg-purple-200 transition-colors">
-                    <FaBook className="text-xl text-purple-600" />
-                  </div>
-                  <div className="flex-grow">
-                    <h3 className="font-semibold text-gray-800">Standard Assessments</h3>
-                    <p className="text-sm text-gray-500 mt-1">View and manage regular curriculum assessments</p>
-                  </div>
-                  <div className="text-purple-600 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
-                    </svg>
-                  </div>
-                </Link>
-                
-                {/* SAT Assessment Option */}
-                {/* <Link
-                  to="/admin-dashboard/sat-generated-assessments"
-                  className="flex items-center p-4 border border-gray-200 rounded-xl hover:border-indigo-400 hover:shadow-md transition-all group"
-                  onClick={() => setShowModal(false)}
-                >
-                  <div className="flex-shrink-0 w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center mr-4 group-hover:bg-indigo-200 transition-colors">
-                    <FaRocket className="text-xl text-indigo-600" />
-                  </div>
-                  <div className="flex-grow">
-                    <h3 className="font-semibold text-gray-800">SAT Assessments</h3>
-                    <p className="text-sm text-gray-500 mt-1">Access specialized SAT preparation tests</p>
-                  </div>
-                  <div className="text-indigo-600 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
-                    </svg>
-                  </div>
-                </Link> */}
+                {modalType === "generated" ? (
+                  <>
+                    {/* SAT Generated */}
+                    <Link
+                      to="/admin-dashboard/sat-generated-assessments"
+                      className="flex items-center p-4 border border-gray-200 rounded-xl hover:border-indigo-400 hover:shadow-md transition-all group"
+                      onClick={() => setShowModal(false)}
+                    >
+                      <div className="flex-shrink-0 w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center mr-4 group-hover:bg-indigo-200 transition-colors">
+                        <FaRocket className="text-xl text-indigo-600" />
+                      </div>
+                      <div className="flex-grow">
+                        <h3 className="font-semibold text-gray-800">SAT Assessments</h3>
+                        <p className="text-sm text-gray-500 mt-1">Access specialized SAT preparation tests</p>
+                      </div>
+                      <div className="text-indigo-600 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                        </svg>
+                      </div>
+                    </Link>
+
+                    {/* Standard Generated */}
+                    <Link
+                      to="/admin-dashboard/standard-generated-assessments"
+                      className="flex items-center p-4 border border-gray-200 rounded-xl hover:border-purple-400 hover:shadow-md transition-all group"
+                      onClick={() => setShowModal(false)}
+                    >
+                      <div className="flex-shrink-0 w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mr-4 group-hover:bg-purple-200 transition-colors">
+                        <FaBook className="text-xl text-purple-600" />
+                      </div>
+                      <div className="flex-grow">
+                        <h3 className="font-semibold text-gray-800">Standard Assessments</h3>
+                        <p className="text-sm text-gray-500 mt-1">View and manage regular curriculum assessments</p>
+                      </div>
+                      <div className="text-purple-600 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                        </svg>
+                      </div>
+                    </Link>
+                  </>
+                ) : (
+                  <>
+                    {/* SAT Attempted */}
+                    <Link
+                      to="/admin-dashboard/attempts/sat"
+                      className="flex items-center p-4 border border-gray-200 rounded-xl hover:border-rose-400 hover:shadow-md transition-all group"
+                      onClick={() => setShowModal(false)}
+                    >
+                      <div className="flex-shrink-0 w-12 h-12 bg-rose-100 rounded-lg flex items-center justify-center mr-4 group-hover:bg-rose-200 transition-colors">
+                        <FaRocket className="text-xl text-rose-600" />
+                      </div>
+                      <div className="flex-grow">
+                        <h3 className="font-semibold text-gray-800">Attempted SAT Assessments</h3>
+                        <p className="text-sm text-gray-500 mt-1">View all student SAT attempts</p>
+                      </div>
+                      <div className="text-rose-600 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                        </svg>
+                      </div>
+                    </Link>
+
+                    {/* Standard Attempted */}
+                    <Link
+                      to="/admin-dashboard/attempts/standard"
+                      className="flex items-center p-4 border border-gray-200 rounded-xl hover:border-pink-400 hover:shadow-md transition-all group"
+                      onClick={() => setShowModal(false)}
+                    >
+                      <div className="flex-shrink-0 w-12 h-12 bg-pink-100 rounded-lg flex items-center justify-center mr-4 group-hover:bg-pink-200 transition-colors">
+                        <FaBook className="text-xl text-pink-600" />
+                      </div>
+                      <div className="flex-grow">
+                        <h3 className="font-semibold text-gray-800">Attempted Standard Assessments</h3>
+                        <p className="text-sm text-gray-500 mt-1">View all student standard attempts</p>
+                      </div>
+                      <div className="text-pink-600 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                        </svg>
+                      </div>
+                    </Link>
+                  </>
+                )}
               </div>
             </div>
             

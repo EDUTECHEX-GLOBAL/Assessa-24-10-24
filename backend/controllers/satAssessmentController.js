@@ -3,6 +3,9 @@ const { parseSATAssessment, parseSATAssessmentCombined } = require("../utils/sat
 const { uploadToS3, getSignedUrl, deleteFromS3 } = require("../config/s3Upload");
 const SatSubmission = require("../models/webapp-models/satSubmissionModel");
 const SatFeedback = require("../models/webapp-models/satFeedbackModel");
+const { generateScoreReportPDF } = require("../utils/scoreReport");
+const sendEmail = require("../utils/mailer");
+const User = require("../models/webapp-models/userModel");
 
 
 
@@ -270,9 +273,6 @@ exports.getSatAssessmentSubmissions = async (req, res) => {
 // @desc    Submit answers to a SAT assessment
 // @route   POST /api/sat-assessments/:id/submit
 // @access  Private (Student)
-// @desc    Submit answers to a SAT assessment
-// @route   POST /api/sat-assessments/:id/submit
-// @access  Private (Student)
 exports.submitSatAssessment = async (req, res) => {
   try {
     const { answers, timeTaken } = req.body;
@@ -290,7 +290,7 @@ exports.submitSatAssessment = async (req, res) => {
       return res.status(404).json({ message: "SAT assessment not found" });
     }
 
-    // Validate assessment structure before processing
+    // ✅ Validation for assessment questions
     const invalidQuestions = assessment.questions.filter((q, i) => {
       if (q.type === 'mcq') {
         return (
@@ -303,11 +303,6 @@ exports.submitSatAssessment = async (req, res) => {
     });
 
     if (invalidQuestions.length > 0) {
-      console.error('Invalid questions found:', invalidQuestions.map(q => ({
-        type: q.type,
-        correctAnswer: q.correctAnswer,
-        optionsLength: q.options?.length
-      })));
       return res.status(422).json({
         message: "Assessment contains invalid questions",
         invalidCount: invalidQuestions.length
@@ -324,31 +319,28 @@ exports.submitSatAssessment = async (req, res) => {
     const responses = [];
     const totalMarks = assessment.questions.reduce((sum, q) => sum + (q.marks || 1), 0);
 
-    // Enhanced answer processing
+    // Answer processing
     assessment.questions.forEach((question, index) => {
       const studentAnswer = answers[index];
       const questionMarks = question.marks || 1;
       let isCorrect = false;
 
       if (question.type === 'mcq') {
-        // Robust MCQ comparison
         const studentAns = parseInt(studentAnswer);
         if (!isNaN(studentAns) && studentAns >= 0 && studentAns < question.options.length) {
           isCorrect = studentAns === parseInt(question.correctAnswer);
         }
       } else {
-        // Advanced Grid-in comparison
         const normalize = (ans) => {
           if (ans === null || ans === undefined) return '';
           return String(ans)
             .trim()
             .toLowerCase()
-            .replace(/[^0-9\.\/\-]/g, '')  // Remove non-numeric chars
-            .replace(/^0+(\d)/, '$1')     // Remove leading zeros
-            .replace(/(\.\d*?)0+$/, '$1') // Remove trailing decimal zeros
-            .replace(/\.$/, '');          // Remove trailing decimal point
+            .replace(/[^0-9\.\/\-]/g, '')
+            .replace(/^0+(\d)/, '$1')
+            .replace(/(\.\d*?)0+$/, '$1')
+            .replace(/\.$/, '');
         };
-
         isCorrect = normalize(studentAnswer) === normalize(question.correctAnswer);
       }
 
@@ -378,6 +370,32 @@ exports.submitSatAssessment = async (req, res) => {
     });
 
     await submission.save();
+   
+// ✅ Generate PDF + Send Email
+
+try {
+  const student = await User.findById(studentId).select("name email");
+  if (student && student.email) {
+    const pdfBuffer = await generateScoreReportPDF(
+      submission,
+      student,
+      assessment,
+      "sat"
+    );
+
+    await sendEmail.sendScoreReportEmail(
+      student.email,
+      student.name || "Student",
+      pdfBuffer,
+      "sat"
+    );
+  } else {
+    console.warn("⚠️ Student email not found; skipping SAT score report send.");
+  }
+} catch (err) {
+  console.error("❌ Failed to generate/send SAT score report:", err);
+  // Don’t throw → keep submission success even if email fails
+}
 
     res.status(200).json({ 
       success: true,
@@ -394,6 +412,7 @@ exports.submitSatAssessment = async (req, res) => {
     });
   }
 };
+
 // ✅ Get all SAT submissions for current student
 exports.getMySatSubmissions = async (req, res) => {
   try {

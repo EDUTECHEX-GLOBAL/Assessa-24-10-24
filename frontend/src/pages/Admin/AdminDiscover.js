@@ -3,48 +3,58 @@ import { Form, Input, Button, message, Upload, Spin } from "antd";
 import { useDispatch, useSelector } from "react-redux";
 import { ShowLoading, HideLoading } from "../../redux/rootSlice";
 import axios from "axios";
-import firebase from "firebase/compat/app";
-import "firebase/compat/storage";
 import {
   LoadingOutlined,
   UploadOutlined,
   DeleteOutlined,
 } from "@ant-design/icons";
-import ImageLazyLoad from "react-lazyload";
 
 const antIcon = <LoadingOutlined style={{ fontSize: 24 }} spin />;
 
 const AdminDiscover = () => {
   const [form] = Form.useForm();
   const [discoverImgUrl, setDiscoverImgUrl] = useState("");
-  const [compImageUrls, setCompImageUrls] = useState([]);
+  const [discoverImgKey, setDiscoverImgKey] = useState(null); // store key for DB
+  const [compImageUrls, setCompImageUrls] = useState([]); // preview URLs
+  const [compImageMeta, setCompImageMeta] = useState([]); // [{ id, key, url }]
   const [uploading, setUploading] = useState(false);
   const dispatch = useDispatch();
-  const { assessaData, loading } = useSelector((state) => state.root);
+  const { assessaData } = useSelector((state) => state.root);
 
   useEffect(() => {
-    if (
-      assessaData &&
-      assessaData.discover &&
-      assessaData.discover.length > 0
-    ) {
+    if (assessaData && assessaData.discover && assessaData.discover.length > 0) {
       const discover = assessaData.discover[0];
+      // backend returns discover.imgUrl (signed URL) and discover.imgUrlKey (key or null)
       setDiscoverImgUrl(discover.imgUrl || "");
+      setDiscoverImgKey(discover.imgUrlKey || null);
       setCompImageUrls(discover.compImageUrls || []);
+      // If backend returned discovercompimg docs they appear in assessaData.discovercompimg
+      if (assessaData.discovercompimg && assessaData.discovercompimg.length > 0) {
+        const meta = assessaData.discovercompimg.map((d) => ({
+          id: d._id,
+          key: d.imageUrlKey || null,
+          url: d.imageUrl || null,
+        }));
+        setCompImageMeta(meta);
+      } else {
+        // sync compImageMeta with compImageUrls if we don't have discovercompimg
+        setCompImageMeta(compImageUrls.map((u) => ({ id: null, key: null, url: u })));
+      }
     }
   }, [assessaData]);
 
   const onFinish = async (values) => {
     try {
       dispatch(ShowLoading());
-      const response = await axios.put(
-        `/api/skillnaav/update-discover/${assessaData.discover[0]._id}`,
-        {
-          ...values,
-          imgUrl: discoverImgUrl,
-          compImageUrls: compImageUrls,
-        }
-      );
+      // For DB we want to save S3 key (if we have it), otherwise keep existing URL
+      const payload = {
+        ...values,
+        imgUrl: discoverImgKey ? discoverImgKey : discoverImgUrl,
+        compImageUrls: compImageMeta.map((m) => (m.key ? m.key : m.url)),
+      };
+
+      const id = assessaData.discover[0]._id;
+      const response = await axios.put(`/api/skillnaav/update-discover/${id}`, payload);
       dispatch(HideLoading());
       if (response.data.success) {
         message.success("Changes saved successfully");
@@ -58,55 +68,64 @@ const AdminDiscover = () => {
     }
   };
 
-  const handleDiscoverImageUpload = ({ file }) => {
-    const storageRef = firebase.storage().ref();
-    const fileRef = storageRef.child(`discover/${Date.now()}_${file.name}`);
-
+  // Upload discover image to backend -> S3
+  const handleDiscoverImageUpload = async ({ file }) => {
+    const selectedFile = file.originFileObj || file;
     setUploading(true);
-
-    fileRef
-      .put(file)
-      .then((snapshot) => {
-        snapshot.ref.getDownloadURL().then((downloadURL) => {
-          setDiscoverImgUrl(downloadURL);
-          dispatch({
-            type: "UPDATE_DISCOVER_IMG_URL",
-            payload: downloadURL,
-          });
-          message.success("Discover image uploaded successfully");
-        });
-      })
-      .catch((error) => {
-        console.error("Discover image upload error:", error);
-        message.error("Failed to upload discover image");
-      })
-      .finally(() => setUploading(false));
+    try {
+      const formData = new FormData();
+      formData.append("file", selectedFile);
+      formData.append("folder", "discover");
+      const res = await axios.post("/api/skillnaav/upload", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      const { key, url } = res.data;
+      // url is signed url (for preview), key is S3 object key (store in DB)
+      setDiscoverImgKey(key);
+      setDiscoverImgUrl(url);
+      message.success("Discover image uploaded successfully");
+    } catch (err) {
+      console.error("Discover image upload error:", err);
+      message.error("Failed to upload discover image");
+    } finally {
+      setUploading(false);
+    }
   };
 
+  // Upload company image(s)
   const handleCompanyImageUpload = async ({ file }) => {
-    if (compImageUrls.length >= 5) {
+    const selectedFile = file.originFileObj || file;
+    if (compImageMeta.length >= 5) {
       message.warning("You can upload a maximum of 5 images.");
       return;
     }
 
-    const storageRef = firebase.storage().ref();
-    const fileRef = storageRef.child(`company/${Date.now()}_${file.name}`);
-
     setUploading(true);
-
     try {
-      const snapshot = await fileRef.put(file);
-      const downloadURL = await snapshot.ref.getDownloadURL();
+      const formData = new FormData();
+      formData.append("file", selectedFile);
+      formData.append("folder", "company");
 
-      setCompImageUrls([...compImageUrls, downloadURL]);
-      dispatch({
-        type: "UPDATE_COMP_IMAGE_URLS",
-        payload: [...compImageUrls, downloadURL],
+      // upload to s3
+      const uploadRes = await axios.post("/api/skillnaav/upload", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
       });
 
-      await axios.post("/api/skillnaav/add-discover-comp-img", {
-        imageUrl: downloadURL,
+      const { key, url } = uploadRes.data;
+
+      // create a DiscoverCompImg doc in DB (your existing route)
+      // we send the S3 key to DB so it stores the key; the GET route will return signed URL for display
+      const addRes = await axios.post("/api/skillnaav/add-discover-comp-img", {
+        imageUrl: key,
       });
+
+      // addRes.data.data is the created document (createRoute returns it)
+      const created = addRes.data.data;
+
+      // update local preview/meta
+      setCompImageUrls((prev) => [...prev, url]);
+      setCompImageMeta((prev) => [...prev, { id: created._id, key, url }]);
+
       message.success("Company image uploaded successfully");
     } catch (error) {
       console.error("Company image upload error:", error);
@@ -116,20 +135,37 @@ const AdminDiscover = () => {
     }
   };
 
+  // Remove company image (using stored doc id or fallback to previous behavior)
   const handleImageRemove = async (urlToRemove) => {
     try {
-      const response = await axios.delete(
-        `/api/skillnaav/delete-discover-comp-img/${encodeURIComponent(
-          urlToRemove
-        )}`
-      );
+      // find meta entry
+      const idx = compImageMeta.findIndex((m) => m.url === urlToRemove);
+      let id = null;
+      if (idx !== -1) id = compImageMeta[idx].id;
+
+      if (!id) {
+        // fallback: previous code deleted by URL as id param; try that
+        const resp = await axios.delete(
+          `/api/skillnaav/delete-discover-comp-img/${encodeURIComponent(urlToRemove)}`
+        );
+        if (resp.data.success) {
+          message.success("Company image deleted successfully");
+          setCompImageUrls((prev) => prev.filter((u) => u !== urlToRemove));
+          setCompImageMeta((prev) => prev.filter((m) => m.url !== urlToRemove));
+        } else {
+          message.error(resp.data.message || "Failed to delete company image");
+        }
+        return;
+      }
+
+      // delete by id
+      const response = await axios.delete(`/api/skillnaav/delete-discover-comp-img/${id}`);
       if (response.data.success) {
         message.success("Company image deleted successfully");
-        setCompImageUrls(compImageUrls.filter((url) => url !== urlToRemove));
+        setCompImageUrls((prev) => prev.filter((u) => u !== urlToRemove));
+        setCompImageMeta((prev) => prev.filter((m) => m.id !== id));
       } else {
-        message.error(
-          response.data.message || "Failed to delete company image"
-        );
+        message.error(response.data.message || "Failed to delete company image");
       }
     } catch (error) {
       console.error("Company image delete error:", error);
@@ -137,11 +173,7 @@ const AdminDiscover = () => {
     }
   };
 
-  if (
-    !assessaData ||
-    !assessaData.discover ||
-    assessaData.discover.length === 0
-  ) {
+  if (!assessaData || !assessaData.discover || assessaData.discover.length === 0) {
     return <Spin spinning={true} indicator={antIcon} />;
   }
 
@@ -153,13 +185,7 @@ const AdminDiscover = () => {
       <h1 className="text-2xl font-bold text-center mb-8 text-gray-700">
         Edit Discover Section
       </h1>
-      <Form
-        form={form}
-        onFinish={onFinish}
-        layout="vertical"
-        initialValues={discover}
-      >
-        {/* Form items */}
+      <Form form={form} onFinish={onFinish} layout="vertical" initialValues={discover}>
         <Form.Item name="discoverheading" label="Discover Heading">
           <Input placeholder="Enter Discover Heading" />
         </Form.Item>
@@ -169,13 +195,8 @@ const AdminDiscover = () => {
         <Form.Item name="tryforfreebtn" label="Try for Free Button">
           <Input placeholder="Enter Try for Free Button" />
         </Form.Item>
-        <Form.Item
-          name="image"
-          label="Upload Discover Image"
-          valuePropName="fileList"
-          getValueFromEvent={(e) => (Array.isArray(e) ? e : e && e.fileList)}
-        >
-          {/* Discover Image Upload */}
+
+        <Form.Item name="image" label="Upload Discover Image">
           <Upload
             name="image"
             listType="picture-card"
@@ -184,33 +205,21 @@ const AdminDiscover = () => {
             onChange={handleDiscoverImageUpload}
           >
             {discoverImgUrl ? (
-              <img
-                src={discoverImgUrl}
-                alt="Discover"
-                className="w-full h-auto rounded-lg"
-              />
+              <img src={discoverImgUrl} alt="Discover" className="w-full h-auto rounded-lg" />
             ) : (
               <div className="flex items-center justify-center border border-dashed border-gray-300 rounded-md cursor-pointer p-4">
                 <UploadOutlined className="text-3xl text-blue-500" />
-                <span className="ml-2 text-gray-500">
-                  Upload Discover Image
-                </span>
+                <span className="ml-2 text-gray-500">Upload Discover Image</span>
               </div>
             )}
           </Upload>
-          {discoverImgUrl && (
-            <Button type="link" onClick={() => setDiscoverImgUrl("")}>
-              Remove
-            </Button>
-          )}
-          {/* Guidelines */}
+          {discoverImgUrl && <Button type="link" onClick={() => { setDiscoverImgUrl(""); setDiscoverImgKey(null); }}>Remove</Button>}
           <p className="text-sm text-gray-500 mt-2">
-            Please upload a high-quality image with recommended dimensions of
-            1200x800 pixels.
+            Please upload a high-quality image with recommended dimensions of 1200x800 pixels.
           </p>
         </Form.Item>
+
         <Form.Item label="Company Images">
-          {/* Company Image Upload */}
           <Upload
             name="image"
             listType="picture-card"
@@ -223,20 +232,14 @@ const AdminDiscover = () => {
               <span className="ml-2 text-gray-500">Upload Company Image</span>
             </div>
           </Upload>
-          {/* Guidelines */}
           <p className="text-sm text-gray-500 mt-2">
-            Please upload up to 5 high-quality images with recommended
-            dimensions of 800x800 pixels.
+            Please upload up to 5 high-quality images with recommended dimensions of 800x800 pixels.
           </p>
-          {/* Uploaded Company Images */}
+
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-4">
             {compImageUrls.map((url, index) => (
               <div key={index} className="relative">
-                <img
-                  src={url}
-                  alt={`Company Image ${index}`}
-                  className="w-full h-auto rounded-lg"
-                />
+                <img src={url} alt={`Company Image ${index}`} className="w-full h-auto rounded-lg" />
                 <Button
                   type="link"
                   onClick={() => handleImageRemove(url)}
@@ -249,19 +252,14 @@ const AdminDiscover = () => {
             ))}
           </div>
         </Form.Item>
+
         {discovercompimg.length > 0 && (
           <div className="mt-8">
-            <h2 className="text-xl font-bold mb-4 text-gray-700">
-              Preview Company Images
-            </h2>
+            <h2 className="text-xl font-bold mb-4 text-gray-700">Preview Company Images</h2>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
               {discovercompimg.map((image, index) => (
                 <div key={image._id} className="relative">
-                  <img
-                    src={image.imageUrl}
-                    alt={`Company ${index + 1}`}
-                    className="w-full h-auto rounded-lg"
-                  />
+                  <img src={image.imageUrl} alt={`Company ${index + 1}`} className="w-full h-auto rounded-lg" />
                   <Button
                     type="link"
                     onClick={() => handleImageRemove(image._id)}
@@ -275,11 +273,9 @@ const AdminDiscover = () => {
             </div>
           </div>
         )}
-        {/* Save Changes Button */}
+
         <Form.Item>
-          <Button type="primary" htmlType="submit">
-            Save Changes
-          </Button>
+          <Button type="primary" htmlType="submit">Save Changes</Button>
         </Form.Item>
       </Form>
     </div>

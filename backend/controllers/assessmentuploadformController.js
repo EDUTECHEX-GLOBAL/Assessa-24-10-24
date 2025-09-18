@@ -5,6 +5,9 @@ const User = require("../models/webapp-models/userModel");
 const { uploadToS3, getSignedUrl, deleteFromS3 } = require("../config/s3Upload");
 const { parsePDFToQuestions } = require('../utils/pdfParser');
 const Feedback = require("../models/webapp-models/FeedbackModel");
+const { generateScoreReportPDF } = require("../utils/scoreReport");
+const sendEmail = require("../utils/mailer");
+
 
 // @desc    Upload assessment and parse questions
 // @route   POST /api/assessments/upload
@@ -277,6 +280,9 @@ const getAssessmentForAttempt = asyncHandler(async (req, res) => {
 // @desc    Submit assessment answers
 // @route   POST /api/assessments/:id/submit
 // @access  Private (Student)
+// @desc    Submit assessment answers
+// @route   POST /api/assessments/:id/submit
+// @access  Private (Student)
 const submitAssessment = asyncHandler(async (req, res) => {
   const { answers, timeTaken } = req.body;
   const assessmentId = req.params.id;
@@ -330,9 +336,35 @@ const submitAssessment = asyncHandler(async (req, res) => {
     responses, // ✅ store full data
     score,
     totalMarks,
-    percentage,
+    percentage: parseFloat(percentage.toFixed(2)),
     timeTaken,
   });
+  
+  // ✅ Generate PDF + Send Email
+  try {
+  const student = await User.findById(studentId).select("name email");
+  if (student && student.email) {
+    const pdfBuffer = await generateScoreReportPDF(
+      submission,
+      student,
+      assessment,
+      "standard"
+    );
+
+    await sendEmail.sendScoreReportEmail(
+      student.email,
+      student.name || "Student",
+      pdfBuffer,
+      "standard"
+    );
+  } else {
+    console.warn("⚠️ Student email not found; skipping score report send.");
+  }
+} catch (err) {
+  console.error("❌ Failed to generate/send standard score report:", err);
+  // Don’t throw → keep submission success even if email fails
+}
+
 
   res.status(201).json({
     message: "Assessment submitted successfully",
@@ -343,8 +375,6 @@ const submitAssessment = asyncHandler(async (req, res) => {
     submittedAt: submission.createdAt,
   });
 });
-
-
 
 
 // @desc    Get all submissions for an assessment (Teacher view)

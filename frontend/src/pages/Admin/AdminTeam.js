@@ -1,8 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { Modal, Form, Input, Button, message, List, Skeleton } from "antd";
 import axios from "axios";
-import firebase from "firebase/compat/app";
-import "firebase/compat/storage";
 
 const { TextArea } = Input;
 
@@ -13,7 +11,9 @@ const AdminTeam = () => {
   const [isAddTeamModalVisible, setIsAddTeamModalVisible] = useState(false);
   const [selectedTeamMember, setSelectedTeamMember] = useState(null);
   const [form] = Form.useForm();
-  const [imgUrl, setImgUrl] = useState(null);
+
+  // 🔑 new states
+  const [imgKey, setImgKey] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState("");
 
@@ -26,40 +26,47 @@ const AdminTeam = () => {
       setLoading(true);
       const response = await axios.get("/api/skillnaav/get-skillnaav-data");
       setassessaData(response.data.teammember);
-      setLoading(false);
     } catch (error) {
       console.error("Error fetching SkillNaav data:", error);
-      setLoading(false);
       message.error("Failed to fetch team members");
+    } finally {
+      setLoading(false);
     }
   }, []);
 
-  const handleFileUpload = (event) => {
+  // 🔄 updated upload function (S3 via backend)
+  const handleFileUpload = async (event) => {
     const selectedFile = event.target.files[0];
+    if (!selectedFile) return;
 
-    if (selectedFile) {
-      setUploading(true);
+    const formData = new FormData();
+    formData.append("file", selectedFile);
+    formData.append("folder", "team"); // keep folder context
 
-      const storageRef = firebase.storage().ref();
-      const fileRef = storageRef.child(selectedFile.name);
-      fileRef
-        .put(selectedFile)
-        .then((snapshot) => snapshot.ref.getDownloadURL())
-        .then((url) => {
-          setImgUrl(url);
-          setPreviewUrl(url);
-          setUploading(false);
-        })
-        .catch((error) => {
-          console.error("Error uploading file:", error);
-          setUploading(false);
-          message.error("Failed to upload image");
-        });
+    setUploading(true);
+    try {
+      const uploadRes = await axios.post("/api/skillnaav/upload", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+
+      const { key, url } = uploadRes.data;
+      setImgKey(key); // for DB save
+      setPreviewUrl(url); // for preview
+    } catch (err) {
+      console.error("Upload failed:", err);
+      message.error("Failed to upload image");
+    } finally {
+      setUploading(false);
     }
   };
 
+  // Add team member
   const handleFormSubmit = async (values) => {
-    const teamData = { ...values, image: imgUrl };
+    const teamData = {
+      ...values,
+      image: imgKey ? imgKey : null, // save S3 key
+    };
+
     try {
       const response = await axios.post(
         "/api/skillnaav/add-teammember",
@@ -69,7 +76,7 @@ const AdminTeam = () => {
       fetchassessaData();
       setIsAddTeamModalVisible(false);
       form.resetFields();
-      setImgUrl(null);
+      setImgKey(null);
       setPreviewUrl("");
     } catch (error) {
       console.error("Error adding team member:", error);
@@ -77,8 +84,13 @@ const AdminTeam = () => {
     }
   };
 
+  // Edit team member
   const handleEditFormSubmit = async (values) => {
-    const teamData = { ...values, image: imgUrl || selectedTeamMember.image };
+    const teamData = {
+      ...values,
+      image: imgKey ? imgKey : selectedTeamMember.image, // keep existing if no new image
+    };
+
     try {
       const response = await axios.put(
         `/api/skillnaav/update-teammember/${selectedTeamMember._id}`,
@@ -88,7 +100,7 @@ const AdminTeam = () => {
       fetchassessaData();
       setIsEditTeamModalVisible(false);
       form.resetFields();
-      setImgUrl(null);
+      setImgKey(null);
       setPreviewUrl("");
     } catch (error) {
       console.error("Error updating team member:", error);
@@ -96,6 +108,7 @@ const AdminTeam = () => {
     }
   };
 
+  // Delete team member
   const handleDelete = async (id) => {
     try {
       await axios.delete(`/api/skillnaav/delete-teammember/${id}`);
@@ -107,6 +120,7 @@ const AdminTeam = () => {
     }
   };
 
+  // Open edit modal
   const openEditTeamModal = (teamMember) => {
     setSelectedTeamMember(teamMember);
     setPreviewUrl(teamMember.image);
@@ -168,6 +182,7 @@ const AdminTeam = () => {
         <p>No team members found.</p>
       )}
 
+      {/* Add Modal */}
       <Modal
         title="Add Team Member"
         visible={isAddTeamModalVisible}
@@ -238,6 +253,7 @@ const AdminTeam = () => {
         </Form>
       </Modal>
 
+      {/* Edit Modal */}
       <Modal
         title="Edit Team Member"
         visible={isEditTeamModalVisible}

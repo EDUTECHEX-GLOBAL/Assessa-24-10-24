@@ -19,10 +19,15 @@ const {
 
 const User = require("../models/userModel");
 
+// ✅ NEW: imports for file upload + S3
+const multer = require("multer");
+const upload = multer({ storage: multer.memoryStorage() });
+const { uploadToS3, getSignedUrl } = require("../config/s3Upload");
+
 // Initialize cache
 const cache = new NodeCache({ stdTTL: 600, checkperiod: 120 }); // TTL of 10 minutes
 
-// Middleware for handling asynchronous route handlers
+// Middleware for handling async routes
 const asyncHandler = (fn) => (req, res, next) =>
   Promise.resolve(fn(req, res, next)).catch(next);
 
@@ -49,6 +54,93 @@ const updateOne = async (model, filter, data) => {
 const deleteOneById = async (model, id) => {
   await model.findByIdAndDelete(id);
 };
+
+// ✅ NEW: Helper functions for signed URLs
+const isUrl = (s) => typeof s === "string" && /^https?:\/\//i.test(s);
+
+const convertToSignedUrl = (value) => {
+  if (!value) return { url: null, key: null };
+  if (isUrl(value)) return { url: value, key: null }; // already a full URL
+
+  try {
+    return { url: getSignedUrl(value), key: value };
+  } catch (err) {
+    return {
+      url: `${
+        process.env.CLOUDFRONT_URL ||
+        `https://${process.env.AWS_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com`
+      }/${value}`,
+      key: value,
+    };
+  }
+};
+
+const transformDoc = (doc) => {
+  if (!doc) return doc;
+  const obj = doc.toObject ? doc.toObject() : { ...doc };
+
+  // Fields to check for images
+  ["imgUrl", "visionImg", "featureImg", "image", "imageUrl"].forEach(
+    (field) => {
+      if (obj[field]) {
+        const { url, key } = convertToSignedUrl(obj[field]);
+        obj[field] = url;
+        obj[`${field}Key`] = key;
+      }
+    }
+  );
+
+  // Arrays of images (e.g. compImageUrls)
+  if (Array.isArray(obj.compImageUrls)) {
+    obj.compImageUrlKeys = obj.compImageUrls.map((v) =>
+      isUrl(v) ? null : v
+    );
+    obj.compImageUrls = obj.compImageUrls.map((v) =>
+      isUrl(v) ? v : convertToSignedUrl(v).url
+    );
+  }
+
+  return obj;
+};
+
+// ✅ NEW: upload route for S3
+router.post(
+  "/upload",
+  upload.single("file"),
+  asyncHandler(async (req, res) => {
+    if (!req.file) {
+      return res
+        .status(400)
+        .json({ success: false, message: "No file uploaded" });
+    }
+
+    const folder = req.body.folder || "content";
+    try {
+      const { key } = await uploadToS3(req.file, folder);
+      let url;
+      try {
+        url = getSignedUrl(key);
+      } catch (err) {
+        url = `${
+          process.env.CLOUDFRONT_URL ||
+          `https://${process.env.AWS_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com`
+        }/${key}`;
+      }
+
+      cache.flushAll();
+
+      res.status(200).json({
+        success: true,
+        message: "Uploaded successfully",
+        key,
+        url,
+      });
+    } catch (err) {
+      console.error("Upload Error:", err);
+      res.status(500).json({ success: false, message: "Upload failed" });
+    }
+  })
+);
 
 // Route to get all SkillNaav data with caching
 router.get(
@@ -91,14 +183,15 @@ router.get(
       Footer.find(),
     ]);
 
+    // ✅ Apply transformation
     const responseData = {
-      discover: discovers,
-      discovercompimg,
-      visionhead,
+      discover: discovers.map(transformDoc),
+      discovercompimg: discovercompimg.map(transformDoc),
+      visionhead: visionhead.map(transformDoc),
       visionpoint,
-      features,
+      features: features.map(transformDoc),
       team,
-      teammember,
+      teammember: teammember.map(transformDoc),
       pricing,
       pricingcard,
       faq,
@@ -345,6 +438,7 @@ router.delete(
     });
   })
 );
+
 // Admin login route
 router.post(
   "/admin-login",
@@ -363,4 +457,5 @@ router.post(
     }
   })
 );
+
 module.exports = router;

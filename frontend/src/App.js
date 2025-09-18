@@ -43,6 +43,9 @@ import AssessmentsPage from "./components/StudentLogin/AssessmentsPage.jsx";
 import ProtectedRoute from "./components/ProtectedRoute";
 import TeacherManagement from "./components/AdminPanelLogin/TeacherManagement";
 import StudentManagement from "./components/AdminPanelLogin/StudentManagement";
+import AdminSatAttempts from "./components/AdminPanelLogin/AdminSatAttempts";
+import AdminStandardAttempts from "./components/AdminPanelLogin/AdminStandardAttempts";
+
 
 // 🆕 Import for Review Page
 import ReviewAssessmentPage from "./components/TeacherLogin/ReviewAssessmentPage";
@@ -174,6 +177,8 @@ function App() {
           <Route path="students" element={<StudentManagement />} />
           <Route path="standard-generated-assessments" element={<StandardGeneratedAssessmentsPage />} />
           <Route path="sat-generated-assessments" element={<SatGeneratedAssessmentsPage />} />
+          <Route path="attempts/standard" element={<AdminStandardAttempts />} />
+          <Route path="attempts/sat" element={<AdminSatAttempts />} />
         </Route>
 
         {/* Login Pages */}
