@@ -1,15 +1,17 @@
 import React, { useState } from "react";
 import Close from "../assets/close.png";
 import { FiBookOpen, FiBriefcase, FiSettings } from "react-icons/fi";
+import { Link } from "react-router-dom";
 
 const navLinks = [
-  { name: "Discover", href: "#discover" },
-  { name: "Vision", href: "#vision" },
-  { name: "Features", href: "#features" },
-  { name: "Team", href: "#team" },
-  { name: "Pricing", href: "#pricing" },
-  { name: "FAQs", href: "#faqs" },
+  { name: "Discover", href: "/" },
+  { name: "Vision", href: "/vision" },
+  { name: "Features", href: "/features" },
+  { name: "Team", href: "/team" },
+  { name: "Pricing", href: "/pricing" },
+  { name: "FAQs", href: "/faqs" },
 ];
+
 
 const MobileNavbar = ({ menuOpen, setMenuOpen }) => {
   const [loginDropdownOpen, setLoginDropdownOpen] = useState(false);
@@ -50,14 +52,13 @@ const MobileNavbar = ({ menuOpen, setMenuOpen }) => {
         />
       </div>
       {navLinks.map((item, index) => (
-        <a
+        <Link
           key={index}
-          href={item.href}
-          onClick={() => closeMenuAndScroll(item.href)}
-          className="text-[#36485C] font-medium text-2xl transition duration-300 transform hover:scale-105"
+          to={item.href}
+          className="text-[#36485C] font-medium hover:text-[#4b5fde] transition duration-300"
         >
           {item.name}
-        </a>
+        </Link>
       ))}
 
       {/* Mobile Login Dropdown */}
@@ -106,13 +107,13 @@ const MobileNavbar = ({ menuOpen, setMenuOpen }) => {
                )}
 
       {/* Mobile Request Call Back Button */}
-      <a
-        href="#contacts"
-        onClick={() => closeMenuAndScroll("#contacts")}
+      <Link
+        to="/contact"
+        onClick={() => setMenuOpen(false)}
         className="text-white bg-[#1a191a] px-6 py-3 rounded-full transition duration-300 hover:bg-[#2c3b4e] text-2xl"
       >
         Request Call Back
-      </a>
+      </Link>
     </div>
   );
 };

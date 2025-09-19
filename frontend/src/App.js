@@ -56,6 +56,15 @@ import ApprovalRequests from "./components/AdminPanelLogin/ApprovalRequests";
 import StandardGeneratedAssessmentsPage from "./components/AdminPanelLogin/StandardGeneratedAssessmentsPage";
 import SatGeneratedAssessmentsPage from "./components/AdminPanelLogin/SatGeneratedAssessmentsPage";
 
+// 🆕 Import new SEO pages
+import DiscoverPage from "./pages/DiscoverPage";
+import VisionPage from "./pages/VisionPage";
+import FeaturesPage from "./pages/FeaturesPage";
+import TeamPage from "./pages/TeamPage";
+import PricingPage from "./pages/PricingPage";
+import FaqPage from "./pages/FaqPage";
+import ContactPage from "./pages/ContactPage";
+
 
 function App() {
   const { assessaData, reloadData } = useSelector((state) => state.root);
@@ -119,6 +128,15 @@ function App() {
         <Route path="/study-recommendation" element={<StudyRecommendation />} />
         <Route path="/student-login" element={<StudentLogin />} />
         <Route path="/problemsolving-agent" element={<ProblemsolvingAgent />} />
+
+        {/* google search sitemap link Website Routes */}
+        <Route path="/discover" element={<DiscoverPage />} />
+        <Route path="/vision" element={<VisionPage />} />
+        <Route path="/features" element={<FeaturesPage />} />
+        <Route path="/team" element={<TeamPage />} />
+        <Route path="/pricing" element={<PricingPage />} />
+        <Route path="/faqs" element={<FaqPage />} />
+        <Route path="/contact" element={<ContactPage />} />
 
         {/* ✅ Protected Routes with roles */}
         <Route

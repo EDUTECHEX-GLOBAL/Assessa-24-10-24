@@ -5,16 +5,18 @@ import Close from "../assets/close.png";
 import { FiUser, FiBookOpen, FiBriefcase, FiSettings } from "react-icons/fi";
 import MobileNavbar from "./MobileNavbar"; // Import MobileNavbar component
 import { useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 
 
 const navLinks = [
-  { name: "Discover", href: "#discover" },
-  { name: "Vision", href: "#vision" },
-  { name: "Features", href: "#features" },
-  { name: "Team", href: "#team" },
-  { name: "Pricing", href: "#pricing" },
-  { name: "FAQs", href: "#faqs" },
+  { name: "Discover", href: "/" },
+  { name: "Vision", href: "/vision" },
+  { name: "Features", href: "/features" },
+  { name: "Team", href: "/team" },
+  { name: "Pricing", href: "/pricing" },
+  { name: "FAQs", href: "/faqs" },
 ];
+
 
 const Navbar = () => {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -61,13 +63,13 @@ const handleRoleNavigation = (role) => {
           </a>
           <div className="hidden lg:flex gap-x-8 ml-8">
             {navLinks.map((item, index) => (
-              <a
+              <Link
                 key={index}
-                href={item.href}
+                to={item.href}
                 className="text-[#36485C] font-medium hover:text-[#4b5fde] transition duration-300"
               >
                 {item.name}
-              </a>
+              </Link>
             ))}
           </div>
         </div>
@@ -143,12 +145,12 @@ const handleRoleNavigation = (role) => {
             )}
           </div>
           {/* Request Call Back Button */}
-          <a
-            href="#contacts"
+          <Link
+            to="/contact"
             className="hidden lg:block font-medium text-white bg-[#1a191a] px-5 py-2 rounded-full transition duration-300 hover:bg-[#2c3b4e]"
           >
             Request Call Back
-          </a>
+          </Link>
 
           {/* Mobile Menu Icon */}
           <div className="lg:hidden" onClick={toggleMenu}>
