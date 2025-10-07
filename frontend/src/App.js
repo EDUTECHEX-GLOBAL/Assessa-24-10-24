@@ -55,6 +55,10 @@ import DashboardHome from "./components/AdminPanelLogin/DashboardHome";
 import ApprovalRequests from "./components/AdminPanelLogin/ApprovalRequests";
 import StandardGeneratedAssessmentsPage from "./components/AdminPanelLogin/StandardGeneratedAssessmentsPage";
 import SatGeneratedAssessmentsPage from "./components/AdminPanelLogin/SatGeneratedAssessmentsPage";
+import AdminNotificationsPage from "./components/AdminPanelLogin/AdminNotificationsPage";
+// Add this with your other imports:
+import SatAssessmentPreviewPage from "./components/AdminPanelLogin/SatAssessmentPreviewPage.jsx";
+import StandardAssessmentPreviewPage from "./components/AdminPanelLogin/StandardAssessmentPreviewPage";
 
 // 🆕 Import new SEO pages
 import DiscoverPage from "./pages/DiscoverPage";
@@ -197,6 +201,9 @@ function App() {
           <Route path="sat-generated-assessments" element={<SatGeneratedAssessmentsPage />} />
           <Route path="attempts/standard" element={<AdminStandardAttempts />} />
           <Route path="attempts/sat" element={<AdminSatAttempts />} />
+          <Route path="notifications" element={<AdminNotificationsPage />} />
+          <Route path="assessment-preview/:assessmentId" element={<SatAssessmentPreviewPage />} />
+          <Route path="standard-assessment-preview/:assessmentId" element={<StandardAssessmentPreviewPage />} />
         </Route>
 
         {/* Login Pages */}

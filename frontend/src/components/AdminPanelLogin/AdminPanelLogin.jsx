@@ -34,7 +34,9 @@ const AdminLogin = () => {
         }
       );
 
+      localStorage.setItem("token", data.token);
       localStorage.setItem("adminInfo", JSON.stringify(data));
+      
       navigate("/admin-dashboard");
     } catch (err) {
       const msg = err?.response?.data?.message;

@@ -373,6 +373,7 @@ const submitAssessment = asyncHandler(async (req, res) => {
     percentage: submission.percentage,
     timeTaken: submission.timeTaken,
     submittedAt: submission.createdAt,
+    submissionId: submission._id
   });
 });
 

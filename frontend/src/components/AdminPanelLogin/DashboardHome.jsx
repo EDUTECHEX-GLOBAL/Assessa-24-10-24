@@ -66,7 +66,7 @@ export default function DashboardHome() {
           <div className="flex items-center justify-between">
             <div>
               <h3 className="text-lg font-bold">Generated Assessments</h3>
-              <p className="text-2xl">{stats?.teachers?.assessmentsGenerated ?? 0}</p>
+              {/* <p className="text-2xl">{stats?.teachers?.assessmentsGenerated ?? 0}</p> */}
             </div>
             <MdAdminPanelSettings className="text-4xl opacity-75" />
           </div>
@@ -86,7 +86,7 @@ export default function DashboardHome() {
           <div className="flex items-center justify-between">
             <div>
               <h3 className="text-lg font-bold">Student Attempts</h3>
-              <p className="text-2xl">{stats?.users?.attempts ?? 0}</p>
+              {/* <p className="text-2xl">{stats?.users?.attempts ?? 0}</p> */}
               <p className="text-sm mt-2">Total attempts across all students</p>
             </div>
             <FaUsers className="text-4xl opacity-75" />

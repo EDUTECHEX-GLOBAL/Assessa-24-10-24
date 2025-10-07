@@ -113,8 +113,77 @@ const getSatAssessments = async (req, res) => {
   }
 };
 
+/**
+ * @desc   Get single SAT Assessment by ID
+ * @route  GET /api/generated-assessments/sat/:id
+ */
+const getSatAssessmentById = async (req, res) => {
+  try {
+    const assessment = await SatAssessment.findById(req.params.id)
+      .populate("teacherId", "name email role status");
+
+    if (!assessment) {
+      return res.status(404).json({ message: "SAT assessment not found" });
+    }
+
+    res.json({
+      _id: assessment._id,
+      satTitle: assessment.satTitle,
+      sectionType: assessment.sectionType,
+      difficulty: assessment.difficulty,
+      questions: assessment.questions || [],
+      questionsCount: Array.isArray(assessment.questions) ? assessment.questions.length : 0,
+      createdAt: assessment.createdAt,
+      teacher: assessment.teacherId
+        ? { name: assessment.teacherId.name, email: assessment.teacherId.email }
+        : { name: "Unknown", email: "N/A" },
+      tags: assessment.tags || [],
+      estimatedTime: assessment.estimatedTime || null,
+    });
+  } catch (error) {
+    console.error("❌ Error fetching SAT assessment:", error);
+    res.status(500).json({ message: "Failed to fetch SAT assessment" });
+  }
+};
+
+/**
+ * @desc   Get single Standard Assessment by ID
+ * @route  GET /api/generated-assessments/standard/:id
+ */
+const getStandardAssessmentById = async (req, res) => {
+  try {
+    const assessment = await AssessmentUpload.findById(req.params.id)
+      .populate("teacherId", "name email role status");
+
+    if (!assessment) {
+      return res.status(404).json({ message: "Standard assessment not found" });
+    }
+
+    res.json({
+      _id: assessment._id,
+      assessmentName: assessment.assessmentName,
+      subject: assessment.subject,
+      gradeLevel: assessment.gradeLevel,
+      difficulty: assessment.difficulty,
+      questions: assessment.questions || [],
+      questionsCount: Array.isArray(assessment.questions) ? assessment.questions.length : 0,
+      createdAt: assessment.createdAt,
+      teacher: assessment.teacherId
+        ? { name: assessment.teacherId.name, email: assessment.teacherId.email }
+        : { name: "Unknown", email: "N/A" },
+      tags: assessment.tags || [],
+      estimatedTime: assessment.estimatedTime || null,
+    });
+  } catch (error) {
+    console.error("❌ Error fetching standard assessment:", error);
+    res.status(500).json({ message: "Failed to fetch standard assessment" });
+  }
+};
+
 module.exports = {
   getGeneratedAssessmentCount,
   getStandardAssessments,
   getSatAssessments,
+  getSatAssessmentById,
+  getStandardAssessmentById
 };

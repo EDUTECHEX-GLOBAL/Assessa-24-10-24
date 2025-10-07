@@ -401,7 +401,8 @@ try {
       success: true,
       score,
       totalMarks,
-      percentage: parseFloat(percentage.toFixed(2))
+      percentage: parseFloat(percentage.toFixed(2)),
+      submissionId: submission._id
     });
 
   } catch (err) {

@@ -61,6 +61,8 @@ const teacherChatbotRoutes = require("./routes/teacherChatbotRoutes");
 const satAssessmentRoutes = require("./routes/satAssessmentRoutes");
 const generatedAssessmentCountRoutes = require("./routes/generatedAssessmentCountRoutes");
 const studentAttemptedAssessmentsRoutes = require("./routes/studentAttemptedAssessmentsRoutes");
+const proctoringRoutes = require("./routes/proctoringRoutes");
+const adminNotificationRoutes = require("./routes/adminNotificationRoutes");
 
 
 
@@ -84,6 +86,8 @@ app.use("/api/chat", teacherChatbotRoutes);
 app.use("/api/sat-assessments",satAssessmentRoutes);
 app.use("/api/generated-assessments", generatedAssessmentCountRoutes);
 app.use("/api/attempts", studentAttemptedAssessmentsRoutes);
+app.use("/api/proctoring", proctoringRoutes);
+app.use("/api/admin/notifications", adminNotificationRoutes);
 
 
 

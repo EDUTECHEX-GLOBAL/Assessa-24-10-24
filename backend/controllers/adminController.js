@@ -2,6 +2,7 @@ const asyncHandler = require("express-async-handler");
 const Admin = require("../models/webapp-models/adminModel");
 const User = require("../models/webapp-models/userModel");
 const Teacher = require("../models/webapp-models/teacherModel");
+const { createAdminNotification } = require("./adminNotificationController"); // Add this import
 const generateToken = require("../utils/generateToken");
 const sendEmail = require("../utils/mailer");
 
@@ -60,6 +61,18 @@ const approveRequest = asyncHandler(async (req, res) => {
   account.isAdminApproved = true;
   await account.save();
 
+  // Create notification for approval
+  await createAdminNotification(req.user._id, {
+    type: "approval_approved",
+    title: `${role.charAt(0).toUpperCase() + role.slice(1)} Approved`,
+    message: `${account.name} (${account.email}) has been approved`,
+    data: {
+      userId: account._id,
+      role: role,
+    },
+    priority: "medium",
+  });
+
   await sendEmail.sendApprovalEmail(account.email, account.name, role);
 
   res.json({ message: `${role} approved successfully` });
@@ -82,6 +95,18 @@ const rejectRequest = asyncHandler(async (req, res) => {
   account.rejectionReason = reason;
   account.isAdminApproved = false;
   await account.save();
+
+  // Create notification for rejection
+  await createAdminNotification(req.admin._id, {
+    type: "approval_rejected",
+    title: `${role.charAt(0).toUpperCase() + role.slice(1)} Rejected`,
+    message: `${account.name} (${account.email}) has been rejected. Reason: ${reason}`,
+    data: {
+      userId: account._id,
+      role: role,
+    },
+    priority: "medium",
+  });
 
   await sendEmail.sendRejectionEmail(account.email, account.name, reason);
 
@@ -182,7 +207,6 @@ const toggleAccess = asyncHandler(async (req, res) => {
   await account.save();
   res.json({ message: `${role} access ${action}ed successfully` });
 });
-
 
 module.exports = {
   authAdmin,

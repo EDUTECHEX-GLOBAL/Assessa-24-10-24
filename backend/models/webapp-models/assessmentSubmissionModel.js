@@ -27,6 +27,16 @@ const assessmentSubmissionSchema = new mongoose.Schema({
   percentage: { type: Number, required: true },
   timeTaken: { type: Number, required: true }, // Seconds
   submittedAt: { type: Date, default: Date.now },
+  
+  proctoringSessionId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "ProctoringSession"
+  },
+  proctoringData: {
+    mode: { type: String, enum: ['test', 'real'] },
+    violationCount: { type: Number, default: 0 },
+    sessionDuration: { type: Number } // in seconds
+  }
 });
 
 module.exports = mongoose.model("AssessmentSubmission", assessmentSubmissionSchema);

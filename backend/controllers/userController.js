@@ -3,10 +3,11 @@ const bcrypt = require("bcryptjs");
 const crypto = require("crypto");
 const nodemailer = require("nodemailer");
 const Userwebapp = require("../models/webapp-models/userModel");
+const Admin = require("../models/webapp-models/adminModel");
 const generateToken = require("../utils/generateToken");
 const { getSignedUrl } = require("../config/s3Upload");
 const sendEmail = require("../utils/mailer");
-
+const { createAdminNotification } = require("./adminNotificationController");
 
 // Register User
 const registerUser = asyncHandler(async (req, res) => {
@@ -36,8 +37,29 @@ const registerUser = asyncHandler(async (req, res) => {
   });
 
   if (user) {
+    // ✅ ADD NOTIFICATION CREATION HERE
+    try {
+      const admin = await Admin.findOne();
+      
+      if (admin) {
+        await createAdminNotification(admin._id, {
+          type: "login_request",
+          title: "New Student Registration",
+          message: `${user.name} (${user.email}) has requested access as a student`,
+          data: {
+            userId: user._id,
+            role: "student",
+          },
+          priority: "high",
+        });
+      }
+    } catch (error) {
+    }
+    // ✅ END OF NOTIFICATION CODE
+
     // Notify admin about new student signup
     await sendEmail.sendAdminStudentSignupEmail(user.name, user.email);
+    
     res.status(201).json({
       _id: user._id,
       name: user.name,

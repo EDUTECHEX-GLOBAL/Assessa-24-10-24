@@ -1,6 +1,7 @@
-import { FaBars, FaSearch, FaBell } from 'react-icons/fa';
+import { FaBars, FaSearch } from 'react-icons/fa';
 import { IoPersonCircleOutline } from 'react-icons/io5';
 import { Link } from "react-router-dom";
+import AdminNotificationBell from './adminNotificationBell'; // Add this import
 
 export default function AdminHeader({ sidebarOpen, setSidebarOpen }) {
   return (
@@ -34,9 +35,9 @@ export default function AdminHeader({ sidebarOpen, setSidebarOpen }) {
         </div>
       </div>
       <div className="flex items-center space-x-4">
-        <button className="p-2 text-gray-600 hover:text-blue-600">
-          <FaBell className="text-2xl" />
-        </button>
+        {/* Replace the existing bell button with NotificationBell component */}
+        <AdminNotificationBell />
+        
         <div className="flex items-center space-x-1 group cursor-pointer relative">
           <div className="text-right">
             <p className="font-bold text-gray-800">Admin</p>

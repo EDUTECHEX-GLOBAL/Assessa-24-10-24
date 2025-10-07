@@ -1,9 +1,11 @@
 const asyncHandler = require("express-async-handler");
 const bcrypt = require("bcryptjs");
 const Teacher = require("../models/webapp-models/teacherModel");
+const Admin = require("../models/webapp-models/adminModel");
 const generateToken = require("../utils/generateToken");
 const { getSignedUrl } = require("../config/s3Upload");
 const sendEmail = require("../utils/mailer");
+const { createAdminNotification } = require("./adminNotificationController");
 
 // ============================
 // REGISTER
@@ -30,7 +32,30 @@ const registerTeacher = asyncHandler(async (req, res) => {
   });
 
   if (teacher) {
-    // notify admin
+    
+    try {
+      const admin = await Admin.findOne(); // ✅ FIXED: Removed hardcoded email
+      
+      if (admin) {
+        const notification = await createAdminNotification(admin._id, {
+          type: "login_request",
+          title: "New Teacher Registration",
+          message: `${teacher.name} (${teacher.email}) has requested access as a teacher`,
+          data: {
+            userId: teacher._id,
+            role: "teacher",
+          },
+          priority: "high",
+        });
+      } else {
+        console.log('❌ No admin found for teacher notification');
+      }
+    } catch (error) {
+      console.error('❌ Teacher notification error:', error);
+    }
+    // ✅ END OF DEBUG CODE
+
+    // notify admin (existing email)
     await sendEmail.sendAdminTeacherSignupEmail(teacher.name, teacher.email);
 
     res.status(201).json({
@@ -42,10 +67,7 @@ const registerTeacher = asyncHandler(async (req, res) => {
 });
 
 // ============================
-// LOGIN
-// ============================
-// ============================
-// LOGIN
+// LOGIN - NO CHANGES NEEDED
 // ============================
 const authTeacher = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
@@ -92,7 +114,7 @@ const authTeacher = asyncHandler(async (req, res) => {
 });
 
 // ============================
-// GET PROFILE (with signed pic URL)
+// GET PROFILE (with signed pic URL) - NO CHANGES
 // ============================
 const getTeacherProfile = asyncHandler(async (req, res) => {
   const teacher = await Teacher.findById(req.user._id).select("-password");
@@ -124,7 +146,7 @@ const getTeacherProfile = asyncHandler(async (req, res) => {
 });
 
 // ============================
-// UPDATE PROFILE
+// UPDATE PROFILE - NO CHANGES
 // ============================
 const updateTeacherProfile = asyncHandler(async (req, res) => {
   const teacher = await Teacher.findById(req.user._id);
