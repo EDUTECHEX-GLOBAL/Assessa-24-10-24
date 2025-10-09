@@ -7,23 +7,30 @@ on:
 
 jobs:
   deploy:
+    name: Deploy to EC2
     runs-on: ubuntu-latest
 
     steps:
       # Step 1: Checkout repository code
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
-      # Step 2: Setup SSH key
+      # Step 2: Setup SSH agent with EC2 key
       - name: Setup SSH
-        uses: webfactory/ssh-agent@v0.5.3
+        uses: webfactory/ssh-agent@v0.9.0
         with:
           ssh-private-key: ${{ secrets.EC2_SSH_KEY }}
 
-      # Step 3: SSH into EC2 and run deployment
+      # Step 3: Add EC2 host to known_hosts (secure)
+      - name: Add EC2 host to known_hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H www.assessaai.com >> ~/.ssh/known_hosts
+
+      # Step 4: SSH into EC2 and run deploy script
       - name: Run deploy.sh on EC2
         run: |
-          ssh -o StrictHostKeyChecking=no ubuntu@www.assessaai.com << 'EOF'
-          echo "✅ SSH successful, running deployment..."
-          sudo bash /home/ubuntu/deploy.sh  Oct7-2025Demo 
+          ssh ubuntu@www.assessaai.com << 'EOF'
+            echo "✅ SSH successful — starting deployment..."
+            bash /home/ubuntu/deploy.sh Oct7-2025Demo
           EOF
