@@ -111,10 +111,10 @@ export default function SatAssessmentPreviewPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-50 p-6 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 p-6 flex items-center justify-center">
         <div className="text-center">
           <div className="inline-flex items-center justify-center">
-            <div className="w-8 h-8 border-3 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+            <div className="w-8 h-8 border-3 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
           </div>
           <p className="mt-4 text-slate-600 font-medium">Loading assessment preview...</p>
         </div>
@@ -124,7 +124,7 @@ export default function SatAssessmentPreviewPage() {
 
   if (error || !assessment) {
     return (
-      <div className="min-h-screen bg-slate-50 p-6 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 p-6 flex items-center justify-center">
         <div className="text-center max-w-md">
           <div className="bg-white rounded-xl shadow-sm p-8 border border-slate-200">
             <div className="w-16 h-16 mx-auto mb-4 bg-red-100 rounded-full flex items-center justify-center">
@@ -136,7 +136,7 @@ export default function SatAssessmentPreviewPage() {
             <p className="text-slate-600 mb-6">{error || "The requested assessment could not be loaded."}</p>
             <button
               onClick={() => navigate(-1)}
-              className="bg-blue-500 text-white px-6 py-2.5 rounded-lg hover:bg-blue-600 transition font-medium shadow-sm"
+              className="bg-purple-500 text-white px-6 py-2.5 rounded-lg hover:bg-purple-600 transition font-medium shadow-sm"
             >
               Go Back
             </button>
@@ -150,7 +150,7 @@ export default function SatAssessmentPreviewPage() {
   const correctAnswerInfo = currentQuestion ? getCorrectAnswerInfo(currentQuestion) : null;
 
   return (
-    <div className="min-h-screen bg-slate-50 p-4 md:p-6">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 p-4 md:p-6">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
@@ -173,13 +173,13 @@ export default function SatAssessmentPreviewPage() {
           <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
             <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-6">
               <div className="flex items-start space-x-4">
-                <div className="w-12 h-12 bg-blue-50 rounded-lg flex items-center justify-center border border-blue-100">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <div className="w-12 h-12 bg-purple-50 rounded-lg flex items-center justify-center border border-purple-100">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-purple-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                   </svg>
                 </div>
                 <div>
-                  <h1 className="text-2xl font-bold text-slate-800 mb-1">
+                  <h1 className="text-2xl font-bold text-purple-600 mb-1">
                     {assessment.satTitle || assessment.assessmentName || "Untitled Assessment"}
                   </h1>
                   <p className="text-slate-600">
@@ -195,19 +195,19 @@ export default function SatAssessmentPreviewPage() {
 
             {/* Assessment Metadata */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pt-6 border-t border-slate-200">
-              <div className="text-center bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl p-4 border border-indigo-100">
-                <p className="text-sm font-medium text-indigo-700 mb-1">Total Questions</p>
-                <p className="text-3xl font-bold text-indigo-900">{assessment.questionsCount || assessment.questions?.length || 0}</p>
+              <div className="text-center bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-4 border border-blue-100">
+                <p className="text-sm font-medium text-blue-700 mb-1">Total Questions</p>
+                <p className="text-3xl font-bold text-blue-900">{assessment.questionsCount || assessment.questions?.length || 0}</p>
               </div>
               
-              <div className="text-center bg-gradient-to-br from-emerald-50 to-teal-50 rounded-xl p-4 border border-emerald-100">
-                <p className="text-sm font-medium text-emerald-700 mb-1">Teacher</p>
-                <p className="text-xl font-bold text-emerald-900">{assessment.teacher?.name || "Unknown"}</p>
+              <div className="text-center bg-gradient-to-br from-pink-50 to-rose-50 rounded-xl p-4 border border-pink-100">
+                <p className="text-sm font-medium text-pink-700 mb-1">Teacher</p>
+                <p className="text-xl font-bold text-pink-900">{assessment.teacher?.name || "Unknown"}</p>
               </div>
               
-              <div className="text-center bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl p-4 border border-amber-100">
-                <p className="text-sm font-medium text-amber-700 mb-1">Created Date</p>
-                <p className="text-lg font-bold text-amber-900">
+              <div className="text-center bg-gradient-to-br from-violet-50 to-purple-50 rounded-xl p-4 border border-violet-100">
+                <p className="text-sm font-medium text-violet-700 mb-1">Created Date</p>
+                <p className="text-lg font-bold text-violet-900">
                   {assessment.createdAt ? new Date(assessment.createdAt).toLocaleDateString() : 'N/A'}
                 </p>
               </div>
@@ -220,7 +220,7 @@ export default function SatAssessmentPreviewPage() {
           <div className="lg:col-span-1">
             <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-5 sticky top-6">
               <h2 className="text-lg font-semibold text-slate-800 mb-4 flex items-center">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 text-purple-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h7" />
                 </svg>
                 Questions ({assessment.questions?.length || 0})
@@ -241,7 +241,7 @@ export default function SatAssessmentPreviewPage() {
                       onClick={() => setActiveQuestion(index)}
                       className={`w-full text-left p-3 rounded-lg border transition-all duration-200 ${
                         activeQuestion === index 
-                          ? 'bg-blue-50 border-blue-300 text-blue-700' 
+                          ? 'bg-purple-50 border-purple-300 text-purple-700' 
                           : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300'
                       }`}
                     >
@@ -266,8 +266,8 @@ export default function SatAssessmentPreviewPage() {
               {/* Question Header */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 pb-6 border-b border-slate-200">
                 <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center border border-blue-100">
-                    <span className="text-blue-600 font-bold text-lg">{activeQuestion + 1}</span>
+                  <div className="w-10 h-10 bg-purple-50 rounded-lg flex items-center justify-center border border-purple-100">
+                    <span className="text-purple-600 font-bold text-lg">{activeQuestion + 1}</span>
                   </div>
                   <div>
                     <h2 className="text-xl font-semibold text-slate-800">Question {activeQuestion + 1}</h2>
@@ -340,9 +340,9 @@ export default function SatAssessmentPreviewPage() {
 
               {/* Correct Answer Section - Always show the actual answer */}
               {correctAnswerInfo && (
-                <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                <div className="mb-6 p-4 bg-purple-50 rounded-lg border border-purple-200">
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 bg-blue-500 rounded flex items-center justify-center">
+                    <div className="w-8 h-8 bg-purple-500 rounded flex items-center justify-center">
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>

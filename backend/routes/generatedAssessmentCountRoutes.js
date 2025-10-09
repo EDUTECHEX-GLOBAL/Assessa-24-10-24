@@ -1,10 +1,10 @@
 const express = require("express");
 const {
   getGeneratedAssessmentCount,
-  getStandardAssessments,
+  // getStandardAssessments,
   getSatAssessments,
   getSatAssessmentById,   
-  getStandardAssessmentById,   
+  // getStandardAssessmentById,   
 } = require("../controllers/generatedAssessmentCountController");
 
 const router = express.Router();
@@ -13,7 +13,7 @@ const router = express.Router();
 router.get("/count", getGeneratedAssessmentCount);
 
 // ✅ Full list of Standard Assessments
-router.get("/standard", getStandardAssessments);
+// router.get("/standard", getStandardAssessments);
 
 // ✅ Full list of SAT Assessments
 router.get("/sat", getSatAssessments);
@@ -22,6 +22,6 @@ router.get("/sat", getSatAssessments);
 router.get("/sat/:id", getSatAssessmentById);
 
 // ✅ Single Standard Assessment by ID (for preview)
-router.get("/standard/:id", getStandardAssessmentById);
+// router.get("/standard/:id", getStandardAssessmentById);
 
 module.exports = router;
