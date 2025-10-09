@@ -3,12 +3,11 @@ name: Deploy to Server
 on:
   push:
     branches:
-      - testing_oct5   # Trigger only on this branch
+      - testing_oct5 # Trigger only on this branch
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-
     steps:
       # Step 1: Checkout repository code
       - name: Checkout code
@@ -23,7 +22,7 @@ jobs:
       # Step 3: SSH into EC2 and run deployment
       - name: Run deploy.sh on EC2
         run: |
-          ssh -t -o StrictHostKeyChecking=no ubuntu@www.assessaai.com << 'EOF'
+          ssh -o StrictHostKeyChecking=no ubuntu@www.assessaai.com << 'EOF'
           echo "✅ SSH successful, running deployment..."
           sudo bash /home/ubuntu/deploy.sh testing_oct5
           EOF
