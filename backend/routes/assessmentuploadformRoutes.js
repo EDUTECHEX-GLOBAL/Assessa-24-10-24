@@ -3,7 +3,7 @@ const router = express.Router();
 const multer = require("multer");
 const storage = multer.memoryStorage(); // Required for S3 uploads
 const upload = multer({ storage });
-
+const { getAllRecentAssessments } = require("../controllers/assessmentuploadformController");
 const { protect } = require("../middlewares/authMiddleware");
 const {
   uploadAssessment,
@@ -23,6 +23,10 @@ const {
   getStudentProgress,
   getStudentProgressForTeacher,
   getTeacherProgress,
+  getAssessmentActivity, 
+  getTeacherUpcomingTasks,
+  markTaskCompleted,
+  getLeaderboard,
 } = require("../controllers/assessmentuploadformController");
 
 // --- Add your test route here ---
@@ -32,13 +36,17 @@ router.get("/test", (req, res) => res.json({ ok: true, message: "Test route is w
 router.get("/library/count", protect, getAssessmentLibraryCount); // Total in library
 router.get("/uploaded/count", protect, getUploadedAssessmentsCount); // Uploaded by teacher
 router.get("/library/new-this-week/count", protect, getNewThisWeekCount); // New this week
-
+router.get("/activity", protect, getAssessmentActivity);
 // Teacher routes
 router.post("/upload", protect, upload.single("file"), uploadAssessment);
 router.get("/my", protect, getTeacherAssessments);
 router.get("/teacher/all", protect, getTeacherAssessments);
 router.delete("/:id", protect, deleteAssessment);
 router.get("/:id/submissions", protect, getAssessmentSubmissions); // Teacher views submissions
+// --- Upcoming Tasks (Teacher) ---
+router.get("/tasks", protect, getTeacherUpcomingTasks);
+router.patch("/tasks/:id/complete", protect, markTaskCompleted);
+
 // Add these at the bottom of teacher routes
 router.get("/:id/review", protect, getAssessmentForReview);        // Teacher reviews question paper
 router.put("/:id/questions", protect, updateAssessmentQuestions);  // Edit questions
@@ -52,5 +60,7 @@ router.get("/teacher-progress", protect, getTeacherProgress);
 
 router.get("/:id/attempt", protect, getAssessmentForAttempt); // Get assessment for attempt
 router.post("/:id/submit", protect, submitAssessment); // Submit assessment answers
+router.get("/recent/all", protect, getAllRecentAssessments);
+router.get("/leaderboard", protect, getLeaderboard);
 
 module.exports = router;

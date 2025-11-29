@@ -445,7 +445,7 @@ export default function AdminNotificationBell() {
           </div>
 
           {/* Footer */}
-          {notifications.length > 0 && (
+         {true && (
             <div className="p-3 border-t border-gray-200 bg-gray-50 rounded-b-xl">
               <Link
                 to="/admin-dashboard/notifications"

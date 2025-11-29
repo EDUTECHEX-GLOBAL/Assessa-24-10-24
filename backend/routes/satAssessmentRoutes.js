@@ -4,7 +4,7 @@ const express = require("express");
 const router = express.Router();
 const multer = require("multer");
 const { protect } = require("../middlewares/authMiddleware");
-
+const { getRecentSATAssessments } = require("../controllers/satAssessmentController");
 // import controllers
 const {
   uploadSATAssessment,
@@ -59,7 +59,7 @@ router.get("/:id/submissions", protect, getSatAssessmentSubmissions);
 router.get("/my-submissions", protect, getMySatSubmissions);
 
 
-
+router.get("/recent", protect, getRecentSATAssessments);
 // DELETE /api/sat-assessments/:id
 router.delete("/:id", protect, deleteSATAssessment);
 

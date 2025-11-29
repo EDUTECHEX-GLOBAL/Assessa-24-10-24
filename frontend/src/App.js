@@ -59,6 +59,16 @@ import AdminNotificationsPage from "./components/AdminPanelLogin/AdminNotificati
 // Add this with your other imports:
 import SatAssessmentPreviewPage from "./components/AdminPanelLogin/SatAssessmentPreviewPage.jsx";
 import StandardAssessmentPreviewPage from "./components/AdminPanelLogin/StandardAssessmentPreviewPage";
+import SystemUsagePage from "./components/AdminPanelLogin/SystemUsagePage";
+
+import ReportsManagement from "./components/AdminPanelLogin/ReportsManagement.jsx";
+import DailyQuiz from "./components/StudentLogin/DailyQuiz";
+import DailyQuizScore from "./components/StudentLogin/DailyQuizScore";
+import MeritBoardPage from "./components/StudentLogin/MeritBoardPage";
+
+import StudentNotificationBell from './components/StudentLogin/studentNotificationBell';
+import StudentNotificationPage from './components/StudentLogin/studentNotificationPage';
+
 
 // 🆕 Import new SEO pages
 import DiscoverPage from "./pages/DiscoverPage";
@@ -152,6 +162,25 @@ function App() {
           }
         />
         <Route
+  path="/daily-quiz"
+  element={
+    <ProtectedRoute role="student">
+      <DailyQuiz />
+    </ProtectedRoute>
+  }
+/>
+
+<Route
+  path="/daily-quiz-score"
+  element={
+    <ProtectedRoute role="student">
+      <DailyQuizScore />
+    </ProtectedRoute>
+  }
+/>
+<Route path="/merit-board" element={<MeritBoardPage />} />
+
+        <Route
           path="/assessment-library"
           element={
             <ProtectedRoute role="teacher">
@@ -167,6 +196,7 @@ function App() {
             </ProtectedRoute>
           }
         />
+      
         <Route
           path="/teacher-dashboard"
           element={
@@ -195,6 +225,9 @@ function App() {
         >
           <Route index element={<DashboardHome />} />
           <Route path="approvals" element={<ApprovalRequests />} />
+
+           <Route path="system-usage" element={<SystemUsagePage />} />
+            
           <Route path="teachers" element={<TeacherManagement />} />
           <Route path="students" element={<StudentManagement />} />
           <Route path="standard-generated-assessments" element={<StandardGeneratedAssessmentsPage />} />
@@ -204,6 +237,8 @@ function App() {
           <Route path="notifications" element={<AdminNotificationsPage />} />
           <Route path="assessment-preview/:assessmentId" element={<SatAssessmentPreviewPage />} />
           <Route path="standard-assessment-preview/:assessmentId" element={<StandardAssessmentPreviewPage />} />
+          <Route path="reports" element={<ReportsManagement />} />
+          
         </Route>
 
         {/* Login Pages */}

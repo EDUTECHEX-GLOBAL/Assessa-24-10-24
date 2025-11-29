@@ -1,11 +1,10 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef , useCallback} from "react";
 import { toast } from "react-toastify";
 import { useNavigate } from "react-router-dom";
 import ProctoringModal from "./ProctoringModal";
 import useProctoringManager from "./ProctoringManager";
 import ProctoringHeader from "./ProctoringHeader";
 import QuitConfirmationModal from "./QuitConfirmationModal";
-
 export default function AssessmentsPage({ onBackHome }) {
   // State declarations for assessments, current question, answers, timer, etc.
   const [assessments, setAssessments] = useState([]);
@@ -26,7 +25,8 @@ export default function AssessmentsPage({ onBackHome }) {
   const [showQuitConfirm, setShowQuitConfirm] = useState(false);
   const [autoSubmitReason, setAutoSubmitReason] = useState(null);
   const [showStartButton, setShowStartButton] = useState(false);
-  
+  const [highlightId, setHighlightId] = useState(null);
+
   const timerRef = useRef(null);
   const navigate = useNavigate();
 
@@ -193,9 +193,12 @@ export default function AssessmentsPage({ onBackHome }) {
           return;
         }
         
-        const standardRes = await fetch("/api/assessments/all", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+       const studentGrade = JSON.parse(localStorage.getItem("userInfo"))?.class;
+
+const standardRes = await fetch(`/api/assessments/all?grade=${studentGrade}`, {
+  headers: { Authorization: `Bearer ${token}` },
+});
+
         const standardData = await standardRes.json();
         if (Array.isArray(standardData)) {
           setAssessments(standardData);
@@ -378,88 +381,60 @@ export default function AssessmentsPage({ onBackHome }) {
     setShowQuitConfirm(false);
   };
 
-  // Submit assessment and calculate results
-  const handleSubmitAssessment = async () => {
-    if (isSubmitting || submissionResult || !currentAssessment) return;
-    
-    const unanswered = answers.findIndex(a => a === null || a === undefined);
-    if (unanswered !== -1) {
-      toast.error(`Please answer question ${unanswered + 1} before submitting`);
-      setCurrentQuestionIndex(unanswered);
-      return;
-    }
-    
-    setIsSubmitting(true);
-    try {
-      const token = JSON.parse(localStorage.getItem("userInfo"))?.token;
-      const isSAT = currentAssessment.type === "sat";
-      let payload;
-      
-      if (isSAT) {
-        payload = {
-          answers: answers.map((answer, i) => {
-            const question = currentAssessment.questions[i];
-            if (question.type === "mcq") {
-              return typeof answer === "number" ? answer : -1;
-            } else {
-              return typeof answer === "string" ? answer.trim() : "";
-            }
-          }),
-          timeTaken: currentAssessment.timeLimit * 60 - timeLeft,
-        };
-      } else {
-        payload = {
-          answers: answers.map((selectedIndex) => selectedIndex !== null ? selectedIndex : -1),
-          timeTaken: currentAssessment.timeLimit * 60 - timeLeft,
-        };
-      }
-      
-      const endpoint = isSAT
-        ? `/api/sat-assessments/${currentAssessment._id}/submit`
-        : `/api/assessments/${currentAssessment._id}/submit`;
-      
-      const res = await fetch(endpoint, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(payload),
-      });
-      
-      const data = await res.json();
-      if (res.ok) {
-        const { score, totalMarks, percentage } = data;
-        toast.success(`Assessment submitted! Your score: ${score}/${totalMarks}`);
-        setSubmissionResult({ score, totalMarks, percentage });
-        
-        if (proctoringManager.currentSessionId && data.submissionId) {
-          await proctoringManager.cleanupProctoring(data.submissionId);
-        }
-        
-        if (isSAT) {
-          const updatedSatRes = await fetch("/api/sat-assessments/all", {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-          const updatedSatData = await updatedSatRes.json();
-          setSatAssessments(updatedSatData);
-        } else {
-          const updatedStandardRes = await fetch("/api/assessments/all", {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-          const updatedStandardData = await updatedStandardRes.json();
-          setAssessments(updatedStandardData);
-        }
-      } else {
-        throw new Error(data.message || "Submission failed");
-      }
-    } catch (err) {
-      toast.error(err.message || "Error submitting assessment");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+ const handleSubmitAssessment = useCallback(async () => {
+  if (isSubmitting || submissionResult || !currentAssessment) return;
+  
+  const unanswered = answers.findIndex(a => a === null || a === undefined);
+  if (unanswered !== -1) {
+    toast.error(`Please answer question ${unanswered + 1} before submitting`);
+    setCurrentQuestionIndex(unanswered);
+    return;
+  }
+  
+  await forceSubmitAssessment();
+}, [isSubmitting, submissionResult, currentAssessment, answers, forceSubmitAssessment]);
 
+const handleBackToAssessments = () => {
+  setCurrentAssessment(null);
+  setSubmissionResult(null);
+  setSelectedMode(null);
+  setAutoSubmitReason(null);
+
+  // Cleanup proctoring service if active
+  if (proctoringManager.currentSessionId) {
+    proctoringManager.cleanupProctoring();
+  }
+};
+
+const confirmQuitTest = async () => {
+  setShowQuitConfirm(false);
+  toast.info('Submitting assessment with your current answers...');
+  await forceSubmitAssessment();
+};
+
+// Move this up before ANY return
+useEffect(() => {
+  const id = localStorage.getItem("openAssessmentId");
+  const type = localStorage.getItem("openAssessmentType");
+
+  if (!id) return;
+
+  setViewType(type === "sat" ? "sat" : "standard");
+
+  setTimeout(() => {
+    const card = document.getElementById(`assessment-card-${id}`);
+    if (card) {
+      card.scrollIntoView({ behavior: "smooth", block: "center" });
+      setHighlightId(id);
+      setTimeout(() => setHighlightId(null), 1500);
+    }
+
+    localStorage.removeItem("openAssessmentId");
+    localStorage.removeItem("openAssessmentType");
+  }, 300);
+}, [assessments, satAssessments]);
+
+  
   // Render assessment taking interface with proper null checks
   if (currentAssessment) {
     // Safety check - if currentAssessment exists but questions don't
@@ -484,123 +459,7 @@ export default function AssessmentsPage({ onBackHome }) {
     const isLastQuestion = currentQuestionIndex === currentAssessment.questions.length - 1;
 
 
-       // NEW: Force submit function for quit test (bypasses validation)
-const forceSubmitAssessment = async () => {
-  if (isSubmitting || submissionResult || !currentAssessment) return;
   
-  setIsSubmitting(true);
-  try {
-    const token = JSON.parse(localStorage.getItem("userInfo"))?.token;
-    const isSAT = currentAssessment.type === "sat";
-    let payload;
-    
-    // Prepare answers - fill null answers with appropriate default values
-    if (isSAT) {
-      payload = {
-        answers: answers.map((answer, i) => {
-          const question = currentAssessment.questions[i];
-          if (question.type === "mcq") {
-            return typeof answer === "number" ? answer : -1; // -1 for unanswered MCQ
-          } else {
-            return typeof answer === "string" ? answer.trim() : ""; // empty for unanswered grid-in
-          }
-        }),
-        timeTaken: currentAssessment.timeLimit * 60 - timeLeft,
-      };
-    } else {
-      payload = {
-        answers: answers.map((selectedIndex) => 
-          selectedIndex !== null ? selectedIndex : -1 // -1 for unanswered
-        ),
-        timeTaken: currentAssessment.timeLimit * 60 - timeLeft,
-      };
-    }
-    
-    const endpoint = isSAT
-      ? `/api/sat-assessments/${currentAssessment._id}/submit`
-      : `/api/assessments/${currentAssessment._id}/submit`;
-    
-    console.log('Force submitting assessment with payload:', payload);
-    
-    const res = await fetch(endpoint, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify(payload),
-    });
-    
-    const data = await res.json();
-    if (res.ok) {
-      const { score, totalMarks, percentage } = data;
-      toast.success(`Assessment submitted! Your score: ${score}/${totalMarks}`);
-      setSubmissionResult({ score, totalMarks, percentage });
-      
-      // End proctoring session
-      if (proctoringManager.currentSessionId && data.submissionId) {
-        await proctoringManager.cleanupProctoring(data.submissionId);
-      }
-      
-      // Refresh assessments list
-      if (isSAT) {
-        const updatedSatRes = await fetch("/api/sat-assessments/all", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const updatedSatData = await updatedSatRes.json();
-        setSatAssessments(updatedSatData);
-      } else {
-        const updatedStandardRes = await fetch("/api/assessments/all", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const updatedStandardData = await updatedStandardRes.json();
-        setAssessments(updatedStandardData);
-      }
-    } else {
-      throw new Error(data.message || "Submission failed");
-    }
-  } catch (err) {
-    console.error("Error force submitting assessment:", err);
-    toast.error(err.message || "Error submitting assessment");
-  } finally {
-    setIsSubmitting(false);
-  }
-};
-
-// Add this function to handle going back to assessments properly
-const handleBackToAssessments = () => {
-  setCurrentAssessment(null);
-  setSubmissionResult(null);
-  setSelectedMode(null);
-  setAutoSubmitReason(null); // Clear auto-submit reason
-  
-  // Cleanup proctoring service
-  if (proctoringManager.currentSessionId) {
-    proctoringManager.cleanupProctoring();
-  }
-};
-// Update the quit test handler to use the force submission
-const confirmQuitTest = async () => {
-  setShowQuitConfirm(false);
-  toast.info('Submitting assessment with your current answers...');
-  await forceSubmitAssessment(); // Use force submission instead of regular one
-};
-
-// Update the regular submit function to be simpler
-const handleSubmitAssessment = async () => {
-  if (isSubmitting || submissionResult || !currentAssessment) return;
-  
-  // Only validate if not forced by quit
-  const unanswered = answers.findIndex(a => a === null || a === undefined);
-  if (unanswered !== -1) {
-    toast.error(`Please answer question ${unanswered + 1} before submitting`);
-    setCurrentQuestionIndex(unanswered);
-    return;
-  }
-  
-  // Use the same logic as force submit but with validation
-  await forceSubmitAssessment();
-};
     return (
       <div className="p-4 md:p-8 max-w-4xl mx-auto bg-gray-50 min-h-screen">
         {/* Back button */}
@@ -863,6 +722,7 @@ const handleSubmitAssessment = async () => {
       </div>
     );
   }
+        // ✅ When navigated via "View details" from notifications
 
   // Main assessments list view
   return (
@@ -932,9 +792,15 @@ const handleSubmitAssessment = async () => {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
         {(viewType === "standard" ? assessments : satAssessments)
-          .filter((a) => difficultyFilter ? a.difficulty === difficultyFilter : true)
+.filter(a => a.isApproved === true)
+.filter(a => difficultyFilter ? a.difficulty === difficultyFilter : true)
           .map((a) => (
-            <div key={a._id} className="border p-4 rounded-lg shadow bg-white hover:shadow-md transition">
+      <div
+        key={a._id}
+        id={`assessment-card-${a._id}`}
+        className={`border p-4 rounded-lg shadow bg-white hover:shadow-md transition 
+        ${highlightId === a._id ? "ring-2 ring-teal-500" : ""}`}
+      >
               <h3 className="text-xl font-semibold text-gray-800">
                 {viewType === "standard" ? a.assessmentName : a.satTitle}
               </h3>

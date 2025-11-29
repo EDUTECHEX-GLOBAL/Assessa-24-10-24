@@ -1,10 +1,20 @@
 const asyncHandler = require("express-async-handler");
+
+// Models
 const Admin = require("../models/webapp-models/adminModel");
 const User = require("../models/webapp-models/userModel");
 const Teacher = require("../models/webapp-models/teacherModel");
-const { createAdminNotification } = require("./adminNotificationController"); // Add this import
+const AssessmentUpload = require("../models/webapp-models/assessmentuploadformModel"); // ✅ ADDED
+const SatAssessment = require("../models/webapp-models/satAssessmentModel");           // ✅ ADDED
+const AssessmentSubmission = require("../models/webapp-models/assessmentSubmissionModel");
+const SatSubmission = require("../models/webapp-models/satSubmissionModel");
+
+// Controllers / Utilities
+const { createAdminNotification } = require("./adminNotificationController");
 const generateToken = require("../utils/generateToken");
 const sendEmail = require("../utils/mailer");
+
+
 
 // Admin login
 const authAdmin = asyncHandler(async (req, res) => {
@@ -125,7 +135,7 @@ const getApprovalCounts = asyncHandler(async (req, res) => {
   });
 });
 
-// Get overall dashboard stats (teachers + users)
+// Get overall dashboard stats (teachers + users + engagement)
 const getDashboardStats = asyncHandler(async (req, res) => {
   try {
     // Teachers
@@ -140,6 +150,42 @@ const getDashboardStats = asyncHandler(async (req, res) => {
     const approvedUsers = await User.countDocuments({ status: "approved" });
     const pendingUsers = await User.countDocuments({ status: "pending" });
 
+   // ----- ENGAGEMENT FIX ----- 
+
+// Attendance Rate = Approved Students / Total Students
+let attendanceRate = 0;
+if (totalUsers > 0) {
+  attendanceRate = ((approvedUsers / totalUsers) * 100);
+}
+
+// ----- PARTICIPATION RATE ----- 
+const standardParticipants = await AssessmentSubmission.distinct("studentId");
+const satParticipants = await SatSubmission.distinct("studentId");
+
+// unique student IDs only
+const uniqueParticipants = new Set([
+  ...standardParticipants.map(id => id.toString()),
+  ...satParticipants.map(id => id.toString())
+]);
+
+let participationRate = 0;
+if (totalUsers > 0) {
+  participationRate = ((uniqueParticipants.size / totalUsers) * 100);
+}
+
+// prevent >100%
+attendanceRate = Math.min(attendanceRate, 100);
+participationRate = Math.min(participationRate, 100);
+
+// overall engagement (average)
+let overallEngagement = (attendanceRate + participationRate) / 2;
+
+// round values
+attendanceRate = attendanceRate.toFixed(2);
+participationRate = participationRate.toFixed(2);
+overallEngagement = overallEngagement.toFixed(2);
+
+
     res.json({
       teachers: {
         total: totalTeachers,
@@ -150,13 +196,20 @@ const getDashboardStats = asyncHandler(async (req, res) => {
         total: totalUsers,
         active: approvedUsers,
         pending: pendingUsers,
+      },
+      engagement: {
+        attendanceRate,
+        participationRate,
+        overallEngagement
       }
     });
+
   } catch (error) {
     console.error("Error fetching dashboard stats:", error);
     res.status(500).json({ message: "Failed to fetch stats" });
   }
 });
+
 
 // Get all teachers
 const getAllTeachers = asyncHandler(async (req, res) => {
@@ -208,6 +261,103 @@ const toggleAccess = asyncHandler(async (req, res) => {
   res.json({ message: `${role} access ${action}ed successfully` });
 });
 
+// ================================
+// 🟡 Teacher Highlights (Top Uploaders)
+// ================================
+const getTeacherHighlights = asyncHandler(async (req, res) => {
+  try {
+    // 1️⃣ Fetch all teachers
+    const teachers = await Teacher.find({ status: "approved" }).lean();
+
+    // 2️⃣ Fetch standard assessment counts (approved only)
+    const standardCounts = await AssessmentUpload.aggregate([
+      { $match: { isApproved: true } },
+      { $group: { _id: "$teacherId", count: { $sum: 1 } } }
+    ]);
+
+    // 3️⃣ Fetch SAT assessment counts (approved only)
+    const satCounts = await SatAssessment.aggregate([
+      { $match: { isApproved: true } },
+      { $group: { _id: "$teacherId", count: { $sum: 1 } } }
+    ]);
+
+    // Convert to map for fast lookups
+    const standardMap = {};
+    standardCounts.forEach(s => standardMap[s._id] = s.count);
+
+    const satMap = {};
+    satCounts.forEach(s => satMap[s._id] = s.count);
+
+    // 4️⃣ Prepare final data
+    const highlights = teachers.map(t => {
+      const standard = standardMap[t._id] || 0;
+      const sat = satMap[t._id] || 0;
+
+      return {
+        name: t.name,
+        teacherId: t._id,
+        standard,
+        sat,
+        uploads: standard + sat
+      };
+    });
+
+    // 5️⃣ Sort by uploads descending
+    highlights.sort((a, b) => b.uploads - a.uploads);
+
+    // 6️⃣ Return top 3
+    res.json(highlights.slice(0, 3));
+
+  } catch (error) {
+    console.error("Error fetching teacher highlights:", error);
+    res.status(500).json({ message: "Failed to load teacher highlights" });
+  }
+});
+
+// ================================
+// 🔵 Recent Assessments (Standard + SAT) — FIXED
+// ================================
+const getRecentAssessments = asyncHandler(async (req, res) => {
+  try {
+    // Latest Standard assessments
+    const standard = await AssessmentUpload.find({ isApproved: true })
+      .populate("teacherId", "name")
+      .sort({ createdAt: -1 })
+      .limit(10)
+      .lean();
+
+    // Latest SAT assessments
+    const sat = await SatAssessment.find({ isApproved: true })
+      .populate("teacherId", "name")
+      .sort({ createdAt: -1 })
+      .limit(10)
+      .lean();
+
+    // Merge both sets and sort
+    const merged = [...standard, ...sat]
+      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+      .slice(0, 10);
+
+    // Format response
+    const formatted = merged.map(a => ({
+      title: a.assessmentName || a.satTitle || "Assessment",
+      type: a.satTitle ? "SAT" : "Standard",
+      subject: a.subject || a.sectionType || "General",
+      teacherName: a.teacherId?.name || "Unknown",
+      uploadedAgo: a.createdAt ? timeAgo(a.createdAt) : "Unknown"
+    }));
+
+    res.json(formatted);
+
+  } catch (err) {
+    console.error("Recent assessments error:", err);
+    res.status(500).json({ message: "Failed to fetch assessments" });
+  }
+});
+
+
+
+
 module.exports = {
   authAdmin,
   getApprovalRequests,
@@ -219,4 +369,25 @@ module.exports = {
   getAllStudents,
   deleteAccount,
   toggleAccess,
+  getTeacherHighlights,
+  getRecentAssessments
 };
+function timeAgo(date) {
+  const seconds = Math.floor((new Date() - new Date(date)) / 1000);
+  const intervals = [
+    { label: "year", seconds: 31536000 },
+    { label: "month", seconds: 2592000 },
+    { label: "day", seconds: 86400 },
+    { label: "hour", seconds: 3600 },
+    { label: "minute", seconds: 60 },
+  ];
+
+  for (const i of intervals) {
+    const count = Math.floor(seconds / i.seconds);
+    if (count >= 1) {
+      return `${count} ${i.label}${count > 1 ? "s" : ""} ago`;
+    }
+  }
+
+  return "Just now";
+}

@@ -44,3 +44,44 @@ textarea {
 body {
   cursor: default;
 }
+
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.spin {
+  animation: spin 1s linear infinite;
+}
+
+
+/* Smooth light scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.4);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(100, 149, 237, 0.35); /* soft blue */
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 149, 237, 0.55);
+}
+/* Student: soft scrollbars on both panes */
+aside::-webkit-scrollbar,
+main::-webkit-scrollbar { width: 6px; height: 6px; }
+aside::-webkit-scrollbar-track,
+main::-webkit-scrollbar-track { background: rgba(255,255,255,0.4); border-radius: 10px; }
+aside::-webkit-scrollbar-thumb,
+main::-webkit-scrollbar-thumb { background: rgba(20,184,166,0.35); border-radius: 10px; }
+aside::-webkit-scrollbar-thumb:hover,
+main::-webkit-scrollbar-thumb:hover { background: rgba(20,184,166,0.55); }
+/* Firefox */
+aside, main { scrollbar-width: thin; scrollbar-color: rgba(20,184,166,0.35) rgba(255,255,255,0.4); }

@@ -35,10 +35,12 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen }) {
           label="Students"
           path="/admin-dashboard/students"
         />
-        <NavItem
+                <NavItem
           icon={MdAssignment}
-          label="Assessments"
+          label="Reports"
+          path="/admin-dashboard/reports"
         />
+
       </nav>
 
       {/* Logout */}

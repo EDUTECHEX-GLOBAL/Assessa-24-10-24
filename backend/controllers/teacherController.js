@@ -186,10 +186,38 @@ const updateTeacherProfile = asyncHandler(async (req, res) => {
     token: generateToken(updatedTeacher._id),
   });
 });
+// ============================
+// AI TEACHING INSIGHTS (STATIC FOR NOW)
+// ============================
+const getTeacherInsights = asyncHandler(async (req, res) => {
+  const insights = [
+    {
+      type: "insight",
+      title: "Students struggled with Algebra",
+      description: "Most mistakes were in quadratic equations.",
+      icon: "💡"
+    },
+    {
+      type: "trend",
+      title: "Reading Skills Improved",
+      description: "Overall reading accuracy increased by 12% this week.",
+      icon: "📈"
+    },
+    {
+      type: "action",
+      title: "Suggested Action",
+      description: "Assign a short Algebra worksheet for reinforcement.",
+      icon: "📝"
+    }
+  ];
+
+  res.json({ insights });
+});
 
 module.exports = {
   registerTeacher,
   authTeacher,
   getTeacherProfile,
   updateTeacherProfile,
+  getTeacherInsights,
 };

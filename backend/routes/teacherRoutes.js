@@ -7,15 +7,18 @@ const {
   authTeacher,
   getTeacherProfile,
   updateTeacherProfile,
+  getTeacherInsights,
 } = require("../controllers/teacherController");
 
 const { protect } = require("../middlewares/authMiddleware");
 const { uploadToS3 } = require("../config/s3Upload");
+const { getDynamicTeacherInsights } = require("../controllers/teacherInsightsController");
 
 // Multer in-memory storage
 const upload = multer({ storage: multer.memoryStorage() });
 
 const { getSignedUrl } = require("../config/s3Upload");
+router.get("/insights", protect, getDynamicTeacherInsights);
 
 router.post("/register", registerTeacher);
 router.post("/login", authTeacher);

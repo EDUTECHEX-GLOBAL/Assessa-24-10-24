@@ -8,17 +8,20 @@ export default function AdminDashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
-    <div className="flex h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+    <div className="flex h-screen bg-gradient-to-br from-gray-50 to-gray-100 overflow-hidden">
       {/* Sidebar */}
       <Sidebar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
 
-      {/* Main Content */}
-      <main className="flex-1 overflow-y-auto p-4 md:p-8">
-        {/* Responsive Header */}
+      {/* Main Content Area */}
+      <main className="flex-1 flex flex-col overflow-hidden">
+        {/* Sticky Header */}
         <AdminHeader sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
-
-        {/* Nested Route Content */}
-        <Outlet />
+        
+        {/* Scrollable Content Area */}
+        <div className="flex-1 overflow-y-auto p-4 md:p-8">
+          {/* Nested Route Content */}
+          <Outlet />
+        </div>
       </main>
     </div>
   );

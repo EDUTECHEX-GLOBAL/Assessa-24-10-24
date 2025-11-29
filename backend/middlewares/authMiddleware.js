@@ -14,7 +14,7 @@ const protect = asyncHandler(async (req, res, next) => {
     try {
       token = req.headers.authorization.split(" ")[1];
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
+      console.log("REQ.USER in protect:", decoded);   // 👈 ADD THIS
       const userId = decoded._id; // This matches your generateToken payload
       // ✅ Check ALL models: Admin, Userwebapp, and Teacher
       const admin = await Admin.findById(decoded._id).select("-password");

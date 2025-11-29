@@ -7,6 +7,8 @@ const { parsePDFToQuestions } = require('../utils/pdfParser');
 const Feedback = require("../models/webapp-models/FeedbackModel");
 const { generateScoreReportPDF } = require("../utils/scoreReport");
 const sendEmail = require("../utils/mailer");
+const Notification = require("../models/webapp-models/notificationModel");
+const TeacherNotificationController = require("../controllers/teacherNotificationController");
 
 
 // @desc    Upload assessment and parse questions
@@ -26,7 +28,21 @@ const uploadAssessment = asyncHandler(async (req, res) => {
     throw new Error("Only teachers can upload assessments");
   }
 
-  // Upload to S3
+  // 🛑 Prevent duplicates — look for existing assessments with SAME teacher + SAME fields
+  const existing = await AssessmentUpload.find({
+    teacherId: req.user._id,
+    assessmentName: assessmentName.trim(),
+    subject: subject.trim(),
+    gradeLevel: gradeLevel.trim(),
+  });
+
+  if (existing.length >= 4) {
+    return res.status(400).json({
+      message: "This assessment already exists with all difficulty levels.",
+    });
+  }
+
+  // Upload file to S3
   const { key } = await uploadToS3(file);
 
   // Parse questions from PDF
@@ -36,28 +52,34 @@ const uploadAssessment = asyncHandler(async (req, res) => {
     throw new Error("No questions extracted or generated.");
   }
 
-  // 🆕 Create 4 difficulty versions
-  const difficulties = ["easy", "medium", "hard", "very hard"];
-  const createdAssessments = [];
+  // Create missing difficulties only (in case some exist already)
+  const allDifficulties = ["easy", "medium", "hard", "very hard"];
+  const existingDiffs = existing.map((a) => a.difficulty);
+  const difficultiesToCreate = allDifficulties.filter(
+    (d) => !existingDiffs.includes(d)
+  );
 
-  for (const difficulty of difficulties) {
+  const created = [];
+
+  for (const difficulty of difficultiesToCreate) {
     const assessment = await AssessmentUpload.create({
       teacherId: req.user._id,
-      assessmentName,
-      subject,
-      gradeLevel,
+      assessmentName: assessmentName.trim(),
+      subject: subject.trim(),
+      gradeLevel: gradeLevel.trim(),
       fileUrl: key,
       questions,
       timeLimit: timeLimit || 30,
-      difficulty,       // ✅ new field
-      isApproved: false
+      difficulty,
+      isApproved: false,
     });
-    createdAssessments.push(assessment);
+    created.push(assessment);
   }
 
   res.status(201).json({
-    message: "Assessment uploaded with all difficulty levels. Pending review.",
-    assessments: createdAssessments
+    message: "Assessment uploaded successfully",
+    createdCount: created.length,
+    created,
   });
 });
 
@@ -77,6 +99,37 @@ const approveAssessment = asyncHandler(async (req, res) => {
 
   assessment.isApproved = true;
   await assessment.save();
+
+  // NEW: Create notifications for students when assessment is approved
+  try {
+    // Find all students in the same grade level
+   const students = await User.find({ 
+  role: 'student', 
+  class: assessment.gradeLevel 
+   }).select('_id');
+
+    if (students.length > 0) {
+      const notifications = students.map(student => ({
+        studentId: student._id,
+        title: `New ${assessment.subject} Assessment`,
+        message: `New ${assessment.assessmentName} has been assigned to you. Check your assessments.`,
+        type: 'assessment_assigned',
+        metadata: {
+          subject: assessment.subject,
+          dueDate: null, // You can add due date logic if needed
+          assessmentId: assessment._id,
+          assessmentType: 'standard'
+        }
+      }));
+
+      // Bulk insert notifications
+      await Notification.insertMany(notifications);
+      console.log(`Created ${notifications.length} notifications for grade ${assessment.gradeLevel}`);
+    }
+  } catch (notificationError) {
+    console.error('Error creating notifications:', notificationError);
+    // Don't throw error - assessment approval should still succeed
+  }
 
   res.json({ message: "Assessment approved", status: assessment.isApproved });
 });
@@ -195,23 +248,35 @@ const getAllAssessments = async (req, res) => {
   try {
     const userId = req.user._id;
     const userRole = req.user.role;
-    let studentClass = req.user.class; // Could be "11" or "11th"
 
-    // Only students need filtering by class
     let assessmentsQuery = {};
-    if (userRole === "student") {
-      // Normalize class: remove "th" if present
-      const normalizedClass = studentClass.replace(/th$/, '');
 
-      // Validate
-      if (!["9", "10", "11", "12"].includes(normalizedClass)) {
-        return res.status(400).json({ message: "Invalid student class" });
+    // Only students require grade-level filtering
+    if (userRole === "student") {
+      let studentClass = req.user.class; // Could be "10", "10th", "Class 10", etc.
+
+      // Normalize student class safely
+      let normalizedClass = "";
+
+      if (studentClass) {
+        normalizedClass = String(studentClass)
+          .toLowerCase()
+          .replace(/class/g, "")      // remove "class"
+          .replace(/th/g, "")         // remove "th"
+          .replace(/[^\d]/g, "")      // keep only digits
+          .trim();
       }
 
-      // Use normalized class for query
+      // Validate final class — fallback to 10
+      if (!["9", "10", "11", "12"].includes(normalizedClass)) {
+        console.warn("Invalid student class detected → defaulting to 10");
+        normalizedClass = "10";
+      }
+
+      // Final query for students
       assessmentsQuery = {
         gradeLevel: normalizedClass,
-        isApproved: true
+        isApproved: true,
       };
     }
 
@@ -232,18 +297,19 @@ const getAllAssessments = async (req, res) => {
       };
     });
 
-    // Enrich assessments with submission info
+    // Attach submission status to each assessment
     const enriched = assessments.map((a) => ({
       ...a,
       submission: submittedMap[a._id.toString()] || null,
     }));
 
-    res.json(enriched);
+    return res.json(enriched);
+
   } catch (err) {
-    res.status(500).json({ message: "Failed to fetch assessments" });
+    console.error("Error fetching assessments:", err);
+    return res.status(500).json({ message: "Failed to fetch assessments" });
   }
 };
-
 
 // @desc    Get assessment for attempt (without correct answers)
 // @route   GET /api/assessments/:id/attempt
@@ -362,7 +428,28 @@ const submitAssessment = asyncHandler(async (req, res) => {
   }
 } catch (err) {
   console.error("❌ Failed to generate/send standard score report:", err);
-  // Don’t throw → keep submission success even if email fails
+  // Don't throw → keep submission success even if email fails
+}
+ // 🔔 Create a teacher notification when a student submits (PASTE HERE)
+try {
+  const teacherId = assessment.teacherId;
+  const student = await User.findById(studentId).select("name");
+
+  if (teacherId) {
+    await TeacherNotificationController.createAssessmentSubmissionNotification(teacherId, {
+      studentName: student?.name || "Student",
+      studentId,
+      assessmentName: assessment.assessmentName || "Assessment",
+      assessmentId: assessment._id,
+      submittedAt: new Date(),
+      subject: assessment.subject || "General",
+      gradeLevel: assessment.gradeLevel || ""
+    });
+  } else {
+    console.warn("⚠️ No teacherId on assessment; skipping teacher notification.");
+  }
+} catch (notifErr) {
+  console.error("❌ Failed to create teacher submission notification:", notifErr);
 }
 
 
@@ -560,9 +647,326 @@ const getTeacherProgress = asyncHandler(async (req, res) => {
   });
 });
 
+//addeddddddddddddddd
 
+// ✅ Get the 5 most recent approved assessments (for dashboard recent list)
+const getRecentAssessments = asyncHandler(async (req, res) => {
+  try {
+    // Fetch last 5 approved assessments with teacher name and createdAt
+    const recent = await AssessmentUpload.find({ isApproved: true })
+      .sort({ createdAt: -1 })
+      .limit(5)
+      .populate("teacherId", "name email"); // get teacher name
 
+    // Format data for frontend
+    const formatted = recent.map((a) => ({
+      id: a._id,
+      title: a.assessmentName,
+      subject: a.subject,
+      teacherName: a.teacherId?.name || "Unknown Teacher",
+      uploadedAgo: getTimeAgo(a.createdAt),
+      createdAt: a.createdAt,
+    }));
 
+    res.json(formatted);
+  } catch (error) {
+    console.error("Error fetching recent assessments:", error);
+    res.status(500).json({ message: "Failed to load recent assessments" });
+  }
+});
+
+// Utility function: convert createdAt to "x hours ago"
+function getTimeAgo(date) {
+  const now = new Date();
+  const diffMs = now - date;
+  const diffMins = Math.floor(diffMs / (1000 * 60));
+  const diffHours = Math.floor(diffMins / 60);
+  const diffDays = Math.floor(diffHours / 24);
+
+  if (diffDays > 0) return `${diffDays} day${diffDays > 1 ? "s" : ""} ago`;
+  if (diffHours > 0) return `${diffHours} hour${diffHours > 1 ? "s" : ""} ago`;
+  if (diffMins > 0) return `${diffMins} minute${diffMins > 1 ? "s" : ""} ago`;
+  return "Just now";
+}
+
+// ✅ Combined recent assessments (Standard + SAT)
+const SatAssessment = require("../models/webapp-models/satAssessmentModel");
+
+const getAllRecentAssessments = asyncHandler(async (req, res) => {
+  try {
+    // Fetch both in parallel
+    const [standard, sat] = await Promise.all([
+      AssessmentUpload.find({ isApproved: true })
+        .sort({ createdAt: -1 })
+        .limit(5)
+        .populate("teacherId", "name email"),
+
+      SatAssessment.find({ isApproved: true })
+        .sort({ createdAt: -1 })
+        .limit(5)
+        .populate("teacherId", "name email"),
+    ]);
+
+    const combined = [
+      ...standard.map((a) => ({
+        id: a._id,
+        title: a.assessmentName,
+        subject: a.subject,
+        type: "Standard",
+        teacherName: a.teacherId?.name || "Unknown Teacher",
+        uploadedAgo: getTimeAgo(a.createdAt),
+        createdAt: a.createdAt,
+      })),
+      ...sat.map((a) => ({
+        id: a._id,
+        title: a.satTitle,
+        subject: a.sectionType,
+        type: "SAT",
+        teacherName: a.teacherId?.name || "Unknown Teacher",
+        uploadedAgo: getTimeAgo(a.createdAt),
+        createdAt: a.createdAt,
+      })),
+    ];
+
+    // Sort by newest
+    combined.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+    // Return top 5
+    res.json(combined.slice(0, 5));
+  } catch (error) {
+    console.error("Error fetching all recent assessments:", error);
+    res.status(500).json({ message: "Failed to load recent assessments" });
+  }
+});
+
+const getAssessmentActivity = async (req, res) => {
+  try {
+    const studentId = req.user._id;
+
+    const submissions = await AssessmentSubmission.find({ studentId });
+
+    // Convert into monthly activity
+    const months = {
+      January: 0,
+      February: 0,
+      March: 0,
+      April: 0,
+      May: 0,
+      June: 0,
+      July: 0,
+      August: 0,
+      September: 0,
+      October: 0,
+      November: 0,
+      December: 0
+    };
+
+    submissions.forEach((sub) => {
+      const submittedDate = sub.submittedAt || sub.createdAt;
+if (!submittedDate) return;
+
+const month = new Date(submittedDate).toLocaleString("en-US", {
+  month: "long",
+});
+
+      if (months[month] !== undefined) {
+        months[month] += 1;
+      }
+    });
+
+    const formatted = Object.keys(months).map((m) => ({
+      name: m,
+      value: months[m],
+    }));
+
+    res.json(formatted);
+  } catch (error) {
+    console.error("Assessment Activity Error:", error);
+    res.status(500).json({ message: "Server Error", error: error.message });
+  }
+};
+
+// ======================= UPCOMING TASKS =========================
+
+// @desc  Get pending tasks for teacher
+// @route GET /api/assessments/tasks
+// @access Private (Teacher)
+const getTeacherUpcomingTasks = asyncHandler(async (req, res) => {
+  const teacherId = req.user._id;
+
+  // 1️⃣ Get assessments by teacher
+  const assessments = await AssessmentUpload.find({ teacherId }).select(
+    "_id assessmentName subject gradeLevel"
+  );
+
+  if (assessments.length === 0) return res.json({ tasks: [] });
+
+  const assessmentMap = {};
+  assessments.forEach(a => {
+    assessmentMap[a._id.toString()] = {
+      name: a.assessmentName,
+      subject: a.subject,
+      grade: a.gradeLevel
+    };
+  });
+
+  // 2️⃣ Get pending submissions
+  const pending = await AssessmentSubmission.find({
+    assessmentId: { $in: assessments.map(a => a._id) },
+    isReviewed: { $ne: true }
+  })
+    .populate("studentId", "name class")
+    .sort({ createdAt: -1 });
+
+  const tasks = pending.map((s) => {
+    const info = assessmentMap[s.assessmentId.toString()];
+
+    const mistakes = s.responses.filter(r => !r.isCorrect).length;
+    const weakTopics = [
+      ...new Set(
+        s.responses.filter(r => !r.isCorrect).map(r => r.topic || "General")
+      )
+    ];
+
+    // Priority logic
+    let priority = "low";
+    if (s.percentage < 40) priority = "high";
+    else if (s.percentage < 70) priority = "medium";
+
+    const suspiciousFast =
+      s.timeTaken && s.responses.length
+        ? s.timeTaken < s.responses.length * 2
+        : false;
+
+    return {
+      id: s._id,
+      assessmentId: s.assessmentId,
+      assessmentTitle: info?.name,
+      subject: info?.subject,
+      grade: info?.grade,
+
+      studentName: s.studentId?.name,
+      studentClass: s.studentId?.class || "",
+
+      score: s.score,
+      totalMarks: s.totalMarks,
+      percentage: s.percentage,
+      timeTaken: s.timeTaken,
+
+      mistakes,
+      weakTopics,
+      priority,
+      suspiciousFast,
+
+      submittedAt:
+  s.submittedAt
+    ? new Date(s.submittedAt).toISOString()
+    : s.createdAt
+      ? new Date(s.createdAt).toISOString()
+      : new Date().toISOString(),
+
+    };
+  });
+
+  res.json({ tasks });
+});
+
+// @desc Mark a task (submission) as completed
+// @route PATCH /api/assessments/tasks/:id/complete
+// @access Private (Teacher)
+const markTaskCompleted = asyncHandler(async (req, res) => {
+  const submissionId = req.params.id;
+
+  await AssessmentSubmission.findByIdAndUpdate(submissionId, {
+    isReviewed: true
+  });
+
+  res.json({ message: "Task marked as completed" });
+});
+
+// ======================= LEADERBOARD =======================
+//
+// @desc Get student leaderboard (Top 10)
+// @route GET /api/assessments/leaderboard
+// @access Private (Student)
+const getLeaderboard = asyncHandler(async (req, res) => {
+  const studentId = req.user._id;
+
+  // 1️⃣ Fetch all student submissions (standard + SAT NOT included)
+  const submissions = await AssessmentSubmission.aggregate([
+    {
+      $group: {
+        _id: "$studentId",
+        totalScore: { $sum: "$score" },
+        totalMarks: { $sum: "$totalMarks" },
+        percentage: { $avg: "$percentage" },
+        attempts: { $sum: 1 }
+      }
+    }
+  ]);
+
+  // 2️⃣ Join with User model to fetch student names
+  const leaderboard = await User.aggregate([
+    {
+      $lookup: {
+        from: "assessmentsubmissions",  
+        localField: "_id",
+        foreignField: "studentId",
+        as: "submissionDetails"
+      }
+    },
+    {
+      $addFields: {
+        totalScore: { $sum: "$submissionDetails.score" },
+        totalMarks: { $sum: "$submissionDetails.totalMarks" },
+        attempts: { $size: "$submissionDetails" },
+        percentage: { $avg: "$submissionDetails.percentage" }
+      }
+    },
+    {
+      $match: {
+        role: "student",
+        totalScore: { $gt: 0 }  // Only students who attempted at least 1 test
+      }
+    },
+    {
+      $project: {
+        name: 1,
+        totalScore: 1,
+        percentage: 1,
+        attempts: 1
+      }
+    },
+    { $sort: { totalScore: -1 } },
+    { $limit: 10 }
+  ]);
+
+  // 3️⃣ Find current student's rank
+  const rankedAll = await User.aggregate([
+    {
+      $lookup: {
+        from: "assessmentsubmissions",
+        localField: "_id",
+        foreignField: "studentId",
+        as: "submissionDetails"
+      }
+    },
+    {
+      $addFields: {
+        totalScore: { $sum: "$submissionDetails.score" }
+      }
+    },
+    { $sort: { totalScore: -1 } }
+  ]);
+
+  const currentRank =
+    rankedAll.findIndex((s) => s._id.toString() === studentId.toString()) + 1;
+
+  res.json({
+    leaderboard,
+    currentRank
+  });
+});
 
 module.exports = {
   uploadAssessment,
@@ -581,5 +985,11 @@ module.exports = {
   getNewThisWeekCount,
   getStudentProgress,
   getStudentProgressForTeacher,
-  getTeacherProgress, // ✅ ADD THIS
+  getTeacherProgress, 
+  getRecentAssessments,
+  getAllRecentAssessments,
+  getAssessmentActivity,
+  getTeacherUpcomingTasks,
+  markTaskCompleted,
+  getLeaderboard
 };

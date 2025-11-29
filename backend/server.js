@@ -63,13 +63,15 @@ const generatedAssessmentCountRoutes = require("./routes/generatedAssessmentCoun
 const studentAttemptedAssessmentsRoutes = require("./routes/studentAttemptedAssessmentsRoutes");
 const proctoringRoutes = require("./routes/proctoringRoutes");
 const adminNotificationRoutes = require("./routes/adminNotificationRoutes");
+const notificationRoutes = require('./routes/notificationRoute');
 
-
-
+const teacherNotificationRoutes = require('./routes/teacherNotificationRoute');
+const dailyQuizRoutes = require("./routes/webapp-routes/dailyQuizRoutes");
 
 app.use("/api/users", userRoutes);
 app.use("/api/teachers", teacherRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/daily-quiz", dailyQuizRoutes);
 app.use("/api/forgot-password", forgotPasswordRoutes);
 app.use("/api/teacher/forgot-password", teacherForgotPasswordRoutes);
 app.use("/api/skillnaav", skillnaavRoute);
@@ -88,7 +90,9 @@ app.use("/api/generated-assessments", generatedAssessmentCountRoutes);
 app.use("/api/attempts", studentAttemptedAssessmentsRoutes);
 app.use("/api/proctoring", proctoringRoutes);
 app.use("/api/admin/notifications", adminNotificationRoutes);
-
+app.use('/api/notifications', notificationRoutes);
+app.use('/api/notifications', teacherNotificationRoutes);
+app.use("/api/notice", require("./routes/notificationRoute"));
 
 
 // Serve static assets only in production

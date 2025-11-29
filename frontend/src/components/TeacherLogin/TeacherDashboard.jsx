@@ -18,11 +18,53 @@ import UploadAssessmentModal from './UploadAssessmentModal';
 import ReviewAssessmentPage from './ReviewAssessmentPage';
 import { FiBookOpen } from 'react-icons/fi';
 
+// In your TeacherDashboard.jsx, add these imports:
+import TeacherNotificationBell from './teacherNotificationBell';
+import TeacherNotificationPage from './teacherNotificationPage';
+import TasksPage from "./TasksPage";
+import { FaRegCalendarAlt } from "react-icons/fa";
 // --- DashboardHome now receives the counts as props ---
-function DashboardHome({ setCurrentView, setShowUploadForm, assessmentLibraryCount, uploadAssessmentsCount, newThisWeekCount, satAssessmentCount, setSelectedAssessmentId }) {
+function DashboardHome({ setCurrentView, setShowUploadForm, assessmentLibraryCount, uploadAssessmentsCount, newThisWeekCount, satAssessmentCount, setSelectedAssessmentId, upcomingTasks }) {
 
   // Calculate standard assessments (assuming assessmentLibraryCount includes only standard assessments)
   const standardAssessmentCount = assessmentLibraryCount;
+  const [insights, setInsights] = useState([]);
+  const [loadingInsights, setLoadingInsights] = useState(true);
+  const [insightsError, setInsightsError] = useState(null);
+  const [showAllInsights, setShowAllInsights] = useState(false);
+const [allInsights, setAllInsights] = useState([]);
+
+useEffect(() => {
+  async function fetchInsights() {
+    try {
+      setLoadingInsights(true);
+      setInsightsError(null);
+
+      const token = localStorage.getItem("token");
+      const API_BASE_URL = process.env.REACT_APP_API_URL || "";
+
+      const res = await fetch(`${API_BASE_URL}/api/teachers/insights`, {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!res.ok) throw new Error("Failed to load insights");
+
+      const data = await res.json();
+      setInsights(data.insights || []);
+      setAllInsights(data.allInsights || []);
+
+    } catch (err) {
+      setInsightsError("Unable to load insights right now.");
+    } finally {
+      setLoadingInsights(false);
+    }
+  }
+
+  fetchInsights();
+}, []);
 
   return (
     <>
@@ -75,60 +117,196 @@ function DashboardHome({ setCurrentView, setShowUploadForm, assessmentLibraryCou
             <p className="text-lg font-semibold">Review Assessments</p>
             <p className="text-xs mt-1 opacity-90">Teacher Review Portal</p>
           </div>
-          <FaClipboardCheck className="text-4xl opacity-80" />
+       <FaClipboardCheck className="text-4xl opacity-80" />
+
+
         </div>
 
 
-        <div className="bg-gradient-to-br from-orange-300 to-yellow-500 text-white shadow-md p-6 h-44 rounded-lg flex items-center justify-between">
-          <div>
-            <p className="text-3xl font-bold mb-1">47</p>
-            <p className="text-lg font-semibold">Pending Feedback</p>
-            <p className="text-xs mt-1 opacity-90">12 high priority</p>
-          </div>
-          <FaComments className="text-4xl opacity-80" />
-        </div>
+
+{/* Smart Review Tasks (Simple & Clean) */}
+<div
+  onClick={() => setCurrentView("tasks")}
+  className="cursor-pointer hover:shadow-lg transition-all bg-gradient-to-br from-orange-300 to-orange-400 text-white shadow-md p-6 h-44 rounded-lg flex items-center justify-between"
+>
+  <div>
+    <p className="text-lg font-semibold mb-1">Smart Review Tasks</p>
+
+    {/* Short clean caption */}
+    <p className="text-sm opacity-90">Quick review assistant</p>
+
+  </div>
+
+  <FaRegCalendarAlt className="text-4xl opacity-80" />
+</div>
+
+
       </section>
 
-      <section className="mt-8 bg-white p-6 rounded-xl shadow-sm">
-        <h3 className="text-2xl font-semibold text-gray-800 mb-6">Recent Assessment Activity</h3>
-        <div className="space-y-4">
-          <div className="flex items-start space-x-4 p-4 hover:bg-gray-50 rounded-lg transition-all">
-            <div className="min-w-fit pt-1">
-              <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                <BiBookAdd className="text-blue-600 text-lg" />
+{/* AI Insights Section */}
+<section className="mt-8">
+  <div className="flex items-center justify-between mb-5">
+    <h3 className="text-2xl font-semibold text-gray-700">AI Teaching Insights</h3>
+    {insights.length > 0 && (
+      <button
+        onClick={() => setShowAllInsights(!showAllInsights)}
+        className="text-sm bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-600 px-4 py-2 rounded-lg hover:shadow-sm transition-all duration-200 border border-blue-200"
+      >
+        {showAllInsights ? "Show Less" : "Show All"}
+      </button>
+    )}
+  </div>
+
+  {loadingInsights ? (
+    <div className="p-5 bg-white/80 rounded-xl shadow-sm border border-gray-100 animate-pulse">
+      <div className="flex items-center gap-4">
+        <div className="w-10 h-10 bg-gray-200 rounded-lg"></div>
+        <div className="space-y-2 flex-1">
+          <div className="h-4 bg-gray-200 rounded w-1/3"></div>
+          <div className="h-3 bg-gray-200 rounded w-2/3"></div>
+        </div>
+      </div>
+    </div>
+  ) : insightsError ? (
+    <div className="p-4 bg-white/80 rounded-xl shadow-sm border border-red-100">
+      <p className="text-red-500 text-sm flex items-center gap-2">
+        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+          <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+        </svg>
+        {insightsError}
+      </p>
+    </div>
+  ) : insights.length === 0 ? (
+    <div className="p-6 bg-white/80 rounded-xl shadow-sm border border-gray-100 text-center">
+      <div className="w-12 h-12 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-3 border border-blue-100">
+        <svg className="w-6 h-6 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+        </svg>
+      </div>
+      <p className="text-gray-600 text-sm">No insights yet. Ask students to attempt assessments.</p>
+    </div>
+  ) : (
+    <div className="space-y-4">
+      {/* Top 3 Insights */}
+      {insights.map((insight, index) => {
+        const topThreeColors = [
+          { 
+            bg: "bg-blue-50", 
+            border: "border-blue-200",
+            bar: "bg-blue-400",
+            title: "text-blue-700",
+            iconBg: "bg-blue-100 text-blue-600"
+          },
+          { 
+            bg: "bg-green-50", 
+            border: "border-green-200",
+            bar: "bg-green-400",
+            title: "text-green-700",
+            iconBg: "bg-green-100 text-green-600"
+          },
+          { 
+            bg: "bg-purple-50", 
+            border: "border-purple-200",
+            bar: "bg-purple-400",
+            title: "text-purple-700",
+            iconBg: "bg-purple-100 text-purple-600"
+          }
+        ];
+
+        const style = topThreeColors[index] || topThreeColors[0];
+
+        return (
+          <div 
+            key={index} 
+            className={`relative p-5 rounded-xl border shadow-sm ${style.bg} ${style.border}`}
+          >
+            {/* Colored accent bar */}
+            <div className={`absolute left-0 top-0 w-2.5 h-full rounded-l-xl ${style.bar}`} />
+
+            <div className="flex items-start gap-4 ml-3">
+              {/* Icon with background */}
+              <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${style.iconBg} shadow-sm`}>
+                <span className="text-base">{insight.icon}</span>
               </div>
-            </div>
-            <div className="w-full">
-              <div className="flex justify-between items-start">
-                <p className="font-medium text-gray-800">New Template Uploaded</p>
-                <span className="text-sm text-gray-500">3h ago</span>
-              </div>
-              <p className="text-gray-600 mt-1">Advanced Algebra - 10 Question Format</p>
-              <div className="mt-2 border-t border-gray-100 pt-2">
-                <span className="text-sm text-blue-600">View Template →</span>
+
+              {/* Content */}
+              <div className="flex-1">
+                <h4 className={`text-base font-semibold mb-2 ${style.title}`}>
+                  {insight.title}
+                </h4>
+                <p className="text-gray-600 text-sm leading-relaxed">
+                  {insight.description}
+                </p>
               </div>
             </div>
           </div>
+        );
+      })}
 
-          <div className="flex items-start space-x-4 p-4 hover:bg-gray-50 rounded-lg transition-all">
-            <div className="min-w-fit pt-1">
-              <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-                <FaUserGraduate className="text-green-600 text-lg" />
-              </div>
-            </div>
-            <div className="w-full">
-              <div className="flex justify-between items-start">
-                <p className="font-medium text-gray-800">Student Assessment Submitted</p>
-                <span className="text-sm text-gray-500">7h ago</span>
-              </div>
-              <p className="text-gray-600 mt-1">Michael B. - Science Self-Assessment</p>
-              <div className="mt-2 border-t border-gray-100 pt-2">
-                <span className="text-sm text-blue-600">Review Assessment →</span>
-              </div>
-            </div>
+      {/* Expanded Insights */}
+      {showAllInsights && allInsights.length > 3 && (
+        <div className="mt-5 space-y-4">
+          <div className="border-t border-gray-200 pt-5">
+            <h4 className="text-base font-semibold text-gray-700 mb-4">Additional Insights</h4>
+            
+            {allInsights.slice(3).map((insight, i) => {
+              const moreColors = [
+                { 
+                  bg: "bg-amber-50", 
+                  border: "border-amber-200",
+                  bar: "bg-amber-400",
+                  title: "text-amber-700",
+                  iconBg: "bg-amber-100 text-amber-600"
+                },
+                { 
+                  bg: "bg-pink-50", 
+                  border: "border-pink-200",
+                  bar: "bg-pink-400",
+                  title: "text-pink-700",
+                  iconBg: "bg-pink-100 text-pink-600"
+                },
+                { 
+                  bg: "bg-teal-50", 
+                  border: "border-teal-200",
+                  bar: "bg-teal-400",
+                  title: "text-teal-700",
+                  iconBg: "bg-teal-100 text-teal-600"
+                }
+              ];
+
+              const style = moreColors[i % moreColors.length];
+
+              return (
+                <div 
+                  key={i} 
+                  className={`relative p-4 rounded-lg border shadow-sm ${style.bg} ${style.border}`}
+                >
+                  <div className={`absolute left-0 top-0 w-2 h-full rounded-l-lg ${style.bar}`} />
+
+                  <div className="flex items-start gap-3 ml-2">
+                    <div className={`w-8 h-8 rounded-md flex items-center justify-center ${style.iconBg}`}>
+                      <span className="text-sm">{insight.icon}</span>
+                    </div>
+                    
+                    <div className="flex-1">
+                      <h5 className={`text-sm font-semibold mb-1 ${style.title}`}>
+                        {insight.title}
+                      </h5>
+                      <p className="text-gray-600 text-sm leading-relaxed">
+                        {insight.description}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
-      </section>
+      )}
+    </div>
+  )}
+</section>
+
     </>
   );
 }
@@ -150,6 +328,12 @@ export default function TeacherDashboard() {
   const [satAssessmentCount, setSatAssessmentCount] = useState(0); 
   const [progressMenuOpen, setProgressMenuOpen] = useState(false);
   const [feedbackMenuOpen, setFeedbackMenuOpen] = useState(false); // <-- NEW
+  const [upcomingTasks, setUpcomingTasks] = useState([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [priorityFilter, setPriorityFilter] = useState("all");
+  const [subjectFilter, setSubjectFilter] = useState("all");
+  const [gradeFilter, setGradeFilter] = useState("all");
+
 
 
   useEffect(() => {
@@ -158,6 +342,38 @@ export default function TeacherDashboard() {
       setTeacherInfo(JSON.parse(storedInfo));
     }
   }, []);
+
+ useEffect(() => {
+  async function fetchTasks() {
+    try {
+      const token = localStorage.getItem("token");
+      const API_BASE_URL = process.env.REACT_APP_API_URL || "";
+
+      const res = await fetch(`${API_BASE_URL}/api/assessments/tasks`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const data = await res.json();
+
+      // ✅ Updated logic (no parenthesis errors)
+      if (Array.isArray(data.tasks)) {
+        setUpcomingTasks(data.tasks);
+      } else if (Array.isArray(data)) {
+        setUpcomingTasks(data);
+      } else {
+        console.error("Unexpected tasks data:", data);
+      }
+    } catch (err) {
+      console.error("Failed to fetch upcoming tasks:", err);
+    }
+  }
+
+  fetchTasks();
+}, []);
+
+
 
   useEffect(() => {
     async function fetchDashboardCounts() {
@@ -231,6 +447,215 @@ export default function TeacherDashboard() {
             onBack={() => setCurrentView("dashboard")}
           />
         );
+       case "tasks":
+  const filteredTasks = upcomingTasks.filter((task) => {
+    const matchesSearch =
+      task.studentName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      task.assessmentTitle.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      task.subject.toLowerCase().includes(searchQuery.toLowerCase());
+
+    const matchesPriority =
+      priorityFilter === "all" || task.priority === priorityFilter;
+
+    const matchesSubject =
+      subjectFilter === "all" || task.subject === subjectFilter;
+
+    const matchesGrade =
+      gradeFilter === "all" || String(task.grade) === String(gradeFilter);
+
+    return (
+      matchesSearch &&
+      matchesPriority &&
+      matchesSubject &&
+      matchesGrade
+    );
+  });
+
+  return (
+    <div className="space-y-6 scale-[0.97] origin-top-left animate-fade-in">
+
+      {/* Back Button */}
+      <button
+        onClick={() => setCurrentView("dashboard")}
+        className="px-3 py-1.5 text-sm rounded-lg 
+          bg-gradient-to-r from-pink-100 to-purple-100 
+          text-purple-700 shadow hover:shadow-md hover:scale-105 
+          transition-all duration-200"
+      >
+        ← Back to Dashboard
+      </button>
+
+      {/* Heading */}
+      <h2 className="text-2xl font-semibold text-gray-700 flex items-center gap-2 animate-slide-down">
+        Smart Review Tasks
+      </h2>
+
+      {/* Search + Filters */}
+      <div className="mt-4 flex flex-wrap items-center gap-3 
+        bg-white/70 p-4 rounded-xl shadow-sm border border-gray-200
+        animate-pop-in">
+
+        {/* Search */}
+        <div className="relative">
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search student, subject, assessment..."
+            className="px-4 py-2 w-72 rounded-full border border-gray-300 bg-white 
+              focus:ring-2 focus:ring-indigo-400 shadow-sm transition-all"
+          />
+          <FaSearch className="absolute right-3 top-3 text-gray-400" />
+        </div>
+
+        {/* Priority */}
+        <select
+          value={priorityFilter}
+          onChange={(e) => setPriorityFilter(e.target.value)}
+          className="px-4 py-2 rounded-full bg-pink-50 border border-pink-200 
+            text-pink-700 shadow-sm hover:bg-pink-100 transition-all cursor-pointer"
+        >
+          <option value="all">All Priorities</option>
+          <option value="high">High</option>
+          <option value="medium">Medium</option>
+          <option value="low">Low</option>
+        </select>
+
+        {/* Subject */}
+        <select
+          value={subjectFilter}
+          onChange={(e) => setSubjectFilter(e.target.value)}
+          className="px-4 py-2 rounded-full bg-purple-50 border border-purple-200 
+            text-purple-700 shadow-sm hover:bg-purple-100 transition-all cursor-pointer"
+        >
+          <option value="all">All Subjects</option>
+          <option value="Math">Math</option>
+          <option value="Science">Science</option>
+          <option value="English">English</option>
+          <option value="Social">Social</option>
+        </select>
+
+        {/* Grade */}
+        <select
+          value={gradeFilter}
+          onChange={(e) => setGradeFilter(e.target.value)}
+          className="px-4 py-2 rounded-full bg-blue-50 border border-blue-200 
+            text-blue-700 shadow-sm hover:bg-blue-100 transition-all cursor-pointer"
+        >
+          <option value="all">All Grades</option>
+          {[6, 7, 8, 9, 10, 11, 12].map((g) => (
+            <option value={g} key={g}>
+              Grade {g}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {/* Smart Task Cards */}
+      <div className="space-y-6">
+        {filteredTasks.length === 0 ? (
+          <p className="text-gray-500 text-lg text-center mt-10 animate-fade-in">
+            No tasks pending 🎉 Students are doing great!
+          </p>
+        ) : (
+          filteredTasks.map((task, index) => {
+            const priorityColor =
+              task.priority === "high"
+                ? "bg-red-100 text-red-800 border-red-300"
+                : task.priority === "medium"
+                ? "bg-yellow-100 text-yellow-800 border-yellow-300"
+                : "bg-green-100 text-green-800 border-green-300";
+
+            return (
+              <div
+                key={task.id}
+                className="p-5 bg-white rounded-xl shadow border border-gray-200 
+                  hover:shadow-lg hover:-translate-y-1 transition-all duration-200
+                  animate-fade-up"
+                style={{ animationDelay: `${index * 80}ms` }}
+              >
+                {/* Header */}
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-800">
+                      {task.assessmentTitle}
+                    </h3>
+                    <p className="text-sm text-gray-500">
+                      {task.assessmentType === "sat" ? "SAT" : "Standard"} · {task.subject} · Grade {task.grade}
+                    </p>
+                  </div>
+
+                  <span
+                    className={`px-3 py-1 rounded-full text-xs font-medium border ${priorityColor}`}
+                  >
+                    {task.priority.toUpperCase()} PRIORITY
+                  </span>
+                </div>
+
+                {/* Student */}
+                <p className="mt-3 text-gray-700 font-medium">
+                  👤 {task.studentName} ({task.studentClass})
+                </p>
+
+                {/* Score & Time */}
+                <div className="mt-3 grid grid-cols-3 gap-4 text-sm">
+                  <p className="bg-blue-50 px-3 py-2 rounded-lg font-medium">
+                    Score: {task.score}/{task.totalMarks}
+                  </p>
+                  <p className="bg-purple-50 px-3 py-2 rounded-lg font-medium">
+                    Percentage: {task.percentage}%
+                  </p>
+                  <p className="bg-orange-50 px-3 py-2 rounded-lg font-medium">
+                    Time: {task.timeTaken}s
+                  </p>
+                </div>
+
+                {/* Weak Topics */}
+                <div className="mt-3">
+                  <p className="text-sm font-medium text-gray-700">Mistakes: {task.mistakes}</p>
+                  <div className="flex gap-2 flex-wrap mt-2">
+                    {task.weakTopics.map((t, i) => (
+                      <span key={i} className="px-2 py-1 bg-gray-100 rounded-md text-xs">
+                        {t}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Fast Warning */}
+                {task.suspiciousFast && (
+                  <div className="mt-3 p-3 bg-red-50 text-red-700 text-sm rounded-lg border border-red-200 flex items-center gap-2">
+                    ⚠️ Attempt completed unusually fast — review carefully!
+                  </div>
+                )}
+
+                {/* Submitted */}
+                <p className="text-xs text-gray-400 mt-3">
+                  Submitted: {new Date(task.submittedAt).toLocaleString()}
+                </p>
+              </div>
+            );
+          })
+        )}
+      </div>
+    </div>
+  );
+
+
+       case "notifications":
+  return (
+   <TeacherNotificationPage
+  onBackHome={() => setCurrentView("dashboard")}
+  teacherToken={
+    teacherInfo?.token ||
+    JSON.parse(localStorage.getItem("teacherInfo") || "null")?.token
+  }
+  setCurrentView={setCurrentView}  
+/>
+
+  );
+
+
       case "dashboard":
       default:
         return (
@@ -242,6 +667,7 @@ export default function TeacherDashboard() {
             newThisWeekCount={newThisWeekCount}
             satAssessmentCount={satAssessmentCount}
             setSelectedAssessmentId={setSelectedAssessmentId}
+            upcomingTasks={upcomingTasks}  
           />
         );
     }
@@ -249,11 +675,17 @@ export default function TeacherDashboard() {
 
 
   return (
-    <div className="flex h-screen bg-gradient-to-br from-gray-50 to-gray-100">
-      <aside className={`fixed md:relative z-50 bg-gradient-to-b from-blue-50 to-blue-100 text-gray-800 w-64 p-6 transition-transform ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} md:translate-x-0 shadow-xl`}>
+   <div className="flex h-screen bg-gradient-to-br from-gray-50 to-gray-100 overflow-hidden">
+<aside
+  className={`fixed md:relative z-50 bg-gradient-to-b from-blue-50 to-blue-100 text-gray-800 w-64 p-6 transition-transform ${
+    sidebarOpen ? "translate-x-0" : "-translate-x-full"
+  } md:translate-x-0 shadow-xl h-screen overflow-y-auto scrollbar-thin scrollbar-track-blue-50 scrollbar-thumb-blue-200`}
+>
+
         <button className="absolute top-4 right-4 md:hidden text-gray-600 hover:text-blue-600 transition" onClick={() => setSidebarOpen(false)}>
           ✖
         </button>
+
         <div className="flex items-center justify-center mb-8">
           <img src={assessalogo} alt="Logo" className="w-32" />
         </div>
@@ -414,66 +846,77 @@ export default function TeacherDashboard() {
         </div>
       </aside>
 
-      <main className="flex-1 overflow-y-auto p-4 md:p-8">
-        <div className="flex flex-col md:flex-row gap-4 md:gap-0 justify-between items-start md:items-center mb-8">
-          <div className="flex items-center w-full md:w-auto">
-            <button 
-              onClick={() => setSidebarOpen(!sidebarOpen)} 
-              className="md:hidden p-2 text-gray-600 hover:text-blue-600 transition-all"
-            >
-              <FaBars className="text-2xl" />
-            </button>
-            <div className="md:hidden flex-1 ml-2">
-              <div className="relative">
-                <FaSearch className="absolute left-3 top-3 text-gray-400" />
-                <input 
-                  type="text" 
-                  placeholder="Search assessments..." 
-                  className="w-full pl-10 pr-4 py-2 rounded-lg bg-white border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-            </div>
-          </div>
+     <main className="flex-1 flex flex-col overflow-hidden">
 
-          <div className="hidden md:flex flex-1 max-w-2xl mx-4">
-            <div className="relative w-full">
-              <FaSearch className="absolute left-3 top-3 text-gray-400" />
-              <input 
-                type="text" 
-                placeholder="Search student assessments..." 
-                className="w-full pl-10 pr-4 py-2 rounded-lg bg-white border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-          </div>
+  {/* --- Sticky Top Bar (Search + Bell + Profile) --- */}
+  <div className="sticky top-0 z-30 bg-white/90 backdrop-blur border-b shadow-sm">
+    <div className="flex flex-wrap md:flex-nowrap justify-between items-center gap-4 p-4 md:p-6">
 
-          <div className="flex items-center space-x-4 group cursor-pointer w-full md:w-auto justify-end">
-            <div className="text-right">
-              <p className="font-bold text-gray-800">{teacherInfo?.name || "Loading..."}</p>
-              <p className="text-sm text-gray-500">{teacherInfo?.role || "Teacher"}</p>
-            </div>
-            <IoPersonCircleOutline className="text-4xl text-blue-600 transition-transform hover:scale-110" />
-          </div>
+      {/* Mobile Sidebar Toggle */}
+      <button 
+        onClick={() => setSidebarOpen(!sidebarOpen)} 
+        className="md:hidden p-2 text-gray-600 hover:text-blue-600 transition-all"
+      >
+        <FaBars className="text-2xl" />
+      </button>
+
+      {/* Search Input */}
+      <div className="flex-1 max-w-2xl w-full">
+        <div className="relative">
+          <FaSearch className="absolute left-3 top-3 text-gray-400" />
+          <input 
+            type="text" 
+            placeholder="Search student assessments..." 
+            className="w-full pl-10 pr-4 py-2 rounded-lg bg-white border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+      </div>
+
+      {/* Notification Bell + Profile */}
+      <div className="flex items-center space-x-4 cursor-pointer">
+        <TeacherNotificationBell 
+          setSelectedSection={setCurrentView}
+          teacherToken={teacherInfo?.token || JSON.parse(localStorage.getItem("teacherInfo"))?.token}
+        />
+
+        <div className="text-right">
+          <p className="font-bold text-gray-800">{teacherInfo?.name || "Loading..."}</p>
+          <p className="text-sm text-gray-500">{teacherInfo?.role || "Teacher"}</p>
         </div>
 
-        {currentView === "dashboard" && (
-          <div className="mb-8">
-            <h2 className="text-4xl font-bold text-gray-700 mb-2">
-              Welcome,{" "}
-              <span className="relative inline-block">
-                <span className="font-sans bg-gradient-to-r from-blue-500 to-purple-600 bg-clip-text text-transparent">
-                  {teacherInfo?.name || "Teacher"}
-                </span>
-                <span className="absolute -bottom-1 left-0 w-full h-1 bg-gradient-to-r from-blue-500 to-purple-600"></span>
-              </span>
-              !
-            </h2>
-            <p className="text-lg text-gray-600">Your AI-Powered Teaching Dashboard</p>
-          </div>
-        )}
+        <IoPersonCircleOutline className="text-4xl text-blue-600 transition-transform hover:scale-110" />
+      </div>
 
-        {showUploadForm && <UploadAssessmentModal onClose={() => setShowUploadForm(false)} />}
-        {renderContent()}
-      </main>
+    </div>
+  </div>
+
+  {/* --- Scrollable Page Content --- */}
+  <div className="flex-1 overflow-y-auto p-4 md:p-8">
+
+    {currentView === "dashboard" && (
+      <div className="mb-8">
+        <h2 className="text-4xl font-bold text-gray-700 mb-2">
+          Welcome,{" "}
+          <span className="relative inline-block">
+            <span className="font-sans bg-gradient-to-r from-blue-500 to-purple-600 bg-clip-text text-transparent">
+              {teacherInfo?.name || "Teacher"}
+            </span>
+            <span className="absolute -bottom-1 left-0 w-full h-1 bg-gradient-to-r from-blue-500 to-purple-600"></span>
+          </span>
+          !
+        </h2>
+        <p className="text-lg text-gray-600">Your AI-Powered Teaching Dashboard</p>
+      </div>
+    )}
+
+    {showUploadForm && <UploadAssessmentModal onClose={() => setShowUploadForm(false)} />}
+
+    {renderContent()}
+
+  </div>
+
+</main>
+
       {teacherInfo?._id && <TeacherDashboardBot userId={teacherInfo._id} />}
 
     </div>

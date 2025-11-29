@@ -6,7 +6,7 @@ const SatFeedback = require("../models/webapp-models/satFeedbackModel");
 const { generateScoreReportPDF } = require("../utils/scoreReport");
 const sendEmail = require("../utils/mailer");
 const User = require("../models/webapp-models/userModel");
-
+const Notification = require("../models/webapp-models/notificationModel");
 
 
 // Upload SAT Assessment
@@ -464,6 +464,36 @@ exports.approveSATAssessment = async (req, res) => {
     assessment.isApproved = true;
     await assessment.save();
 
+    // NEW: Create notifications for all students when SAT assessment is approved
+    try {
+      // For SAT assessments, notify all students (or you can filter by grade if needed)
+      const students = await User.find({ 
+        role: 'student' 
+      }).select('_id');
+
+      if (students.length > 0) {
+        const notifications = students.map(student => ({
+          studentId: student._id,
+          title: `New SAT ${assessment.sectionType} Assessment`,
+          message: `New ${assessment.satTitle} is now available for practice.`,
+          type: 'assessment_available',
+          metadata: {
+            subject: 'SAT',
+            sectionType: assessment.sectionType,
+            assessmentId: assessment._id,
+            assessmentType: 'sat'
+          }
+        }));
+
+        // Bulk insert notifications
+        await Notification.insertMany(notifications);
+        console.log(`Created ${notifications.length} SAT notifications for all students`);
+      }
+    } catch (notificationError) {
+      console.error('Error creating SAT notifications:', notificationError);
+      // Don't throw error - SAT assessment approval should still succeed
+    }
+
     res.json({ message: "SAT Assessment approved successfully" });
   } catch (err) {
     console.error("Error approving SAT assessment", err);
@@ -574,3 +604,45 @@ const rows = submissions
     res.status(500).json({ message: "Failed to fetch SAT progress" });
   }
 };
+
+
+//addedddddddddddd
+// ✅ Get the 5 most recent approved SAT assessments (for dashboard recent list)
+exports.getRecentSATAssessments = async (req, res) => {
+  try {
+    // Fetch last 5 approved SAT assessments with teacher name
+    const recent = await SatAssessment.find({ isApproved: true })
+      .sort({ createdAt: -1 })
+      .limit(5)
+      .populate("teacherId", "name email");
+
+    const formatted = recent.map((a) => ({
+      id: a._id,
+      title: a.satTitle,
+      subject: a.sectionType,
+      type: "SAT",
+      teacherName: a.teacherId?.name || "Unknown Teacher",
+      uploadedAgo: getTimeAgo(a.createdAt),
+      createdAt: a.createdAt,
+    }));
+
+    res.json(formatted);
+  } catch (error) {
+    console.error("Error fetching recent SAT assessments:", error);
+    res.status(500).json({ message: "Failed to load recent SAT assessments" });
+  }
+};
+
+// Utility function shared with standard assessment
+function getTimeAgo(date) {
+  const now = new Date();
+  const diffMs = now - date;
+  const diffMins = Math.floor(diffMs / (1000 * 60));
+  const diffHours = Math.floor(diffMins / 60);
+  const diffDays = Math.floor(diffHours / 24);
+
+  if (diffDays > 0) return `${diffDays} day${diffDays > 1 ? "s" : ""} ago`;
+  if (diffHours > 0) return `${diffHours} hour${diffHours > 1 ? "s" : ""} ago`;
+  if (diffMins > 0) return `${diffMins} minute${diffMins > 1 ? "s" : ""} ago`;
+  return "Just now";
+}
