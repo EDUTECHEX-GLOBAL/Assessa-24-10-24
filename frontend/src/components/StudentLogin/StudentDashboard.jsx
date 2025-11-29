@@ -21,7 +21,7 @@ import { Modal, Button } from "antd";
 import SatStudentStudyPlan from "./SatStudentStudyPlan"; 
 import SatStudentFeedback from './SatStudentFeedback';
 import SatProgress from './SatProgress';
-
+import SubscriptionBadge from './SubscriptionBadge'; // ✅ ADD THIS IMPORT
 
 const data = [
   { name: 'January', value: 20 },
@@ -251,7 +251,10 @@ export default function Dashboard() {
                 <div className="flex items-center space-x-2 group cursor-pointer">
                   <div className="text-right">
                     <p className="font-bold text-gray-800">{username || "Student"}</p>
-                    <p className="text-sm text-gray-500">Student</p>
+                    <div className="flex items-center justify-end">
+                      <p className="text-sm text-gray-500 mr-2">Student</p>
+                      <SubscriptionBadge /> {/* ✅ SUBSCRIPTION BADGE ADDED HERE */}
+                    </div>
                   </div>
                   <IoPersonCircleOutline className="text-4xl text-teal-600 transition-transform hover:scale-110" />
                 </div>

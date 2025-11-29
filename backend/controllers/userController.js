@@ -4,6 +4,7 @@ const crypto = require("crypto");
 const nodemailer = require("nodemailer");
 const Userwebapp = require("../models/webapp-models/userModel");
 const Admin = require("../models/webapp-models/adminModel");
+const SubscriptionPlan = require("../models/webapp-models/subscriptionPlanModel");
 const generateToken = require("../utils/generateToken");
 const { getSignedUrl } = require("../config/s3Upload");
 const sendEmail = require("../utils/mailer");
@@ -26,6 +27,7 @@ const registerUser = asyncHandler(async (req, res) => {
     pic = "https://icon-library.com/images/anonymous-avatar-icon/anonymous-avatar-icon-25.jpg";
   }
 
+  // FIXED: Create user first, then assign free plan asynchronously
   const user = await Userwebapp.create({
     name,
     email,
@@ -34,9 +36,20 @@ const registerUser = asyncHandler(async (req, res) => {
     pic,
     isAdminApproved: false,
     status: "pending",
+    // Don't assign subscription here - let it be assigned by the method
   });
 
   if (user) {
+    // ✅ Auto-assign free plan to new user (async - don't wait for it)
+    setTimeout(async () => {
+      try {
+        await user.assignFreePlan();
+        console.log(`✅ Free plan assigned to new user: ${user.email}`);
+      } catch (error) {
+        console.error("Error assigning free plan to new user:", error);
+      }
+    }, 1000);
+
     // ✅ ADD NOTIFICATION CREATION HERE
     try {
       const admin = await Admin.findOne();
@@ -54,8 +67,8 @@ const registerUser = asyncHandler(async (req, res) => {
         });
       }
     } catch (error) {
+      console.error("Notification error:", error);
     }
-    // ✅ END OF NOTIFICATION CODE
 
     // Notify admin about new student signup
     await sendEmail.sendAdminStudentSignupEmail(user.name, user.email);

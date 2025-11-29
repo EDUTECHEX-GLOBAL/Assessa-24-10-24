@@ -39,4 +39,27 @@ const assessmentSubmissionSchema = new mongoose.Schema({
   }
 });
 
+// ✅ AUTO-SYNC TOTAL ATTEMPTS WHEN SUBMISSIONS ARE DELETED
+assessmentSubmissionSchema.post('deleteOne', { document: true, query: false }, async function() {
+  try {
+    const Userwebapp = mongoose.model("Userwebapp");
+    const user = await Userwebapp.findById(this.studentId);
+    if (user) {
+      console.log(`🔄 Auto-syncing TOTAL attempts after deletion for user: ${user.email}`);
+      await user.syncTotalAttempts();
+    }
+  } catch (error) {
+    console.error("❌ Error auto-syncing after deletion:", error);
+  }
+});
+
+// Handle deleteMany operations
+assessmentSubmissionSchema.post('deleteMany', async function(result) {
+  try {
+    console.log("🔄 Bulk deletion detected - consider running manual sync for affected users");
+  } catch (error) {
+    console.error("❌ Error handling bulk deletion sync:", error);
+  }
+});
+
 module.exports = mongoose.model("AssessmentSubmission", assessmentSubmissionSchema);

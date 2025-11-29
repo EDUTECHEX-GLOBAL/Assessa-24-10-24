@@ -15,25 +15,27 @@ export default function AssessmentUploadForm({ onClose, onUploadSuccess }) {
 
   // Validate file type and size
   const validateFile = (file) => {
-    const validTypes = [
-      'application/pdf',
-      'application/msword',
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    ];
-    const maxSize = 10 * 1024 * 1024; // 10MB
+  const validTypes = [
+    'application/pdf',
+    'application/msword',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'text/markdown',
+    'text/x-markdown'
+  ];
+  const maxSize = 10 * 1024 * 1024; // 10MB
 
-    if (!validTypes.includes(file.type)) {
-      alert('Please upload a valid file type (PDF, DOC, DOCX)');
-      return false;
-    }
+  if (!validTypes.includes(file.type) && !file.name.endsWith('.md')) {
+    alert('Please upload a valid file type (PDF, DOC, DOCX, MD)');
+    return false;
+  }
 
-    if (file.size > maxSize) {
-      alert('File size exceeds 10MB limit');
-      return false;
-    }
+  if (file.size > maxSize) {
+    alert('File size exceeds 10MB limit');
+    return false;
+  }
 
-    return true;
-  };
+  return true;
+};
 
   // File input
   const handleFileChange = (e) => {
@@ -256,13 +258,13 @@ export default function AssessmentUploadForm({ onClose, onUploadSuccess }) {
                       type="file"
                       className="sr-only"
                       onChange={handleFileChange}
-                      accept=".pdf,.doc,.docx"
+                      accept=".pdf,.doc,.docx,.md"
                       required
                     />
                   </label>
                   <p className="pl-1">or drag and drop</p>
                 </div>
-                <p className="text-xs text-gray-500">PDF, DOC, DOCX up to 10MB</p>
+                <p className="text-xs text-gray-500">PDF, DOC, DOCX, MD up to 10MB</p>
               </div>
             </div>
 

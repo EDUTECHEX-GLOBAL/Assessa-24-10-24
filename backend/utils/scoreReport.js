@@ -80,13 +80,24 @@ const drawInfoCard = (doc, x, y, width, height, title, value, color = "#004D4D")
      .fillAndStroke("#fafafa", "#e0e0e0")
      .stroke();
   
-  // Add title
-  doc.font("Helvetica-Bold").fontSize(10).fillColor("#666")
-     .text(title.toUpperCase(), x + 10, y + 8, { width: width - 20 });
+  const padding = 10;
+  const contentWidth = width - (padding * 2);
   
-  // Add value
-  doc.font("Helvetica").fontSize(12).fillColor(color)
-     .text(value, x + 10, y + 22, { width: width - 20 });
+  // Add title
+  doc.font("Helvetica-Bold").fontSize(9).fillColor("#666");
+  const titleText = title.toUpperCase();
+  doc.text(titleText, x + padding, y + 8, { 
+    width: contentWidth,
+    align: 'left'
+  });
+  
+  // Add value - Use appropriate font size
+  doc.font("Helvetica").fontSize(10).fillColor(color);
+  const valueText = String(value || "—");
+  doc.text(valueText, x + padding, y + 22, { 
+    width: contentWidth,
+    align: 'left'
+  });
   
   return y + height;
 };
@@ -209,11 +220,16 @@ const generateStandardReport = async (submission, student = {}, assessment = {})
   // Header (logo + title with proper spacing)
   addHeader(doc, "Standard Assessment Report", "#004D4D");
 
-  // Student & Assessment Info section
+  // Student & Assessment Info section - FIXED LAYOUT
   const infoSectionTop = doc.y;
-  const cardWidth = 160;
+  
+  // Different widths for different content types
+  const studentNameCardWidth = 150;  // For student name
+  const assessmentCardWidth = 220;   // Wider for assessment names
+  const dateCardWidth = 100;         // Smaller for date
+  
   const cardHeight = 40;
-  const cardGap = 15;
+  const cardGap = 10;
   
   // First row of info cards
   const studentName = student?.name || "—";
@@ -223,19 +239,21 @@ const generateStandardReport = async (submission, student = {}, assessment = {})
   let currentX = doc.page.margins.left;
   let currentY = infoSectionTop;
   
-  // Draw info cards in a row
-  currentY = drawInfoCard(doc, currentX, currentY, cardWidth, cardHeight, "Student Name", studentName);
-  currentX += cardWidth + cardGap;
+  // Draw STUDENT NAME card
+  currentY = drawInfoCard(doc, currentX, currentY, studentNameCardWidth, cardHeight, "Student Name", studentName);
+  currentX += studentNameCardWidth + cardGap;
   
+  // Draw ASSESSMENT card (wider for long names)
   currentY = infoSectionTop; // Reset Y for second card
-  currentY = drawInfoCard(doc, currentX, currentY, cardWidth, cardHeight, "Assessment", assessmentName);
-  currentX += cardWidth + cardGap;
+  currentY = drawInfoCard(doc, currentX, currentY, assessmentCardWidth, cardHeight, "Assessment", assessmentName);
+  currentX += assessmentCardWidth + cardGap;
   
+  // Draw DATE card (smaller)
   currentY = infoSectionTop; // Reset Y for third card
-  currentY = drawInfoCard(doc, currentX, currentY, cardWidth, cardHeight, "Date", dateStr);
+  currentY = drawInfoCard(doc, currentX, currentY, dateCardWidth, cardHeight, "Date", dateStr);
   
   // Move cursor to below the info cards
-  doc.y = infoSectionTop + cardHeight + 15; // Reduced from 20 to 15
+  doc.y = infoSectionTop + cardHeight + 15;
 
   // Score summary section
   const score = submission?.score ?? 0;
@@ -250,8 +268,8 @@ const generateStandardReport = async (submission, student = {}, assessment = {})
 
   drawScoreCard(doc, scoreCardX, doc.y, scoreCardWidth, scoreCardHeight, score, totalMarks, percentage, "#004D4D");
   
-  // Move cursor below the score card - REDUCED GAP HERE
-  doc.y += scoreCardHeight + 15; // Reduced from 25 to 15
+  // Move cursor below the score card
+  doc.y += scoreCardHeight + 15;
 
   // Detailed responses table
   const responses = Array.isArray(submission?.responses) ? submission.responses : [];
@@ -300,11 +318,16 @@ const generateSatReport = async (submission, student = {}, assessment = {}) => {
 
   addHeader(doc, "SAT Score Report", "#00205B");
 
-  // Student info section with cards
+  // Student info section with cards - FIXED LAYOUT
   const infoSectionTop = doc.y;
-  const cardWidth = 160;
+  
+  // Different widths for different content types
+  const studentNameCardWidth = 150;  // For student name
+  const emailCardWidth = 200;        // Wider for email
+  const testDateCardWidth = 120;     // Smaller for date
+  
   const cardHeight = 40;
-  const cardGap = 15;
+  const cardGap = 10;
   
   const studentName = student?.name || "—";
   const studentEmail = student?.email || "—";
@@ -313,16 +336,18 @@ const generateSatReport = async (submission, student = {}, assessment = {}) => {
   let currentX = doc.page.margins.left;
   let currentY = infoSectionTop;
   
-  // Draw info cards in a row
-  currentY = drawInfoCard(doc, currentX, currentY, cardWidth, cardHeight, "Student Name", studentName, "#00205B");
-  currentX += cardWidth + cardGap;
+  // Draw STUDENT NAME card
+  currentY = drawInfoCard(doc, currentX, currentY, studentNameCardWidth, cardHeight, "Student Name", studentName, "#00205B");
+  currentX += studentNameCardWidth + cardGap;
   
+  // Draw EMAIL card
   currentY = infoSectionTop; // Reset Y for second card
-  currentY = drawInfoCard(doc, currentX, currentY, cardWidth, cardHeight, "Email", studentEmail, "#00205B");
-  currentX += cardWidth + cardGap;
+  currentY = drawInfoCard(doc, currentX, currentY, emailCardWidth, cardHeight, "Email", studentEmail, "#00205B");
+  currentX += emailCardWidth + cardGap;
   
+  // Draw TEST DATE card (smaller)
   currentY = infoSectionTop; // Reset Y for third card
-  currentY = drawInfoCard(doc, currentX, currentY, cardWidth, cardHeight, "Test Date", dateStr, "#00205B");
+  currentY = drawInfoCard(doc, currentX, currentY, testDateCardWidth, cardHeight, "Test Date", dateStr, "#00205B");
   
   // Move cursor to below the info cards
   doc.y = infoSectionTop + cardHeight + 20;
@@ -356,7 +381,7 @@ const generateSatReport = async (submission, student = {}, assessment = {}) => {
   
   drawScoreCard(doc, totalCardX, doc.y, totalCardWidth, scoreCardHeight, totalScaled, 1600, totalPercentage, "#00205B");
   
-  doc.y += scoreCardHeight + 15; // Reduced gap
+  doc.y += scoreCardHeight + 15;
 
   // Percentile statement
   const percentile = (submission?.percentage ?? 0) >= 80 ? 90 : (submission?.percentage ?? 0) >= 50 ? 70 : 40;

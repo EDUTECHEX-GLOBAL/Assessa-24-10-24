@@ -5,6 +5,7 @@ import ProctoringModal from "./ProctoringModal";
 import useProctoringManager from "./ProctoringManager";
 import ProctoringHeader from "./ProctoringHeader";
 import QuitConfirmationModal from "./QuitConfirmationModal";
+import SubscriptionWall from "./SubscriptionWall"; // NEW
 
 export default function AssessmentsPage({ onBackHome }) {
   // State declarations for assessments, current question, answers, timer, etc.
@@ -26,6 +27,10 @@ export default function AssessmentsPage({ onBackHome }) {
   const [showQuitConfirm, setShowQuitConfirm] = useState(false);
   const [autoSubmitReason, setAutoSubmitReason] = useState(null);
   const [showStartButton, setShowStartButton] = useState(false);
+  
+  // NEW SUBSCRIPTION STATES
+  const [showSubscriptionWall, setShowSubscriptionWall] = useState(false);
+  const [subscriptionUsage, setSubscriptionUsage] = useState(null);
   
   const timerRef = useRef(null);
   const navigate = useNavigate();
@@ -72,6 +77,7 @@ export default function AssessmentsPage({ onBackHome }) {
             }
           }),
           timeTaken: currentAssessment.timeLimit * 60 - timeLeft,
+          mode: selectedMode // ADDED: mode parameter
         };
       } else {
         payload = {
@@ -79,6 +85,7 @@ export default function AssessmentsPage({ onBackHome }) {
             selectedIndex !== null ? selectedIndex : -1 // -1 for unanswered
           ),
           timeTaken: currentAssessment.timeLimit * 60 - timeLeft,
+          mode: selectedMode // ADDED: mode parameter
         };
       }
       
@@ -161,6 +168,25 @@ export default function AssessmentsPage({ onBackHome }) {
     onSessionEnd: handleSessionEnd
   });
 
+  // NEW: Fetch subscription status
+  useEffect(() => {
+    const fetchSubscriptionStatus = async () => {
+      try {
+        const token = JSON.parse(localStorage.getItem("userInfo"))?.token;
+        const res = await fetch("/api/subscription/my-subscription", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = await res.json();
+        if (res.ok) {
+          setSubscriptionUsage(data.usage);
+        }
+      } catch (err) {
+        console.error("Error fetching subscription status:", err);
+      }
+    };
+    fetchSubscriptionStatus();
+  }, []);
+
   // Enable screen lock after component mounts and user has interacted
  useEffect(() => {
   if (currentAssessment && selectedMode === 'real' && proctoringManager.proctoringService && !submissionResult) {
@@ -183,41 +209,73 @@ export default function AssessmentsPage({ onBackHome }) {
 }, [currentAssessment, selectedMode, proctoringManager.proctoringService, submissionResult]);
 
   // Fetch assessments from API on component mount
-  useEffect(() => {
-    const fetchAssessments = async () => {
-      try {
-        const userInfo = JSON.parse(localStorage.getItem("userInfo"));
-        const token = userInfo?.token;
-        if (!token) {
-          toast.error("No token found. Please log in again.");
-          return;
-        }
-        
-        const standardRes = await fetch("/api/assessments/all", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const standardData = await standardRes.json();
-        if (Array.isArray(standardData)) {
-          setAssessments(standardData);
-        } else {
-          toast.error("Failed to load standard assessments");
-        }
-        
-        const satRes = await fetch("/api/sat-assessments/all", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const satData = await satRes.json();
-        if (Array.isArray(satData)) {
-          setSatAssessments(satData);
-        } else {
-          toast.error("Failed to load SAT assessments");
-        }
-      } catch (err) {
-        toast.error("Failed to load assessments");
+  // Fetch assessments from API on component mount
+useEffect(() => {
+  const fetchAssessments = async () => {
+    try {
+      const userInfo = JSON.parse(localStorage.getItem("userInfo"));
+      const token = userInfo?.token;
+      if (!token) {
+        toast.error("No token found. Please log in again.");
+        return;
       }
-    };
-    fetchAssessments();
-  }, []);
+      
+      const standardRes = await fetch("/api/assessments/all", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const standardData = await standardRes.json();
+      if (Array.isArray(standardData)) {
+        setAssessments(standardData);
+      } else {
+        toast.error("Failed to load standard assessments");
+      }
+      
+      const satRes = await fetch("/api/sat-assessments/all", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const satData = await satRes.json();
+      if (Array.isArray(satData)) {
+        setSatAssessments(satData);
+      } else {
+        toast.error("Failed to load SAT assessments");
+      }
+    } catch (err) {
+      toast.error("Failed to load assessments");
+    }
+  };
+  fetchAssessments();
+}, []);
+
+// NEW: Debug subscription state changes
+useEffect(() => {
+  console.log("🔍 DEBUG: subscriptionUsage updated:", subscriptionUsage);
+}, [subscriptionUsage]);
+
+// Timer effect for assessment countdown
+useEffect(() => {
+  if (!currentAssessment || timeLeft <= 0 || submissionResult) return;
+  
+  timerRef.current = setInterval(() => {
+    setTimeLeft((prev) => {
+      if (prev <= 1) {
+        clearInterval(timerRef.current);
+        handleSubmitAssessment();
+        return 0;
+      }
+      return prev - 1;
+    });
+  }, 1000);
+  
+  return () => clearInterval(timerRef.current);
+}, [currentAssessment, submissionResult]);
+
+const getViolationMessage = (reason) => {
+  const messages = {
+    'max_violations_reached': 'Multiple proctoring violations',
+    'fullscreen_exit_attempt': 'Repeated fullscreen exit attempts'
+  };
+  return messages[reason] || 'Proctoring policy violation';
+};
 
   // Timer effect for assessment countdown
   useEffect(() => {
@@ -237,33 +295,65 @@ export default function AssessmentsPage({ onBackHome }) {
     return () => clearInterval(timerRef.current);
   }, [currentAssessment, submissionResult]);
 
-  const getViolationMessage = (reason) => {
-    const messages = {
-      'max_violations_reached': 'Multiple proctoring violations',
-      'fullscreen_exit_attempt': 'Repeated fullscreen exit attempts'
-    };
-    return messages[reason] || 'Proctoring policy violation';
-  };
-
-  // Unified attempt function that shows mode selection first
+  // NEW: Unified attempt function with subscription check
   const handleAttemptClick = (assessment, isSAT = false) => {
     setSelectedAssessment({ ...assessment, type: isSAT ? "sat" : "standard" });
     setShowProctoringModal(true);
   };
 
-  // This function is called after mode selection
-  const handleModeSelected = async (mode) => {
+// This function is called after mode selection
+const handleModeSelected = async (mode) => {
   setShowProctoringModal(false);
   setSelectedMode(mode);
   
   try {
+    // ✅ CHECK SUBSCRIPTION FOR ALL MODES (BOTH test AND real)
+    const token = JSON.parse(localStorage.getItem("userInfo"))?.token;
+    
+    // Get fresh subscription data from API
+    const subscriptionRes = await fetch("/api/subscription/my-subscription", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    
+    if (subscriptionRes.ok) {
+      const subscriptionData = await subscriptionRes.json();
+      
+      console.log("🔍 Subscription Check:", {
+        canAttemptAssessment: subscriptionData.canAttemptAssessment,
+        subscriptionStatus: subscriptionData.subscription?.status,
+        planName: subscriptionData.subscription?.planId?.name,
+        totalAttemptsUsed: subscriptionData.usage?.totalAttemptsUsed,
+        maxTotalAttempts: subscriptionData.usage?.maxTotalAttempts
+      });
+      
+      // If user cannot attempt ANY assessment, show subscription wall
+      if (!subscriptionData.canAttemptAssessment) {
+        console.log("🔍 DEBUG: Showing subscription wall - total limit reached");
+        setShowSubscriptionWall(true);
+        return; // Stop here - don't proceed with assessment
+      }
+      
+      // If allowed, track the attempt (for ALL modes)
+      await trackAssessmentAttempt();
+      
+      // Update usage state after tracking
+      const updatedRes = await fetch("/api/subscription/my-subscription", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (updatedRes.ok) {
+        const updatedData = await updatedRes.json();
+        setSubscriptionUsage(updatedData.usage);
+      }
+    }
+    
+    // Proceed with assessment loading only if subscription allows
     if (selectedAssessment.type === "sat") {
       await handleAttemptSATAssessment(selectedAssessment._id);
     } else {
       await handleAttemptAssessment(selectedAssessment._id);
     }
     
-    // For real mode, show start button instead of auto-locking
+    // For real mode, show start button
     if (mode === "real") {
       setShowStartButton(true);
     }
@@ -271,6 +361,22 @@ export default function AssessmentsPage({ onBackHome }) {
     console.error("Failed to start assessment:", error);
   }
 };
+
+  // Track assessment attempt for ALL modes
+  const trackAssessmentAttempt = async () => {
+    try {
+      const token = JSON.parse(localStorage.getItem("userInfo"))?.token;
+      await fetch("/api/subscription/track-attempt", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+    } catch (err) {
+      console.error("Error tracking attempt:", err);
+    }
+  };
 
   // Handle standard assessment attempt
   const handleAttemptAssessment = async (assessmentId) => {
@@ -406,11 +512,13 @@ export default function AssessmentsPage({ onBackHome }) {
             }
           }),
           timeTaken: currentAssessment.timeLimit * 60 - timeLeft,
+          mode: selectedMode // ADDED: mode parameter
         };
       } else {
         payload = {
           answers: answers.map((selectedIndex) => selectedIndex !== null ? selectedIndex : -1),
           timeTaken: currentAssessment.timeLimit * 60 - timeLeft,
+          mode: selectedMode // ADDED: mode parameter
         };
       }
       
@@ -506,6 +614,7 @@ const forceSubmitAssessment = async () => {
           }
         }),
         timeTaken: currentAssessment.timeLimit * 60 - timeLeft,
+        mode: selectedMode // ADDED: mode parameter
       };
     } else {
       payload = {
@@ -513,6 +622,7 @@ const forceSubmitAssessment = async () => {
           selectedIndex !== null ? selectedIndex : -1 // -1 for unanswered
         ),
         timeTaken: currentAssessment.timeLimit * 60 - timeLeft,
+        mode: selectedMode // ADDED: mode parameter
       };
     }
     
@@ -864,6 +974,13 @@ const handleSubmitAssessment = async () => {
     );
   }
 
+  // NEW: Handle subscription upgrade
+  const handleUpgrade = (planId) => {
+    // For now, just show a message. You can integrate Stripe here later.
+    toast.info("Subscription upgrade feature coming soon!");
+    setShowSubscriptionWall(false);
+  };
+
   // Main assessments list view
   return (
     <div className="p-6 max-w-7xl mx-auto">
@@ -873,6 +990,15 @@ const handleSubmitAssessment = async () => {
         onModeSelect={handleModeSelected}
         assessment={selectedAssessment}
       />
+      
+      {/* NEW: Subscription Wall */}
+      {showSubscriptionWall && (
+        <SubscriptionWall
+          onUpgrade={handleUpgrade}
+          onCancel={() => setShowSubscriptionWall(false)}
+          attemptsUsed={subscriptionUsage?.realModeAttemptsUsed || 0}
+        />
+      )}
       
       <button
         onClick={onBackHome}

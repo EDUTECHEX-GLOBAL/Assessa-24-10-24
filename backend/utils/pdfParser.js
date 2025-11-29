@@ -1,9 +1,3 @@
-// parser.js
-//  - Parses PDF questions traditionally
-//  - Calls Mistral 70B via AWS Bedrock to generate new questions
-//  - Parses AI output into structured objects so `correctAnswer` is always present
-//  - Combines ~70% AI questions + ~30% original questions (rounded up for AI)
-
 const pdf = require('pdf-parse');
 const { Buffer } = require('buffer');
 const {
@@ -22,15 +16,15 @@ const bedrockClient = new BedrockRuntimeClient({
 
 // ——— Helper: Parse a single AI-generated question block into an object ———
 function parseAIQuestionBlock(block) {
-  // Example block:
-  // "1. What is X?\nA. Option1\nB. Option2\nC. Option3\nD. Option4\nCorrect: B"
   const lines = block
     .trim()
     .split('\n')
     .map(l => l.trim())
     .filter(Boolean);
 
-  // First line: “1. Question text?”
+  if (lines.length === 0) return null;
+
+  // First line: "1. Question text?"
   let questionText = lines[0].replace(/^\d+\.\s*/, '').trim();
 
   const options = [];
@@ -39,7 +33,7 @@ function parseAIQuestionBlock(block) {
   // Iterate subsequent lines to collect A.–D. and Correct:
   for (let i = 1; i < lines.length; i++) {
     const line = lines[i];
-    const optMatch = line.match(/^([A-D])\.\s*(.+)$/i);
+    const optMatch = line.match(/^([A-D])[\.\)]\s*(.+)$/i);
     if (optMatch) {
       options.push(optMatch[2].trim());
       continue;
@@ -60,13 +54,12 @@ function parseAIQuestionBlock(block) {
     options,
     correctAnswer,
     marks: 1,
-    type: "mcq" // ✅ <— add this
+    type: "mcq"
   };
 }
 
 // ——— Call Bedrock to generate new questions ———
 async function callBedrockForQuestions(originalQuestions) {
-  // originalQuestions is an array of objects with { questionText, ... }
   const inputQuestions = originalQuestions
     .map((q, idx) => `${idx + 1}. ${q.questionText}`)
     .join('\n');
@@ -95,7 +88,6 @@ Now generate the new questions:
 `;
 
   console.log('📤 Sending prompt to Bedrock (Mistral 70B)...');
-  console.log('--- PROMPT START ---\n' + prompt + '\n--- PROMPT END ---');
 
   const command = new InvokeModelCommand({
     modelId: 'mistral.mistral-large-2402-v1:0',
@@ -114,12 +106,9 @@ Now generate the new questions:
     const rawBody = new TextDecoder().decode(response.body);
     const responseBody = JSON.parse(rawBody);
 
-    console.log('📥 Raw model response:', responseBody);
-
-    // Mistral returns text in outputs[0].text
     const generatedText = responseBody.outputs?.[0]?.text || '';
 
-    // Split by lines that start with a number and dot (“1. ”, “2. ”, …)
+    // Split by lines that start with a number and dot ("1. ", "2. ", …)
     const rawBlocks = generatedText
       .split(/\n(?=\d+\.\s)/)
       .map(q => q.trim())
@@ -134,11 +123,130 @@ Now generate the new questions:
     return parsedAIQuestions;
   } catch (err) {
     console.error('❌ Bedrock call failed:', err);
-    return []; // return empty array so code can continue
+    return [];
   }
 }
 
-// ——— Traditional parser ———
+// ——— FLEXIBLE: Markdown Parser ———
+function parseMarkdownToQuestions(markdownText) {
+  console.log('🔍 Starting FIXED Markdown parsing...');
+  
+  const questions = [];
+  
+  // BETTER markdown cleaning - handle bold text properly
+  const cleanText = markdownText
+    .replace(/\*\*Correct:\*\*/g, 'Correct:')  // Fix **Correct:** specifically
+    .replace(/\*\*(.*?)\*\*/g, '$1')           // Remove other **bold**
+    .replace(/\*(.*?)\*/g, '$1')               // Remove *italic*
+    .replace(/#+\s*(.*?)\n/g, '')              // Remove headers
+    .replace(/-{3,}/g, '')                     // Remove horizontal rules
+    .replace(/`{3}.*?`{3}/gs, '')              // Remove code blocks
+    .replace(/`(.*?)`/g, '$1')                 // Remove inline code
+    .replace(/\n\s*\n/g, '\n')                 // Normalize line breaks
+    .trim();
+
+  console.log('📄 Cleaned Markdown preview:', cleanText.substring(0, 500));
+
+  // Split by questions - more reliable approach
+  const lines = cleanText.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+  
+  let currentQuestion = null;
+  let collectingOptions = false;
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    
+    // Detect question start
+    const questionMatch = line.match(/^(\d+)[\.\)]\s*(.+)$/);
+    if (questionMatch) {
+      // Save previous question if exists
+      if (currentQuestion && currentQuestion.options.length >= 2 && currentQuestion.correctAnswer !== null) {
+        questions.push(currentQuestion);
+        console.log(`✅ Added question: ${currentQuestion.questionText.substring(0, 50)}...`);
+      }
+      
+      // Start new question
+      currentQuestion = {
+        questionText: questionMatch[2],
+        options: [],
+        correctAnswer: null,
+        marks: 1,
+        type: "mcq",
+        fromAI: false
+      };
+      collectingOptions = true;
+      console.log(`\n🔍 New question: ${currentQuestion.questionText.substring(0, 80)}...`);
+      continue;
+    }
+
+    // If we're in a question block, process options and answers
+    if (currentQuestion && collectingOptions) {
+      // Option detection
+      const optionMatch = line.match(/^([A-D])[\.\)]\s*(.+)$/i);
+      if (optionMatch) {
+        currentQuestion.options.push(optionMatch[2].trim());
+        console.log(`✅ Option ${optionMatch[1]}: ${optionMatch[2].substring(0, 50)}`);
+        continue;
+      }
+
+      // Correct answer detection - handle multiple formats
+      const correctPatterns = [
+        /Correct:\s*([A-D])/i,
+        /Answer:\s*([A-D])/i,
+        /Right:\s*([A-D])/i,
+        /Key:\s*([A-D])/i,
+        /Solution:\s*([A-D])/i,
+      ];
+
+      let foundCorrect = false;
+      for (const pattern of correctPatterns) {
+        const answerMatch = line.match(pattern);
+        if (answerMatch && currentQuestion.correctAnswer === null) {
+          const answerLetter = answerMatch[1].toUpperCase();
+          if (['A', 'B', 'C', 'D'].includes(answerLetter)) {
+            currentQuestion.correctAnswer = ['A', 'B', 'C', 'D'].indexOf(answerLetter);
+            console.log(`🎯 Correct answer: ${answerLetter} (index: ${currentQuestion.correctAnswer})`);
+            foundCorrect = true;
+            // Don't break - we found the answer, but continue processing this line for other patterns
+          }
+        }
+      }
+
+      // If we found a correct answer on this line, check if we should stop collecting
+      if (foundCorrect) {
+        // Check if next line starts a new question
+        if (i + 1 < lines.length && lines[i + 1].match(/^\d+[\.\)]/)) {
+          collectingOptions = false;
+        }
+      }
+
+      // Stop collecting if we hit another question number
+      if (i + 1 < lines.length && lines[i + 1].match(/^\d+[\.\)]/)) {
+        collectingOptions = false;
+      }
+    }
+  }
+
+  // Don't forget the last question
+  if (currentQuestion && currentQuestion.options.length >= 2 && currentQuestion.correctAnswer !== null) {
+    questions.push(currentQuestion);
+    console.log(`✅ Added final question: ${currentQuestion.questionText.substring(0, 50)}...`);
+  }
+
+  console.log(`\n✅ FINAL: Parsed ${questions.length} questions from Markdown`);
+  
+  if (questions.length === 0) {
+    console.log('❌ DEBUG: No questions parsed. Let me check the line-by-line processing...');
+    console.log('--- LINES DEBUG START ---');
+    lines.forEach((line, index) => {
+      console.log(`${index}: "${line}"`);
+    });
+    console.log('--- LINES DEBUG END ---');
+  }
+  
+  return questions;
+}
+// ——— Traditional PDF parser ———
 const parseWithTraditional = async (pdfBuffer) => {
   const data = await pdf(pdfBuffer);
   const text = data.text.replace(/\r\n/g, '\n');
@@ -181,27 +289,39 @@ const parseWithTraditional = async (pdfBuffer) => {
         options: q.options,
         correctAnswer: idx,
         marks: 1,
-        type: "mcq",  // ✅ Add this for PDF-extracted questions too
-        fromAI: false,          // <── add this (true in the AI branch)
-        // topic: detectTopic(questionText) // optional helper
+        type: "mcq",
+        fromAI: false,
       };
     })
     .filter(Boolean);
 };
 
-// ——— Main export: combine ~70% AI + ~30% PDF-parsed originals ———
-const parsePDFToQuestions = async (pdfBuffer) => {
+// ——— Main export: combine ~70% AI + ~30% original questions ———
+const parsePDFToQuestions = async (fileBuffer, fileType = 'pdf') => {
   try {
-    // 1. Parse all questions from PDF
-    const all = await parseWithTraditional(pdfBuffer);
+    console.log(`🔄 Starting ${fileType.toUpperCase()} parsing...`);
+    
+    let all = [];
 
-    // 2. Determine how many to pick (half of parsed count)
+    if (fileType === 'pdf') {
+      all = await parseWithTraditional(fileBuffer);
+    } else if (fileType === 'markdown') {
+      const markdownText = fileBuffer.toString('utf8');
+      all = parseMarkdownToQuestions(markdownText);
+    } else {
+      throw new Error(`Unsupported file type: ${fileType}`);
+    }
+
+    if (!all || all.length === 0) {
+      throw new Error(`No questions extracted from ${fileType.toUpperCase()} file`);
+    }
+
+    console.log(`✅ Extracted ${all.length} questions from ${fileType.toUpperCase()}`);
+
+    // If we have questions, proceed with AI generation
     const desiredCount = Math.ceil(all.length / 2);
-
-    // 3. Shuffle the entire list of originals
     const shuffled = all.sort(() => Math.random() - 0.5);
 
-    // 4. Pick 'desiredCount' unique originals
     const selectedUnique = [];
     const seen = new Set();
     for (const q of shuffled) {
@@ -212,7 +332,6 @@ const parsePDFToQuestions = async (pdfBuffer) => {
       if (selectedUnique.length >= desiredCount) break;
     }
 
-    // 5. If not enough unique, fill with duplicates
     if (selectedUnique.length < desiredCount) {
       for (const q of shuffled) {
         if (selectedUnique.length >= desiredCount) break;
@@ -225,17 +344,13 @@ const parsePDFToQuestions = async (pdfBuffer) => {
 
     console.log(`✅ Selected ${selectedUnique.length}/${desiredCount} originals`);
 
-    // 6. Ask AI (Mistral) to generate new questions
+    // Ask AI to generate new questions
     const aiGenerated = await callBedrockForQuestions(selectedUnique);
 
-    // 7. Compute how many AI vs. original we want:
-    //    ~70% of desiredCount from AI (rounded up), remaining from originals
-    const totalWanted = selectedUnique.length; // e.g. 10
-    const aiCount = Math.ceil(totalWanted * 0.7); // e.g. 7
-    const origCount = totalWanted - aiCount;      // e.g. 3
+    const totalWanted = selectedUnique.length;
+    const aiCount = Math.ceil(totalWanted * 0.7);
+    const origCount = totalWanted - aiCount;
 
-    // 8. Filter out any AI questions that exactly match an original’s text,
-    //    until we collect aiCount valid AI questions.
     const aiTaken = [];
     const originalTexts = new Set(selectedUnique.map((o) => o.questionText));
     for (const aiQ of aiGenerated) {
@@ -245,22 +360,14 @@ const parsePDFToQuestions = async (pdfBuffer) => {
       }
     }
 
-    // If AI didn't produce enough unique questions, we take as many as it gave:
-    //    remaining slots get filled by original questions
     const finalOrigCount = origCount + (aiCount - aiTaken.length);
-    //    (if aiTaken.length < aiCount, we subtract the missing AI from origCount)
-
-    // 9. From selectedUnique, pick 'finalOrigCount' originals.
-    //    We’ll simply take the first N originals (they were already shuffled & deduped).
     const origTaken = selectedUnique.slice(0, finalOrigCount);
-
-    // 10. Combine them (AI first, then originals)
     const combined = [...aiTaken.slice(0, aiCount), ...origTaken.slice(0, finalOrigCount)];
 
-    console.log(`🔗 Returning ${combined.length} questions total.`);
+    console.log(`🔗 Returning ${combined.length} questions total from ${fileType.toUpperCase()}`);
     return combined;
   } catch (err) {
-    console.error('❌ parsePDFToQuestions failed:', err);
+    console.error(`❌ parse${fileType.toUpperCase()}ToQuestions failed:`, err);
     throw err;
   }
 };

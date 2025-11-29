@@ -1,7 +1,7 @@
 const asyncHandler = require("express-async-handler");
 const AssessmentUpload = require("../models/webapp-models/assessmentuploadformModel");
 const AssessmentSubmission = require('../models/webapp-models/assessmentSubmissionModel');
-const User = require("../models/webapp-models/userModel");
+const Userwebapp = require("../models/webapp-models/userModel");
 const { uploadToS3, getSignedUrl, deleteFromS3 } = require("../config/s3Upload");
 const { parsePDFToQuestions } = require('../utils/pdfParser');
 const Feedback = require("../models/webapp-models/FeedbackModel");
@@ -26,17 +26,20 @@ const uploadAssessment = asyncHandler(async (req, res) => {
     throw new Error("Only teachers can upload assessments");
   }
 
+  // Determine file type
+  const fileType = file.mimetype === 'text/markdown' || file.originalname.endsWith('.md') ? 'markdown' : 'pdf';
+
   // Upload to S3
   const { key } = await uploadToS3(file);
 
-  // Parse questions from PDF
-  const questions = await parsePDFToQuestions(file.buffer);
+  // Parse questions based on file type
+  const questions = await parsePDFToQuestions(file.buffer, fileType);
   if (!questions || questions.length === 0) {
     res.status(400);
-    throw new Error("No questions extracted or generated.");
+    throw new Error(`No questions extracted from ${fileType.toUpperCase()} file.`);
   }
 
-  // 🆕 Create 4 difficulty versions
+  // Create 4 difficulty versions (existing logic)
   const difficulties = ["easy", "medium", "hard", "very hard"];
   const createdAssessments = [];
 
@@ -49,14 +52,15 @@ const uploadAssessment = asyncHandler(async (req, res) => {
       fileUrl: key,
       questions,
       timeLimit: timeLimit || 30,
-      difficulty,       // ✅ new field
-      isApproved: false
+      difficulty,
+      isApproved: false,
+      fileType // ✅ Add file type for tracking
     });
     createdAssessments.push(assessment);
   }
 
   res.status(201).json({
-    message: "Assessment uploaded with all difficulty levels. Pending review.",
+    message: `Assessment uploaded with all difficulty levels from ${fileType.toUpperCase()}. Pending review.`,
     assessments: createdAssessments
   });
 });
@@ -284,7 +288,7 @@ const getAssessmentForAttempt = asyncHandler(async (req, res) => {
 // @route   POST /api/assessments/:id/submit
 // @access  Private (Student)
 const submitAssessment = asyncHandler(async (req, res) => {
-  const { answers, timeTaken } = req.body;
+  const { answers, timeTaken,  mode = "test" } = req.body;
   const assessmentId = req.params.id;
   const studentId = req.user._id;
 
@@ -331,14 +335,24 @@ const submitAssessment = asyncHandler(async (req, res) => {
   const percentage = totalMarks > 0 ? (score / totalMarks) * 100 : 0;
 
   const submission = await AssessmentSubmission.create({
-    assessmentId,
-    studentId,
-    responses, // ✅ store full data
-    score,
-    totalMarks,
-    percentage: parseFloat(percentage.toFixed(2)),
-    timeTaken,
-  });
+  assessmentId,
+  studentId,
+  responses,
+  score,
+  totalMarks,
+  percentage: parseFloat(percentage.toFixed(2)),
+  timeTaken,
+  proctoringData: {
+    mode: mode, // Add this line - get mode from req.body
+    violationCount: 0,
+    sessionDuration: timeTaken
+  }
+});
+
+// ADD THIS AFTER submission creation:
+const user = await Userwebapp.findById(studentId);
+await user.syncTotalAttempts();
+  
   
   // ✅ Generate PDF + Send Email
   try {

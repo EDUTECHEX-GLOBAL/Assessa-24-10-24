@@ -23,7 +23,6 @@ const allowedOrigins = [
 const corsOptions = {
   origin: function (origin, callback) {
     const cleanedOrigin = origin?.replace(/\/$/, ""); // Remove trailing slash
-    console.log("CORS Origin:", cleanedOrigin);
 
     if (!origin || allowedOrigins.includes(cleanedOrigin)) {
       callback(null, true);
@@ -63,6 +62,7 @@ const generatedAssessmentCountRoutes = require("./routes/generatedAssessmentCoun
 const studentAttemptedAssessmentsRoutes = require("./routes/studentAttemptedAssessmentsRoutes");
 const proctoringRoutes = require("./routes/proctoringRoutes");
 const adminNotificationRoutes = require("./routes/adminNotificationRoutes");
+const subscriptionRoutes = require("./routes/subscriptionRoutes");
 
 
 
@@ -88,6 +88,7 @@ app.use("/api/generated-assessments", generatedAssessmentCountRoutes);
 app.use("/api/attempts", studentAttemptedAssessmentsRoutes);
 app.use("/api/proctoring", proctoringRoutes);
 app.use("/api/admin/notifications", adminNotificationRoutes);
+app.use("/api/subscription", subscriptionRoutes);
 
 
 

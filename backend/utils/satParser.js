@@ -82,7 +82,87 @@ function detectSections(fullText) {
   return sections;
 }
 
+// ==================== NEW: SAT MARKDOWN PARSER ====================
 
+function parseSATMarkdownToQuestions(markdownText, sectionType) {
+  const questions = [];
+  const isMath = sectionType.includes('math');
+  
+  // Split by passages (for reading/writing) or question blocks (for math)
+  const blocks = markdownText.split(/(?=^Passage:\s*|^\d+\.\s)/mi);
+  
+  let currentPassage = '';
+
+  for (const block of blocks) {
+    const lines = block.trim().split('\n').map(line => line.trim()).filter(Boolean);
+    if (lines.length === 0) continue;
+
+    // Handle passages for reading/writing sections
+    if (!isMath && /^Passage:\s*/i.test(lines[0])) {
+      currentPassage = lines[0].replace(/^Passage:\s*/i, '').trim();
+      // Check if passage continues on next lines
+      for (let i = 1; i < lines.length; i++) {
+        if (/^\d+\.\s/.test(lines[i])) break;
+        currentPassage += ' ' + lines[i];
+      }
+      currentPassage = currentPassage.trim();
+      continue;
+    }
+
+    // Extract question
+    const firstLineMatch = lines[0].match(/^(\d+)\.\s*(.+)$/);
+    if (!firstLineMatch) continue;
+
+    const questionText = firstLineMatch[2];
+    const options = [];
+    let correctAnswer = null;
+    let type = isMath ? 'grid_in' : 'mcq';
+
+    // Process options and answers
+    for (let i = 1; i < lines.length; i++) {
+      const line = lines[i];
+      
+      // Option detection for MCQ
+      const optionMatch = line.match(/^([A-D])\.\s*(.+)$/i);
+      if (optionMatch) {
+        options.push(optionMatch[2].trim());
+        type = 'mcq';
+        continue;
+      }
+
+      // Correct answer detection
+      const answerMatch = line.match(/^Correct:\s*([A-D0-9\.\/\-]+)/i);
+      if (answerMatch) {
+        correctAnswer = answerMatch[1];
+      }
+    }
+
+    // Create question object
+    if (type === 'mcq' && options.length === 4 && correctAnswer !== null) {
+      questions.push({
+        type: 'mcq',
+        questionText,
+        passage: !isMath ? currentPassage : '',
+        options,
+        correctAnswer: ['A', 'B', 'C', 'D'].indexOf(correctAnswer.toUpperCase()),
+        marks: 1,
+        fromAI: false
+      });
+    } else if (type === 'grid_in' && correctAnswer) {
+      questions.push({
+        type: 'grid_in',
+        questionText,
+        passage: '',
+        correctAnswer: String(correctAnswer),
+        marks: 1,
+        fromAI: false
+      });
+    }
+  }
+
+  console.log(`✅ Parsed ${questions.length} questions from SAT Markdown for ${sectionType}`);
+  return questions;
+}
 
 // ==================== QUESTION PARSING ====================
 
@@ -422,23 +502,31 @@ Return only the blocks exactly in the format above.
 
 // ==================== MAIN FUNCTIONS ====================
 
-async function parseSATAssessment(pdfBuffer, sectionType, difficulty = 'medium') {
+async function parseSATAssessment(fileBuffer, sectionType, difficulty = 'medium', fileType = 'pdf') {
   try {
-    console.log(`📄 Parsing SAT Section: ${sectionType} (difficulty: ${difficulty})`);
-    const data = await pdf(pdfBuffer);
-    const sections = detectSections(data.text);
-
-    if (!sections[sectionType] || sections[sectionType].start === -1) {
-      console.warn(`⚠️ Section not found: ${sectionType}. Using full PDF as fallback.`);
-      sections[sectionType] = { start: 0, end: data.text.length, content: data.text, header: 'Full PDF (fallback)' };
-    }
-
-
+    console.log(`📄 Parsing SAT ${fileType.toUpperCase()}: ${sectionType} (difficulty: ${difficulty})`);
+    
     let originalQuestions = [];
-    if (sectionType === 'reading' || sectionType === 'writing') {
-      originalQuestions = parseReadingWritingQuestions(sections[sectionType].content);
+    
+    if (fileType === 'markdown') {
+      // Parse from Markdown
+      const markdownText = fileBuffer.toString('utf8');
+      originalQuestions = parseSATMarkdownToQuestions(markdownText, sectionType);
     } else {
-      originalQuestions = parseMathQuestions(sections[sectionType].content, sectionType);
+      // Parse from PDF (existing logic)
+      const data = await pdf(fileBuffer);
+      const sections = detectSections(data.text);
+
+      if (!sections[sectionType] || sections[sectionType].start === -1) {
+        console.warn(`⚠️ Section not found: ${sectionType}. Using full PDF as fallback.`);
+        sections[sectionType] = { start: 0, end: data.text.length, content: data.text, header: 'Full PDF (fallback)' };
+      }
+
+      if (sectionType === 'reading' || sectionType === 'writing') {
+        originalQuestions = parseReadingWritingQuestions(sections[sectionType].content);
+      } else {
+        originalQuestions = parseMathQuestions(sections[sectionType].content, sectionType);
+      }
     }
 
     if (originalQuestions.length === 0) {
@@ -449,15 +537,29 @@ async function parseSATAssessment(pdfBuffer, sectionType, difficulty = 'medium')
     const aiQuestions = await generateAIQuestions(originalQuestions, sectionType, difficulty);
     return aiQuestions;
   } catch (err) {
-    console.error(`❌ Error parsing ${sectionType}:`, err);
+    console.error(`❌ Error parsing ${fileType.toUpperCase()} ${sectionType}:`, err);
     return [];
   }
 }
 
-async function parseSATAssessmentCombined(pdfBuffer, difficulty = 'medium') {
+async function parseSATAssessmentCombined(fileBuffer, difficulty = 'medium', fileType = 'pdf') {
   try {
-    const data = await pdf(pdfBuffer);
-    const sections = detectSections(data.text);
+    let sections = {};
+    
+    if (fileType === 'markdown') {
+      // For Markdown, we'll parse all sections from the same file
+      const markdownText = fileBuffer.toString('utf8');
+      sections = {
+        reading: { content: markdownText },
+        writing: { content: markdownText },
+        math_no_calc: { content: markdownText },
+        math_calc: { content: markdownText }
+      };
+    } else {
+      // For PDF, use existing section detection
+      const data = await pdf(fileBuffer);
+      sections = detectSections(data.text);
+    }
 
     const sectionTypes = ['reading', 'writing', 'math_no_calc', 'math_calc'];
 
@@ -498,8 +600,6 @@ async function parseSATAssessmentCombined(pdfBuffer, difficulty = 'medium') {
     return [];
   }
 }
-
-
 
 module.exports = {
   parseSATAssessment,

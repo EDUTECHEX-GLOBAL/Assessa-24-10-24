@@ -39,4 +39,27 @@ const satSubmissionSchema = new mongoose.Schema({
   }
 }, { timestamps: true });
 
+// ✅ AUTO-SYNC TOTAL ATTEMPTS WHEN SAT SUBMISSIONS ARE DELETED
+satSubmissionSchema.post('deleteOne', { document: true, query: false }, async function() {
+  try {
+    const Userwebapp = mongoose.model("Userwebapp");
+    const user = await Userwebapp.findById(this.studentId);
+    if (user) {
+      console.log(`🔄 Auto-syncing TOTAL attempts after SAT deletion for user: ${user.email}`);
+      await user.syncTotalAttempts();
+    }
+  } catch (error) {
+    console.error("❌ Error auto-syncing after SAT deletion:", error);
+  }
+});
+
+// Handle deleteMany operations for SAT submissions
+satSubmissionSchema.post('deleteMany', async function(result) {
+  try {
+    console.log("🔄 Bulk SAT deletion detected - consider running manual sync");
+  } catch (error) {
+    console.error("❌ Error handling bulk SAT deletion sync:", error);
+  }
+});
+
 module.exports = mongoose.model("SatSubmission", satSubmissionSchema);

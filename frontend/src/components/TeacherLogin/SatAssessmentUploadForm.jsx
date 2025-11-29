@@ -126,11 +126,11 @@ export default function SatAssessmentUploadForm({ onClose }) {
                 type="file"
                 className="sr-only"
                 onChange={handleFileChange}
-                accept=".pdf"
+                accept=".pdf,.md"
                 required
               />
             </label>
-            <p className="text-xs text-gray-500">PDF only, max 10MB</p>
+            <p className="text-xs text-gray-500">PDF, MD only, max 10MB</p>
           </div>
         </div>
         {fileName && (

@@ -5,7 +5,7 @@ const SatSubmission = require("../models/webapp-models/satSubmissionModel");
 const SatFeedback = require("../models/webapp-models/satFeedbackModel");
 const { generateScoreReportPDF } = require("../utils/scoreReport");
 const sendEmail = require("../utils/mailer");
-const User = require("../models/webapp-models/userModel");
+const Userwebapp = require("../models/webapp-models/userModel");
 
 
 
@@ -19,28 +19,30 @@ exports.uploadSATAssessment = async (req, res) => {
       return res.status(400).json({ message: "Missing required fields." });
     }
 
-    console.log("📥 Uploading SAT PDF for:", satTitle);
+    console.log("📥 Uploading SAT file for:", satTitle);
 
-    // ✅ Upload to S3
+    // Determine file type
+    const fileType = req.file.mimetype === 'text/markdown' || req.file.originalname.endsWith('.md') ? 'markdown' : 'pdf';
+
+    // Upload to S3
     const { key } = await uploadToS3(req.file, "sat");
     console.log("📤 S3 Upload Key:", key);
 
-    // ✅ Respond immediately (do NOT await generation)
+    // Respond immediately
     res.status(202).json({
-      message:
-        "SAT assessment uploaded. Generating difficulty variants in the background. You’ll see them in the Review page when ready.",
+      message: `SAT assessment uploaded. Generating difficulty variants from ${fileType.toUpperCase()} in the background.`,
       satTitle,
       sectionType,
       fileKey: key,
+      fileType
     });
 
-    // 🔥 Continue in background — non-blocking
+    // Background processing with file type support
     (async () => {
       const difficulties = ["easy", "medium", "hard", "very hard"];
 
-      // You can flip this to Promise.allSettled if you want to generate all difficulties in parallel.
       for (const difficulty of difficulties) {
-        console.log(`🔄 [BG] Generating difficulty: ${difficulty}`);
+        console.log(`🔄 [BG] Generating ${fileType.toUpperCase()} difficulty: ${difficulty}`);
         let questions = [];
         let attempts = 0;
 
@@ -48,21 +50,17 @@ exports.uploadSATAssessment = async (req, res) => {
           attempts++;
           try {
             if (sectionType === "all") {
-              questions = await parseSATAssessmentCombined(req.file.buffer, difficulty);
+              questions = await parseSATAssessmentCombined(req.file.buffer, difficulty, fileType);
             } else {
-              questions = await parseSATAssessment(req.file.buffer, sectionType, difficulty);
+              questions = await parseSATAssessment(req.file.buffer, sectionType, difficulty, fileType);
             }
           } catch (err) {
             console.error(`❌ [BG] Error generating ${difficulty} (attempt ${attempts}):`, err.message);
           }
-
-          if (!questions || questions.length === 0) {
-            console.warn(`⚠️ [BG] Attempt ${attempts} failed for difficulty: ${difficulty}`);
-          }
         }
 
         if (!questions || questions.length === 0) {
-          console.error(`❌ [BG] Skipping ${difficulty} — no valid questions generated after retries`);
+          console.error(`❌ [BG] Skipping ${difficulty} — no valid questions generated`);
           continue;
         }
 
@@ -74,28 +72,27 @@ exports.uploadSATAssessment = async (req, res) => {
             difficulty,
             questions,
             fileUrl: key,
-            isApproved: false
+            isApproved: false,
+            fileType // ✅ Add file type tracking
           });
 
           await assessment.save();
-          console.log(`✅ [BG] Saved ${difficulty} with ${questions.length} questions`);
+          console.log(`✅ [BG] Saved ${difficulty} with ${questions.length} questions from ${fileType.toUpperCase()}`);
         } catch (saveErr) {
           console.error(`❌ [BG] Failed to save ${difficulty} assessment:`, saveErr.message);
         }
       }
 
-      console.log(`🏁 [BG] Generation completed for: ${satTitle}`);
+      console.log(`🏁 [BG] ${fileType.toUpperCase()} generation completed for: ${satTitle}`);
     })().catch(e => console.error("❌ [BG] Uncaught generation error:", e));
 
   } catch (err) {
     console.error("❌ SAT upload error:", err);
-    // If an error happens before we send the response, return 500
     if (!res.headersSent) {
       res.status(500).json({ message: "Internal server error during SAT upload." });
     }
   }
 };
-
 
 // Get all SAT assessments by logged-in teacher
 exports.getMySATAssessments = async (req, res) => {
@@ -250,7 +247,7 @@ exports.getSatAssessmentSubmissions = async (req, res) => {
       return res.status(403).json({ message: "Not authorized to view submissions" });
     }
 
-    const submissions = await SatAssessmentSubmission.find({
+    const submissions = await SatSubmission.find({
       assessmentId: req.params.id,
     }).populate("studentId", "name email");
 
@@ -275,7 +272,7 @@ exports.getSatAssessmentSubmissions = async (req, res) => {
 // @access  Private (Student)
 exports.submitSatAssessment = async (req, res) => {
   try {
-    const { answers, timeTaken } = req.body;
+    const { answers, timeTaken, mode = "test" } = req.body;
     const studentId = req.user._id;
 
     // Validate input
@@ -360,16 +357,25 @@ exports.submitSatAssessment = async (req, res) => {
     const percentage = (score / totalMarks) * 100;
 
     const submission = new SatSubmission({
-      studentId,
-      assessmentId: assessment._id,
-      responses,
-      score,
-      totalMarks,
-      percentage: parseFloat(percentage.toFixed(2)),
-      timeTaken
-    });
+  studentId,
+  assessmentId: assessment._id,
+  responses,
+  score,
+  totalMarks,
+  percentage: parseFloat(percentage.toFixed(2)),
+  timeTaken,
+  proctoringData: {
+    mode: mode, // Add this line
+    violationCount: 0,
+    sessionDuration: timeTaken
+  }
+});
 
-    await submission.save();
+await submission.save();
+
+// ADD THIS AFTER submission save:
+const user = await Userwebapp.findById(studentId);
+await user.syncTotalAttempts();
    
 // ✅ Generate PDF + Send Email
 
